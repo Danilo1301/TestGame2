@@ -41,8 +41,6 @@ class PacketListener {
 
 export class Network extends BaseObject
 {
-    public static SERVER_ADDRESS: string = "https://testgame2.glitch.me";
-
     public get socket() { return this._socket; }
 
     private _socket!: Socket;
@@ -165,8 +163,7 @@ export class Network extends BaseObject
 
     public getAddress()
     {
-        if(location.host.includes('localhost') || location.host.includes(':')) return `${location.protocol}//${location.host}/`;
-        return `${Network.SERVER_ADDRESS}`;
+        return `${location.protocol}//${location.host}`;
     }
 
     public update(delta: number)
