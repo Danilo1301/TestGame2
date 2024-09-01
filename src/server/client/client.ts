@@ -2,7 +2,7 @@ import socketio, { Socket } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import { BaseObject } from '../../utils/baseObject';
 import { User } from '../user/user';
-import { IPacket, IPacketData, IPacketData_JoinedServer, PACKET_TYPE } from '../../game/network/packet';
+import { IPacket, IPacketData, IPacketData_JoinedServer, IPacketData_Models, PACKET_TYPE } from '../../game/network/packet';
 import { MasterServer } from '../masterServer/masterServer';
 
 export class Client extends BaseObject
@@ -49,6 +49,22 @@ export class Client extends BaseObject
     public onReceivePacket(packet: IPacket)
     {
         this.log(`reiceved packet '${packet.type}'`);
+
+        if(packet.type == PACKET_TYPE.PACKET_REQUEST_MODELS)
+        {
+            const server = MasterServer.Instance.getServers()[0];
+
+            const data: IPacketData_Models = {
+                models: []
+            }
+
+            for(const gltf of server.game.gltfCollection.gltfs.values())
+            {
+                data.models.push(gltf.toJSON());
+            }
+
+            this.send(PACKET_TYPE.PACKET_MODELS, data);
+        }
     }
 
     public onConnect()

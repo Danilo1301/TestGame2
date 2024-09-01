@@ -1,11 +1,14 @@
 import socketio from 'socket.io';
 import Phaser from 'phaser';
+import path from "path"
 import { Server } from "../../game/server/server";
 import { User } from "../user/user";
 import { BaseObject } from '../../utils/baseObject';
-import { IPacket } from '../../game/network/packet';
 import { Client } from '../client/client';
 import { loadAmmo } from '../../utils/loadAmmo';
+import { Loaders } from "@enable3d/ammo-on-nodejs";
+import { gltfModels } from '../../game/constants/assets';
+import { GLTFCollection, GLTFData } from '../../game/game/gltfCollection';
 
 export class MasterServer extends BaseObject
 {
@@ -35,7 +38,9 @@ export class MasterServer extends BaseObject
         });
 
         const server = this.createServer();
+        await server.loadModels();
         server.game.serverScene.init();
+        server.game.serverScene.create();
         server.game.startClock();
     }
 
@@ -67,6 +72,7 @@ export class MasterServer extends BaseObject
     {
         const server = new Server();
         this._servers.set(server.id, server);
+        
         return server;
     }
 }

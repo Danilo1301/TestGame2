@@ -8,11 +8,15 @@ import { GameScene } from "../scenes/gameScene/gameScene";
 import { Game } from "../game/game";
 import { Network } from "../network/network";
 import { ThreeScene } from "../three/threeScene";
+import { IPacketData_Models, PACKET_TYPE } from "../network/packet";
+import { GameObject } from "../gameObject/gameObject";
 
 export class Gameface extends BaseObject
 {
     public static Instance: Gameface;
     public static isLowPerformance: boolean = true;
+
+    public player?: GameObject;
 
     public get phaser() { return this._phaser!; }
     public get sceneManager() { return this._sceneManager; }
@@ -46,9 +50,6 @@ export class Gameface extends BaseObject
 
         this.log(this.phaser);
 
-        this.game.serverScene.init();
-        //this.game.startClock();
-
         this.sceneManager.startScene(MainScene);
         this.sceneManager.startScene(ThreeScene);
 
@@ -63,8 +64,20 @@ export class Gameface extends BaseObject
 
         this.sceneManager.startScene(GameScene);
 
-        this.network.connect(() => {
+        this.game.serverScene.init();
+
+        this.network.connect(async () => {
             console.log("conectado");
+
+            this.network.send(PACKET_TYPE.PACKET_REQUEST_MODELS, {});
+
+            const models = await this.network.waitForPacket<IPacketData_Models>(PACKET_TYPE.PACKET_MODELS);
+
+            Gameface.Instance.game.gltfCollection.fromPacketData(models);
+
+            this.game.serverScene.create();
+
+            this.player = this.game.createBox();
         });
     }
 

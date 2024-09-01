@@ -4,6 +4,11 @@ import { GameObject } from "../gameObject/gameObject";
 import { Player } from "../player/player";
 import { Debug } from "../../utils/debug/debug";
 import { ServerClock } from "@enable3d/ammo-on-nodejs";
+import THREE from "three";
+import path from "path"
+import { isNode } from "../../utils/utils";
+import { ThreeModelManager } from "../three/threeModelManager";
+import { GLTFCollection } from "./gltfCollection";
 
 export class Game
 {
@@ -14,6 +19,8 @@ export class Game
     public serverScene: ServerScene;
 
     public gameObjects: GameObject[] = [];
+
+    public gltfCollection: GLTFCollection = new GLTFCollection();
     
     constructor()
     {
@@ -47,56 +54,80 @@ export class Game
         return player;
     }
 
-    public createCompoundBody()
+    public createGround()
     {
-        // Create an empty compound shape
-        const compoundShape = new Ammo.btCompoundShape();
-    
-        // Define two box shapes with their respective transforms
-        const boxShape1 = new Ammo.btBoxShape(new Ammo.btVector3(0.5, 0.5, 0.5));
-        const boxShape2 = new Ammo.btBoxShape(new Ammo.btVector3(0.5, 0.5, 0.5));
-    
-        const transform1 = new Ammo.btTransform();
-        transform1.setIdentity();
-        transform1.setOrigin(new Ammo.btVector3(0, 0, 0));
-    
-        const transform2 = new Ammo.btTransform();
-        transform2.setIdentity();
-        transform2.setOrigin(new Ammo.btVector3(0, 2, 0));
-    
-        // Add the box shapes to the compound shape with their transforms
-        compoundShape.addChildShape(transform1, boxShape1);
-        compoundShape.addChildShape(transform2, boxShape2);
-    
-        const transform = new Ammo.btTransform();
-        transform.setIdentity();
-        transform.setOrigin(new Ammo.btVector3(0, 2, 0));
+        const gameObject = new GameObject();
 
-        // Create a motion state with the desired initial position and orientation
-        const motionState = new Ammo.btDefaultMotionState(transform);
-        
-        // Calculate the inertia for the compound shape
-        const localInertia = new Ammo.btVector3(0, 0, 0);
-        compoundShape.calculateLocalInertia(1.0, localInertia);  // 1.0 is the mass
-    
-        // Create the rigid body using the compound shape
-        const bodyInfo = new Ammo.btRigidBodyConstructionInfo(1.0, motionState, compoundShape, localInertia);
-        const body = new Ammo.btRigidBody(bodyInfo);
+        const box = gameObject.collision.addBox(new THREE.Vector3(0, -0.5, 0), new THREE.Vector3(10, 1, 10));
+        box.color = 0x00ff00;
+        gameObject.collision.makeBody({mass: 0, position: new THREE.Vector3(0, 0, 0)});
 
-        return {body: body, compoundShape: compoundShape};
+        this.gameObjects.push(gameObject);
+
+        this.serverScene.physics.physicsWorld.addRigidBody(gameObject.collision.body!);
+
+        return gameObject;
+    }
+
+    public createBulding()
+    {
+        const gameObject = new GameObject();
+        gameObject.model = "building";
+
+        const modelName = gameObject.model;
+
+        const gltf = this.gltfCollection.gltfs.get(modelName);
+
+        if(!gltf) throw "GLTF " + modelName + " was not found";
+
+        gameObject.collision.createCollisionsFromGLTF(gltf);
+
+        //const box = gameObject.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 1, 1));
+        //box.color = 0x00ff00;
+        //gameObject.collision.makeBody({mass: 0, position: new THREE.Vector3(0, 0, 0)});
+
+        this.gameObjects.push(gameObject);
+
+        this.serverScene.physics.physicsWorld.addRigidBody(gameObject.collision.body!);
+
+        /*
+        setTimeout(() => {
+            console.log("making new body")
+
+            this.serverScene.physics.physicsWorld.removeRigidBody(gameObject.collision.body!);
+            gameObject.collision.body = undefined;
+
+            gameObject.collision.shapes = [];
+            gameObject.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 1, 1));
+            const box2 = gameObject.collision.addBox(new THREE.Vector3(2, 0, 0), new THREE.Vector3(1, 1, 1));
+            box2.color = 0xff0000;
+            gameObject.collision.makeBody({mass: 0, position: new THREE.Vector3(0, 0, 0)});
+            this.serverScene.physics.physicsWorld.addRigidBody(gameObject.collision.body!);
+        }, 1000);
+        */
+
+        return gameObject;
     }
 
     public createBox()
     {
         Debug.log("Game", "create box");
         
-        const body = this.createCompoundBody();
+        const gameObject = new GameObject();
+        
+        const box1 = gameObject.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 1, 1));
+        box1.color = 0xff0000;
+        //box1.rotation = new THREE.Quaternion();
+        //box1.rotation.setFromEuler(new THREE.Euler(45, 0, 0));
 
-        this.serverScene.physics.physicsWorld.addRigidBody(body.body);
+        //const box2 = gameObject.collision.addBox(new THREE.Vector3(0, 1, 0), new THREE.Vector3(1, 1, 1));
+        //box2.color = 0x0000ff;
 
-        const gameObject = new GameObject(body.body, body.compoundShape);
+        gameObject.collision.makeBody({mass: 1, position: new THREE.Vector3(0, 3, 0)});
 
         this.gameObjects.push(gameObject);
+
+        this.serverScene.physics.physicsWorld.addRigidBody(gameObject.collision.body!);
 
         return gameObject;
     }

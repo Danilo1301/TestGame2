@@ -26,7 +26,7 @@ export class ThreeScene extends Scene3D
         const camera = this.third.camera as THREE.PerspectiveCamera;
 
         camera.fov = 60;
-        camera.position.set(0, 3, 4);
+        camera.position.set(0, 10, 10);
         camera.lookAt(0, 0, 0);
         camera.updateProjectionMatrix();
 
