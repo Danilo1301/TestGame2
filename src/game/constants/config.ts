@@ -1,6 +1,17 @@
 import Phaser from "phaser";
 
-export const gameSize: Phaser.Math.Vector2 = new Phaser.Math.Vector2(900, 600);
+import { isMobile } from "../../utils/utils";
+
+export const gameSettings = {
+    comboAward: 20
+}
+
+export const getIsMobile = () => {
+    if(location.href.includes("#mobile")) return true;
+    return isMobile.any() != null;
+};
+
+export const gameSize: Phaser.Math.Vector2 = new Phaser.Math.Vector2(1280, 720);
 
 export const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.WEBGL,

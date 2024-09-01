@@ -10,13 +10,16 @@ import { Network } from "../network/network";
 import { ThreeScene } from "../three/threeScene";
 import { IPacketData_Models, PACKET_TYPE } from "../network/packet";
 import { GameObject } from "../gameObject/gameObject";
+import { Ped } from "../entities/ped";
+import { getIsMobile } from "../constants/config";
 
 export class Gameface extends BaseObject
 {
     public static Instance: Gameface;
     public static isLowPerformance: boolean = true;
 
-    public player?: GameObject;
+    public playerId: string = "";
+    public player?: Ped;
 
     public get phaser() { return this._phaser!; }
     public get sceneManager() { return this._sceneManager; }
@@ -60,6 +63,13 @@ export class Gameface extends BaseObject
 
         MainScene.Instance.createPlayButton();
         
+        Input.events.on("pointerdown", () => {
+            if(getIsMobile())
+            {
+                this.enterFullscreen();
+            }
+        });
+
         await this.fuckingWaitForFirstClick();
 
         this.sceneManager.startScene(GameScene);
@@ -77,13 +87,15 @@ export class Gameface extends BaseObject
 
             this.game.serverScene.create();
 
-            this.player = this.game.createBox();
+            //this.player = this.game.spawnPed();
+            //this.player.setPosition(0, 0, 5);
         });
     }
 
     public update(delta: number)
     {
         this.game.update(delta);
+        this.network.update(delta);
     }
 
     public isFullscreen()
@@ -103,6 +115,9 @@ export class Gameface extends BaseObject
         if (elem.requestFullscreen) {
             elem.requestFullscreen();
         }
+
+        const orientation: any = window.screen.orientation;
+        orientation.lock("landscape");
     }
 
     public leaveFullscreen()
@@ -124,7 +139,8 @@ export class Gameface extends BaseObject
 
     public updateScenesOrder()
     {
-        
+        if(GameScene.Instance) GameScene.Instance.scene.bringToTop();
+        if(MainScene.Instance) MainScene.Instance.scene.bringToTop();
     }
 
     public async fuckingWaitForFirstClick()

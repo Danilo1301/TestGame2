@@ -3,12 +3,16 @@ import { ThreeScene } from "../../three/threeScene";
 import { ClientGameObject } from "../../gameObject/clientGameObject";
 import { GameObject } from "../../gameObject/gameObject";
 import { Input } from "../../../utils/input/input";
+import { Joystick } from "../../../utils/ui/joystick";
+import THREE from "three";
 
 export class GameScene extends Phaser.Scene
 {
     public static Instance: GameScene;
 
     public gameObjects = new Map<GameObject, ClientGameObject>();
+
+    public joystick: Joystick = new Joystick();
 
     constructor()
     {
@@ -19,17 +23,18 @@ export class GameScene extends Phaser.Scene
 
     public async create()
     {
-        
+        this.joystick.create();
     }
 
     public update(time: number, delta: number)
     {
+        this.joystick.update();
+
         Gameface.Instance.update(delta / 1000);
 
-     
         const game = Gameface.Instance.game;
 
-        for(const gameObject of game.gameObjects)
+        for(const gameObject of game.gameObjects.values())
         {
             if(!this.gameObjects.has(gameObject))
             {
@@ -40,7 +45,6 @@ export class GameScene extends Phaser.Scene
                 clientGameObject.create();
             }
         }
-
         
         for(const clientGameObject of this.gameObjects.values())
         {
@@ -53,35 +57,24 @@ export class GameScene extends Phaser.Scene
 
         if(player)
         {
+            const body = player.collision.body!;
+
             const position = player.getPosition();
 
-            //camera.position.set(position.x, position.y, position.z + 10);
+            camera.position.set(position.x, position.y + 10, position.z + 5);
             camera.lookAt(position.x, position.y, position.z);
 
-            if(Input.isKeyDown("A"))
+            const joystick = GameScene.Instance.joystick;
+
+            player.inputX = 0;
+            player.inputZ = 0;
+            if(joystick.isMoving)
             {
-                player.collision.body?.applyForce(new Ammo.btVector3(-10, 0, 0), new Ammo.btVector3(0, 0, 0));
+                player.inputX = joystick.inputX * joystick.intensity;
+                player.inputZ = joystick.inputY * joystick.intensity;
             }
 
-            if(Input.isKeyDown("D"))
-            {
-                player.collision.body?.applyForce(new Ammo.btVector3(10, 0, 0), new Ammo.btVector3(0, 0, 0));
-            }
-
-            if(Input.isKeyDown("W"))
-            {
-                player.collision.body?.applyForce(new Ammo.btVector3(0, 0, -10), new Ammo.btVector3(0, 0, 0));
-            }
-
-            if(Input.isKeyDown("S"))
-            {
-                player.collision.body?.applyForce(new Ammo.btVector3(0, 0, 10), new Ammo.btVector3(0, 0, 0));
-            }
-
-            if(Input.isKeyDown(" "))
-            {
-                player.collision.body?.applyForce(new Ammo.btVector3(0, 20, 0), new Ammo.btVector3(0, 0, 0));
-            }
+            //player.setPosition(new THREE.Vector3(0, 0, 5));
         }
     }
 }

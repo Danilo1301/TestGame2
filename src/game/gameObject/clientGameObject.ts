@@ -7,6 +7,8 @@ import THREE from "three";
 import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { ThreeModelManager } from "../three/threeModelManager";
 import { CollisionShapeType } from "./gameObjectCollision";
+import { gltfModels } from "../constants/assets";
+import { Ped } from "../entities/ped";
 
 export class ClientGameObject {
     public gameObject: GameObject;
@@ -66,10 +68,15 @@ export class ClientGameObject {
 
     public async loadModel()
     {
-        await ThreeModelManager.load("building", "/assets/building/building.glb")
-        const model = ThreeModelManager.getThreeModel("building", false);
+        for(const m of gltfModels)
+        {
+            if(m.key != this.gameObject.model) continue;
 
-        this.threeGroup?.add(model.object);
+            await ThreeModelManager.load(m.key, "/assets/" + m.path)
+            const model = ThreeModelManager.getThreeModel(m.key, false);
+
+            this.threeGroup?.add(model.object);
+        }
     }
 
     public update()
@@ -91,7 +98,15 @@ export class ClientGameObject {
         this.threeGroup.setRotationFromQuaternion(ammoQuaternionToThree(rotation));
         //this.threeGroup.setRotationFromEuler(new THREE.Euler(20, 0, 0));
 
-        this.debugText.set3DPosition(ammoVector3ToThree(position));
+        const debugTextPosition = ammoVector3ToThree(position);
+
+        if(this.gameObject instanceof Ped)
+        {
+            debugTextPosition.y += 2.3;
+            this.debugText.setTitle("Player");
+        }
+
+        this.debugText.set3DPosition(debugTextPosition);
         this.debugText.update();
     }
 }

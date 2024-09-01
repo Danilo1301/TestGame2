@@ -6,30 +6,36 @@ import { Debug } from "../../utils/debug/debug";
 import { ServerClock } from "@enable3d/ammo-on-nodejs";
 import THREE from "three";
 import path from "path"
-import { isNode } from "../../utils/utils";
+import { isNode, randomIntFromInterval } from "../../utils/utils";
 import { ThreeModelManager } from "../three/threeModelManager";
 import { GLTFCollection } from "./gltfCollection";
+import { Ped } from "../entities/ped";
+import { MakeBodyOptions } from "../gameObject/gameObjectCollision";
+import { BaseObject } from "../../utils/baseObject";
 
-export class Game
+export class Game extends BaseObject
 {
-    public clientPlayer?: Player;
-
-    private _players = new Map<string, Player>();
-
     public serverScene: ServerScene;
 
-    public gameObjects: GameObject[] = [];
+    public gameObjects = new Map<string, GameObject>();
 
     public gltfCollection: GLTFCollection = new GLTFCollection();
     
     constructor()
     {
+        super()
+
         this.serverScene = new ServerScene(this);
     }
 
     public update(delta: number)
     {
         this.serverScene.update(delta);
+
+        for(const gameObject of this.gameObjects.values())
+        {
+            gameObject.update(delta);
+        }
     }
 
     public startClock()
@@ -44,25 +50,63 @@ export class Game
         clock.onTick(delta => this.update(delta))
     }
 
-    public spawnPlayer(x: number, y: number, z: number)
+    public spawnPed()
     {
-        const player = new Player();
-        this._players.set(player.id, player);
+        this.log(`spawn ped`);
 
-        player.setPosition(x, y, z);
-        
-        return player;
+        const ped = new Ped();
+        ped.model = "ped";
+
+        this.setupGameObject(ped, {mass: 1});
+
+        return ped;
+    }
+
+    public spawnNPC()
+    {
+        const ped = this.spawnPed();
+
+        setInterval(() => {
+            ped.inputX = randomIntFromInterval(-1, 1);
+        }, 500);
+    }
+
+    private setupGameObject(gameObject: GameObject, options: MakeBodyOptions)
+    {
+        const modelName = gameObject.model;
+
+        if(modelName)
+        {
+            const gltf = this.gltfCollection.gltfs.get(modelName);
+
+            if(!gltf) throw "GLTF " + modelName + " was not found";
+
+            gameObject.collision.createCollisionsFromGLTF(gltf, options);
+        }
+
+        this.gameObjects.set(gameObject.id, gameObject);
+
+        this.serverScene.physics.physicsWorld.addRigidBody(gameObject.collision.body!);
+    }
+
+    public changeGameObjectId(gameObject: GameObject, id: string)
+    {
+        this.gameObjects.delete(id);
+
+        gameObject.id = id;
+
+        this.gameObjects.set(id, gameObject);
     }
 
     public createGround()
     {
         const gameObject = new GameObject();
 
-        const box = gameObject.collision.addBox(new THREE.Vector3(0, -0.5, 0), new THREE.Vector3(10, 1, 10));
+        const box = gameObject.collision.addBox(new THREE.Vector3(0, -0.5, 0), new THREE.Vector3(40, 1, 40));
         box.color = 0x00ff00;
         gameObject.collision.makeBody({mass: 0, position: new THREE.Vector3(0, 0, 0)});
 
-        this.gameObjects.push(gameObject);
+        this.gameObjects.set(gameObject.id, gameObject);
 
         this.serverScene.physics.physicsWorld.addRigidBody(gameObject.collision.body!);
 
@@ -80,13 +124,13 @@ export class Game
 
         if(!gltf) throw "GLTF " + modelName + " was not found";
 
-        gameObject.collision.createCollisionsFromGLTF(gltf);
+        gameObject.collision.createCollisionsFromGLTF(gltf, {mass: 0});
 
         //const box = gameObject.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 1, 1));
         //box.color = 0x00ff00;
         //gameObject.collision.makeBody({mass: 0, position: new THREE.Vector3(0, 0, 0)});
 
-        this.gameObjects.push(gameObject);
+        this.gameObjects.set(gameObject.id, gameObject);
 
         this.serverScene.physics.physicsWorld.addRigidBody(gameObject.collision.body!);
 
@@ -125,7 +169,7 @@ export class Game
 
         gameObject.collision.makeBody({mass: 1, position: new THREE.Vector3(0, 3, 0)});
 
-        this.gameObjects.push(gameObject);
+        this.gameObjects.set(gameObject.id, gameObject);
 
         this.serverScene.physics.physicsWorld.addRigidBody(gameObject.collision.body!);
 

@@ -6,7 +6,7 @@ import { User } from "../user/user";
 import { BaseObject } from '../../utils/baseObject';
 import { Client } from '../client/client';
 import { loadAmmo } from '../../utils/loadAmmo';
-import { Loaders } from "@enable3d/ammo-on-nodejs";
+import { Loaders, ServerClock } from "@enable3d/ammo-on-nodejs";
 import { gltfModels } from '../../game/constants/assets';
 import { GLTFCollection, GLTFData } from '../../game/game/gltfCollection';
 
@@ -41,7 +41,24 @@ export class MasterServer extends BaseObject
         await server.loadModels();
         server.game.serverScene.init();
         server.game.serverScene.create();
-        server.game.startClock();
+        server.game.serverScene.createServerScene();
+
+        //server.game.startClock();
+        const clock = new ServerClock()
+
+        // for debugging you disable high accuracy
+        // high accuracy uses much more cpu power
+        if (process.env.NODE_ENV !== 'production') clock.disableHighAccuracy()
+
+        clock.onTick(delta => this.update(delta))
+    }
+
+    public update(delta: number)
+    {
+        for(const server of this.getServers())
+        {
+            server.update(delta);
+        }
     }
 
     private onSocketConnect(socket: socketio.Socket)

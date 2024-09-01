@@ -63,6 +63,12 @@ export class ServerScene
         const ground = this.game.createGround();
     }
 
+    public createServerScene()
+    {
+        this.game.spawnNPC();
+        this.game.spawnNPC();
+    }
+
     public update(delta: number)
     {
         //console.log(`physics update, delta=${delta * 1000}`);

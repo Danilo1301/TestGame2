@@ -1,6 +1,9 @@
 import { io, Socket } from "socket.io-client";
 import { BaseObject } from "../../utils/baseObject";
-import { IPacket, PACKET_TYPE } from "./packet";
+import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_GameObjects, IPacketData_JoinedServer, PACKET_TYPE } from "./packet";
+import { Gameface } from "../gameface/gameface";
+import THREE from "three";
+import { Ped } from "../entities/ped";
 
 class PacketListener {
     public functions = new Map<PACKET_TYPE, Function[]>();
@@ -45,6 +48,7 @@ export class Network extends BaseObject
     private _socket!: Socket;
     private _onConnectCallback?: Function;
     private _packetListener = new PacketListener();
+    private _lastSentData = performance.now();
 
     constructor() {
         super();
@@ -69,20 +73,71 @@ export class Network extends BaseObject
         this.log(`address: (${this.getAddress()})`)
     }
 
-    public send(type: PACKET_TYPE, data: any) {
+    public send<T extends IPacketData>(packetType: PACKET_TYPE, data: T)
+    {
         const packet: IPacket = {
-            type: type,
+            type: packetType,
             data: data
         }
         this._socket.emit('p', packet);
-        this.log(`sent packet '${packet.type}'`);
+        //this.log(`sent packet '${packet.type}'`);
     }
 
     public onReceivePacket(packet: IPacket)
     {
-        this.log(`reiceved packet ${packet.type}`)
+        //this.log(`reiceved packet ${packet.type}`)
 
         this._packetListener.emitReceivedPacketEvent(packet);
+
+        if(packet.type == PACKET_TYPE.PACKET_JOINED_SERVER)
+        {
+            const data = packet.data as IPacketData_JoinedServer;
+
+            Gameface.Instance.playerId = data.playerId;
+
+            console.log(data);
+        }
+
+        if(packet.type == PACKET_TYPE.PACKET_GAME_OBJECTS)
+        {
+            const game = Gameface.Instance.game;
+
+            //console.log(packet);
+
+            const data = packet.data as IPacketData_GameObjects;
+
+            for(const obj of data.gameObjects)
+            {
+                //console.log(obj);
+
+                if(!game.gameObjects.has(obj.id))
+                {
+                    const ped = game.spawnPed();
+                    game.changeGameObjectId(ped, obj.id);
+                }
+
+                const ped = game.gameObjects.get(obj.id);
+
+                
+                if(ped)
+                {
+                    if(ped.id == Gameface.Instance.playerId)
+                    {
+                        if(!Gameface.Instance.player)
+                        {
+                            Gameface.Instance.player = ped as Ped;
+                        }
+                    } else {
+                        const position = obj.position;
+                        //console.log(position);
+                        ped.setPosition(position[0], position[1], position[2]);
+                    }
+
+                }
+                
+
+            }
+        }
     }
 
     public waitForPacket<T>(type: PACKET_TYPE)
@@ -91,7 +146,6 @@ export class Network extends BaseObject
 
             this._packetListener.listen(type, (data: T) => {
                 
-
                 resolve(data);
             });
 
@@ -113,5 +167,29 @@ export class Network extends BaseObject
     {
         if(location.host.includes('localhost') || location.host.includes(':')) return `${location.protocol}//${location.host}/`;
         return `${Network.SERVER_ADDRESS}`;
+    }
+
+    public update(delta: number)
+    {
+        const now = performance.now();
+
+        if(now - this._lastSentData > 200)
+        {
+            this._lastSentData = now;
+            this.sendPlayerData();
+        }
+    }
+
+    public sendPlayerData()
+    {
+        const player = Gameface.Instance.player;
+
+        if(!player) return;
+
+        const json = player.toJSON();
+
+        this.send<IPacketData_ClientData>(PACKET_TYPE.PACKET_CLIENT_DATA, {
+            player: json
+        });
     }
 }

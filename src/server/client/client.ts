@@ -2,8 +2,10 @@ import socketio, { Socket } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import { BaseObject } from '../../utils/baseObject';
 import { User } from '../user/user';
-import { IPacket, IPacketData, IPacketData_JoinedServer, IPacketData_Models, PACKET_TYPE } from '../../game/network/packet';
+import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_JoinedServer, IPacketData_Models, PACKET_TYPE } from '../../game/network/packet';
 import { MasterServer } from '../masterServer/masterServer';
+import { Server } from '../../game/server/server';
+import { Ped } from '../../game/entities/ped';
 
 export class Client extends BaseObject
 {
@@ -15,6 +17,9 @@ export class Client extends BaseObject
     private _socket: socketio.Socket;
     private _user?: User;
 
+    private _server?: Server;
+    private _player?: Ped;
+
     constructor(socket: socketio.Socket)
     {
         super();
@@ -25,7 +30,7 @@ export class Client extends BaseObject
             console.log("socket disconnected");
         });
         socket.on('p', (packet: IPacket) => {
-            console.log("received packet");
+            //console.log("received packet");
 
             try {
                 this.onReceivePacket(packet);
@@ -43,12 +48,12 @@ export class Client extends BaseObject
         }
         this.socket.emit('p', packet);
 
-        this.log(`sent packet '${packet.type}'`);
+        //this.log(`sent packet '${packet.type}'`);
     }
 
     public onReceivePacket(packet: IPacket)
     {
-        this.log(`reiceved packet '${packet.type}'`);
+        //this.log(`reiceved packet '${packet.type}'`);
 
         if(packet.type == PACKET_TYPE.PACKET_REQUEST_MODELS)
         {
@@ -65,16 +70,38 @@ export class Client extends BaseObject
 
             this.send(PACKET_TYPE.PACKET_MODELS, data);
         }
+
+        if(packet.type == PACKET_TYPE.PACKET_CLIENT_DATA)
+        {
+            const player = this._player;
+
+            const data = packet.data as IPacketData_ClientData;
+
+            if(player)
+            {
+                const position = data.player.position;
+
+                player.setPosition(position[0], position[1], position[2]);
+            }
+        }
     }
 
     public onConnect()
     {
         const server = MasterServer.Instance.getServers()[0];
+        this.joinServer(server);
+    }
 
-        //const player = server.game.spawnPlayer(0, 3, 0);
+    public joinServer(server: Server)
+    {
+        this._server = server;
+        server.clients.push(this);
+
+        const player = server.game.spawnPed();
+        this._player = player;
 
         this.send<IPacketData_JoinedServer>(PACKET_TYPE.PACKET_JOINED_SERVER, {
-            playerId: "player",
+            playerId: player.id,
             serverId: server.id
         });
     }

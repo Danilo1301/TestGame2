@@ -130,7 +130,7 @@ export class GameObjectCollision {
         this.needToUpdateBody = true;
     }
 
-    public createCollisionsFromGLTF(gltf: GLTFData)
+    public createCollisionsFromGLTF(gltf: GLTFData, options: MakeBodyOptions)
     {
         for(const collision of gltf.collisions)
         {
@@ -141,6 +141,6 @@ export class GameObjectCollision {
 
         //const box = gameObject.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(10, 1, 10));
         //box.color = 0x00ff00;
-        this.makeBody({mass: 0, position: new THREE.Vector3(0, 0, 0)});
+        this.makeBody(options);
     }
 }

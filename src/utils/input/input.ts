@@ -96,20 +96,20 @@ export class Input extends BaseObject
 
     private onPointerDown(pointer: PointerEvent)
     {
+        Input.events.emit('pointerdown', pointer);
+
         if(this._mouseDown) return;
 
         this._mouseDown = true;
-
-        Input.events.emit('pointerdown', pointer);
     }
 
     private onPointerUp(pointer: PointerEvent)
     {
+        Input.events.emit('pointerup', pointer);
+
         if(!this._mouseDown) return;
 
         this._mouseDown = false;
-        
-        Input.events.emit('pointerup', pointer);
     }
 
     public static isKeyDown(key: string)

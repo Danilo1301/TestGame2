@@ -8,21 +8,32 @@ export class DebugText {
     
     constructor(title: string)
     {
-        this.setLine("title", title);
+        this.setTitle(title);
     }
 
     public createDebugText()
     {
         const scene = MainScene.Instance;
 
-        this.text = scene.add.text(0, 0, 'DEBUG_TEXT', { font: '16px Arial', color: '#ffff00' });
-        //this.text.setOrigin(0.5, 0);
+        const text = scene.add.text(0, 0, 'DEBUG_TEXT');
+        text.setFontFamily('Arial');
+        text.setFontSize(20);
+        text.setColor('#FFFFFF');
+        text.setOrigin(0.5, 0);
+        text.setStroke('#000000', 4);
+        text.setPosition(0, 0);
+        this.text = text;
         scene.layerHud.add(this.text);
     }
 
     public setLine(key: string, text: string)
     {
         this.lines.set(key, text);
+    }
+
+    public setTitle(text: string)
+    {
+        this.setLine("title", text);
     }
 
     public set3DPosition(position: THREE.Vector3)
