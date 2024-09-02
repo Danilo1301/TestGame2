@@ -73,14 +73,17 @@ export class ThreeModelManager {
 
         if(loadAnimation) {
             const mixer = new THREE.AnimationMixer(object);
-            const clip = gltf.animations[0]
-            const anim = mixer.clipAction(clip)
+            const clip = gltf.animations[0];
+
+            if(clip)
+            {
+                const anim = mixer.clipAction(clip)
+                anim.reset()
+                anim.play()
+            }
 
             result.mixer = mixer
             result.clip = clip
-
-            anim.reset()
-            anim.play()
         }
 
         return result;

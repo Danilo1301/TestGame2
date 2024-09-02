@@ -4,6 +4,7 @@ import { GameObject } from '../gameObject/gameObject'
 import { Game } from '../game/game';
 import THREE from 'three';
 import { Gameface } from '../gameface/gameface';
+import { isNode } from '../../utils/utils';
 
 export class ServerScene
 {
@@ -17,6 +18,8 @@ export class ServerScene
     public box2?: GameObject;
 
     public testRigidBody?: Ammo.btRigidBody;
+
+    private _lastUpdated: number = performance.now();
 
     constructor(game: Game)
     {
@@ -71,11 +74,22 @@ export class ServerScene
 
     public update(delta: number)
     {
-        //console.log(`physics update, delta=${delta * 1000}`);
+        const now = performance.now();
+        const timeDiff = now - this._lastUpdated;
+        this._lastUpdated = now;
 
+        //console.log(timeDiff)
+        
         if(!this.physics) return;
 
-        this.physics.update(delta * 1000)
+        if(isNode())
+        {
+            this.physics.update(timeDiff / (16/30)) // 16ms in client and 30ms in server
+        } else {
+            this.physics.update(timeDiff)
+        }
+
+        //this.physics.update(delta * 1000)
 
         if(this.box2)
         {

@@ -12,6 +12,7 @@ import { IPacketData_Models, PACKET_TYPE } from "../network/packet";
 import { GameObject } from "../gameObject/gameObject";
 import { Ped } from "../entities/ped";
 import { getIsMobile } from "../constants/config";
+import { initAmmoExtension } from "../../utils/utils";
 
 export class Gameface extends BaseObject
 {
@@ -50,6 +51,8 @@ export class Gameface extends BaseObject
         this.log("start");
 
         this._phaser = await PhaserLoad.loadAsync();
+
+        initAmmoExtension();
 
         this.log(this.phaser);
 

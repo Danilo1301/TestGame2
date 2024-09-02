@@ -12,6 +12,7 @@ import { GLTFCollection } from "./gltfCollection";
 import { Ped } from "../entities/ped";
 import { MakeBodyOptions } from "../gameObject/gameObjectCollision";
 import { BaseObject } from "../../utils/baseObject";
+import { Bullet } from "../entities/bullet";
 
 export class Game extends BaseObject
 {
@@ -35,7 +36,18 @@ export class Game extends BaseObject
         for(const gameObject of this.gameObjects.values())
         {
             gameObject.update(delta);
+
+            const spawn = new THREE.Vector3(0, 0, 3);
+
+            if(gameObject.getPosition().distanceTo(spawn) > 20)
+            {
+                const newPos = gameObject.getPosition();
+
+                gameObject.setPosition(spawn.x, spawn.y, spawn.z);
+                gameObject.setVelocity(0, 0, 0);
+            }
         }
+        
     }
 
     public startClock()
@@ -62,12 +74,43 @@ export class Game extends BaseObject
         return ped;
     }
 
+    public spawnBullet()
+    {
+        this.log(`spawn bullet`);
+
+        const bullet = new Bullet();
+        bullet.displayName = "bullet";
+
+        const box = bullet.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.2, 0.2, 0.2));
+        box.color = 0xffff00;
+
+        this.setupGameObject(bullet, {mass: 1});
+
+        setTimeout(() => {
+            this.removeGameObject(bullet);
+        }, 2000);
+
+        return bullet;
+    }
+
+    public removeGameObject(gameObject: GameObject)
+    {
+        //possible memory leak
+        this.serverScene.physics.physicsWorld.removeRigidBody(gameObject.collision.body!);
+        
+        this.gameObjects.delete(gameObject.id);
+
+        gameObject.collision.body = undefined;
+        gameObject.destroy();
+    }
+
     public spawnNPC()
     {
         const ped = this.spawnPed();
 
+        ped.inputZ = 1;
+
         setInterval(() => {
-            ped.inputX = randomIntFromInterval(-1, 1);
         }, 500);
     }
 
@@ -82,11 +125,15 @@ export class Game extends BaseObject
             if(!gltf) throw "GLTF " + modelName + " was not found";
 
             gameObject.collision.createCollisionsFromGLTF(gltf, options);
+        } else {
+            gameObject.collision.makeBody(options);
         }
 
         this.gameObjects.set(gameObject.id, gameObject);
 
         this.serverScene.physics.physicsWorld.addRigidBody(gameObject.collision.body!);
+
+        gameObject.init();
     }
 
     public changeGameObjectId(gameObject: GameObject, id: string)

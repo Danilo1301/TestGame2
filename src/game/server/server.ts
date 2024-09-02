@@ -8,6 +8,7 @@ import { Client } from '../../server/client/client';
 import { Ped } from '../entities/ped';
 import { GameObject_JSON } from '../gameObject/gameObject';
 import { IPacketData_GameObjects, PACKET_TYPE } from '../network/packet';
+import { gameSettings } from '../constants/config';
 
 export class Server
 {
@@ -34,7 +35,7 @@ export class Server
 
         const now = performance.now();
 
-        if(now - this._lastSentData > 200)
+        if(now - this._lastSentData > gameSettings.serverSendDataInterval)
         {
             this._lastSentData = now;
 

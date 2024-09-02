@@ -80,7 +80,11 @@ export class Client extends BaseObject
             if(player)
             {
                 const position = data.player.position;
+                const input = data.player.input;
 
+                player.inputX = input[0];
+                player.inputY = input[1];
+                player.inputZ = input[2];
                 player.setPosition(position[0], position[1], position[2]);
             }
         }

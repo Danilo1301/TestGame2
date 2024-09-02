@@ -14,13 +14,14 @@ export class ClientGameObject {
     public gameObject: GameObject;
 
     public threeGroup?: THREE.Group;
+    public modelThreeGroup?: THREE.Group;
     //public object3d?: ExtendedObject3D;
     public debugText: DebugText;
 
     constructor(gameObject: GameObject)
     {
         this.gameObject = gameObject;
-        this.debugText = new DebugText("GameObject");
+        this.debugText = new DebugText(gameObject.displayName);
     }
 
     public create()
@@ -73,7 +74,9 @@ export class ClientGameObject {
             if(m.key != this.gameObject.model) continue;
 
             await ThreeModelManager.load(m.key, "/assets/" + m.path)
-            const model = ThreeModelManager.getThreeModel(m.key, false);
+            const model = ThreeModelManager.getThreeModel(m.key, true);
+
+            this.modelThreeGroup = model.object;
 
             this.threeGroup?.add(model.object);
         }
@@ -104,9 +107,21 @@ export class ClientGameObject {
         {
             debugTextPosition.y += 2.3;
             this.debugText.setTitle("Player");
+
+            this.modelThreeGroup?.setRotationFromEuler(new THREE.Euler(0, this.gameObject.angle, 0));
         }
 
         this.debugText.set3DPosition(debugTextPosition);
         this.debugText.update();
+    }
+
+    public destroy()
+    {
+        //possible memory leak
+
+        this.threeGroup?.clear();
+        this.threeGroup = undefined;
+
+        this.debugText.destroy();
     }
 }

@@ -3,7 +3,8 @@ import Phaser from "phaser";
 import { isMobile } from "../../utils/utils";
 
 export const gameSettings = {
-    comboAward: 20
+    clientSendDataInterval: 50,
+    serverSendDataInterval: 50
 }
 
 export const getIsMobile = () => {

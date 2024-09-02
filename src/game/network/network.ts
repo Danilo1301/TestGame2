@@ -4,6 +4,8 @@ import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_GameObjects, 
 import { Gameface } from "../gameface/gameface";
 import THREE from "three";
 import { Ped } from "../entities/ped";
+import { eSyncType } from "../gameObject/gameObjectSync";
+import { gameSettings } from "../constants/config";
 
 class PacketListener {
     public functions = new Map<PACKET_TYPE, Function[]>();
@@ -116,7 +118,6 @@ export class Network extends BaseObject
 
                 const ped = game.gameObjects.get(obj.id);
 
-                
                 if(ped)
                 {
                     if(ped.id == Gameface.Instance.playerId)
@@ -126,9 +127,15 @@ export class Network extends BaseObject
                             Gameface.Instance.player = ped as Ped;
                         }
                     } else {
+                        ped.sync.syncType = eSyncType.SYNC_DEFAULT;
+
                         const position = obj.position;
-                        //console.log(position);
-                        ped.setPosition(position[0], position[1], position[2]);
+                        const velocity = obj.velocity;
+
+                        //console.log(velocity);
+
+                        ped.sync.setPosition(position[0], position[1], position[2]);
+                        ped.sync.setVelocity(velocity[0], velocity[1], velocity[2]);
                     }
 
                 }
@@ -170,7 +177,7 @@ export class Network extends BaseObject
     {
         const now = performance.now();
 
-        if(now - this._lastSentData > 200)
+        if(now - this._lastSentData > gameSettings.clientSendDataInterval)
         {
             this._lastSentData = now;
             this.sendPlayerData();
