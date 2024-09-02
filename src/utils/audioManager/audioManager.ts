@@ -15,11 +15,6 @@ export class AudioManager
 {
     public static assets = new Map<string, AssetAudio>();
     public static onLoadedAllAudios?: Function;
-    
-    public static get sound() {
-        const w: any = window;
-        return w["createjs"].Sound as createjs.Sound;
-    };
 
     public static addAudio(key: string, url: string)
     {

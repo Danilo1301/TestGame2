@@ -37,6 +37,8 @@ export class GameScene extends Phaser.Scene
 
             let bulletPosition = threeVector3ToAmmo(player.getPosition());
 
+            bulletPosition.setY(bulletPosition.y() + 0);
+
             Vector3_MoveAlongAngle(bulletPosition, -player.angle + Math.PI/2, 2);
 
             //const forward = player.forward;

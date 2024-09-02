@@ -9,7 +9,7 @@ Debug.useColor = false;
 const app: express.Application = express();
 const server: http.Server = http.createServer(app);
 const io: socketio.Server = new socketio.Server();
-const port = 3001;
+const port = 3000;
 
 app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");

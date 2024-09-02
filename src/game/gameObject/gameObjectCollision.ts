@@ -105,7 +105,7 @@ export class GameObjectCollision {
             }
         }
     
-        let position = new Ammo.btVector3();
+        let position = new Ammo.btVector3(0, 0, 0);
         if(options.position != undefined) position = threeVector3ToAmmo(options.position);
 
         const transform = new Ammo.btTransform();

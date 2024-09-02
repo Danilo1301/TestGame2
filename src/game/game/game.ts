@@ -148,10 +148,17 @@ export class Game extends BaseObject
     public createGround()
     {
         const gameObject = new GameObject();
+        gameObject.model = "ground";
+        gameObject.displayName = "ground"
+        gameObject.drawCollision = false;
 
-        const box = gameObject.collision.addBox(new THREE.Vector3(0, -0.5, 0), new THREE.Vector3(40, 1, 40));
+        //const modelName = gameObject.model;
+        //const gltf = this.gltfCollection.gltfs.get(modelName);
+        //if(!gltf) throw "GLTF " + modelName + " was not found";
+
+        const box = gameObject.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(20, 2, 20));
         box.color = 0x00ff00;
-        gameObject.collision.makeBody({mass: 0, position: new THREE.Vector3(0, 0, 0)});
+        gameObject.collision.makeBody({mass: 0, position: new THREE.Vector3(0, -1, 0)});
 
         this.gameObjects.set(gameObject.id, gameObject);
 
@@ -164,38 +171,17 @@ export class Game extends BaseObject
     {
         const gameObject = new GameObject();
         gameObject.model = "building";
+        gameObject.displayName = "building"
 
         const modelName = gameObject.model;
-
         const gltf = this.gltfCollection.gltfs.get(modelName);
-
         if(!gltf) throw "GLTF " + modelName + " was not found";
 
         gameObject.collision.createCollisionsFromGLTF(gltf, {mass: 0});
 
-        //const box = gameObject.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 1, 1));
-        //box.color = 0x00ff00;
-        //gameObject.collision.makeBody({mass: 0, position: new THREE.Vector3(0, 0, 0)});
-
         this.gameObjects.set(gameObject.id, gameObject);
 
         this.serverScene.physics.physicsWorld.addRigidBody(gameObject.collision.body!);
-
-        /*
-        setTimeout(() => {
-            console.log("making new body")
-
-            this.serverScene.physics.physicsWorld.removeRigidBody(gameObject.collision.body!);
-            gameObject.collision.body = undefined;
-
-            gameObject.collision.shapes = [];
-            gameObject.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 1, 1));
-            const box2 = gameObject.collision.addBox(new THREE.Vector3(2, 0, 0), new THREE.Vector3(1, 1, 1));
-            box2.color = 0xff0000;
-            gameObject.collision.makeBody({mass: 0, position: new THREE.Vector3(0, 0, 0)});
-            this.serverScene.physics.physicsWorld.addRigidBody(gameObject.collision.body!);
-        }, 1000);
-        */
 
         return gameObject;
     }

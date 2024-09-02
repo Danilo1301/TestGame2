@@ -46,6 +46,8 @@ export class ClientGameObject {
     {
         if(!this.threeGroup) return;
 
+        if(!this.gameObject.drawCollision) return;
+
         const shapes = this.gameObject.collision.shapes;
 
         var i = 0;
@@ -55,7 +57,7 @@ export class ClientGameObject {
             {
                 const box = new THREE.Mesh(
                     new THREE.BoxGeometry(shape.size.x, shape.size.y, shape.size.z),
-                    new THREE.MeshBasicMaterial({ color: shape.color })
+                    new THREE.MeshBasicMaterial({ color: shape.color, opacity: 0.5, transparent: true })
                 );                
                 box.position.set(shape.position.x, shape.position.y, shape.position.z);
                 box.rotation.setFromQuaternion(shape.rotation);
@@ -79,6 +81,8 @@ export class ClientGameObject {
             this.modelThreeGroup = model.object;
 
             this.threeGroup?.add(model.object);
+
+            break;
         }
     }
 
@@ -110,6 +114,8 @@ export class ClientGameObject {
 
             this.modelThreeGroup?.setRotationFromEuler(new THREE.Euler(0, this.gameObject.angle, 0));
         }
+
+        //console.log(this.gameObject.displayName, debugTextPosition);
 
         this.debugText.set3DPosition(debugTextPosition);
         this.debugText.update();

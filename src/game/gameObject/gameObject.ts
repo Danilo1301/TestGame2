@@ -34,6 +34,7 @@ export class GameObject extends BaseObject
     public angle: number = 0;
 
     public destroyed: boolean = false;
+    public drawCollision: boolean = true;
 
     public get forward() {
         return Quaternion_Multiply_Vector3(this.getRotation(), Vector3_Forward());
