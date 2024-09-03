@@ -61,6 +61,12 @@ export class AudioManager
         return new Promise<void>((resolve) => {
             let notLoaded = this.getNotLoadedCount();
 
+            if(this.assets.size == 0)
+            {
+                resolve();
+                return;
+            }
+
             for(const asset of this.assets.values())
             {
                 const audio = new Audio(`/assets/${asset.url}`);
