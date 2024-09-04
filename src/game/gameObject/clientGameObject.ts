@@ -5,7 +5,7 @@ import { DebugText } from "../../utils/debug/debugText";
 import { ammoQuaternionToThree, ammoVector3ToThree } from "../../utils/utils"
 import THREE from "three";
 import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { ThreeModelManager } from "../three/threeModelManager";
+import { ThreeModel, ThreeModelManager } from "../three/threeModelManager";
 import { CollisionShapeType } from "./gameObjectCollision";
 import { gltfModels } from "../constants/assets";
 import { Ped } from "../entities/ped";
@@ -14,7 +14,7 @@ export class ClientGameObject {
     public gameObject: GameObject;
 
     public threeGroup?: THREE.Group;
-    public modelThreeGroup?: THREE.Group;
+    public gltfModel?: ThreeModel;
     //public object3d?: ExtendedObject3D;
     public debugText: DebugText;
 
@@ -78,7 +78,7 @@ export class ClientGameObject {
             await ThreeModelManager.load(m.key, "/assets/" + m.path)
             const model = ThreeModelManager.getThreeModel(m.key, true);
 
-            this.modelThreeGroup = model.object;
+            this.gltfModel = model;
 
             this.threeGroup?.add(model.object);
 
@@ -86,7 +86,7 @@ export class ClientGameObject {
         }
     }
 
-    public update()
+    public update(delta: number)
     {
         if(this.gameObject.collision.needToUpdateBody)
         {
@@ -112,8 +112,10 @@ export class ClientGameObject {
             debugTextPosition.y += 2.3;
             this.debugText.setTitle("Player");
 
-            this.modelThreeGroup?.setRotationFromEuler(new THREE.Euler(0, this.gameObject.angle, 0));
+            this.gltfModel?.object?.setRotationFromEuler(new THREE.Euler(0, this.gameObject.angle, 0));
         }
+
+        this.gltfModel?.mixer?.update(delta / 1000);
 
         //console.log(this.gameObject.displayName, debugTextPosition);
 

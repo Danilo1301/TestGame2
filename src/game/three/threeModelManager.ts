@@ -73,8 +73,36 @@ export class ThreeModelManager {
 
         if(loadAnimation) {
             const mixer = new THREE.AnimationMixer(object);
-            const clip = gltf.animations[0];
 
+            if(gltf.animations.length > 0)
+            {
+                const anim1 = gltf.animations[1];
+                const anim2 = gltf.animations[2];
+                const animHead = gltf.animations[0];
+                
+                //const addAnim2 = THREE.AnimationUtils.makeClipAdditive(anim2, 0, anim1);
+                //const addAnimHead = THREE.AnimationUtils.makeClipAdditive(animHead, 0, anim1);
+
+                THREE.AnimationUtils.makeClipAdditive(anim2, 0, anim1);
+                THREE.AnimationUtils.makeClipAdditive(animHead, 0, anim1);
+
+                const action1 = mixer.clipAction(anim1);
+                //const action2 = mixer.clipAction(addAnim2);
+                //const actionHead = mixer.clipAction(addAnimHead);
+                const action2 = mixer.clipAction(anim2);
+                const actionHead = mixer.clipAction(animHead);
+                
+                action1.play();
+                action2.play();
+                actionHead.play();
+            }
+           
+
+
+            console.log(gltf.animations);
+
+
+            /*
             if(clip)
             {
                 const anim = mixer.clipAction(clip)
@@ -82,8 +110,10 @@ export class ThreeModelManager {
                 anim.play()
             }
 
+            */
+
             result.mixer = mixer
-            result.clip = clip
+            //result.clip = clip
         }
 
         return result;

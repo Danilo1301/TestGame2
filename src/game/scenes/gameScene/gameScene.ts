@@ -83,7 +83,7 @@ export class GameScene extends Phaser.Scene
                 continue;
             }
 
-            clientGameObject.update();
+            clientGameObject.update(delta);
         }
         
         for(const gameObject of destroyedObjects)
@@ -110,7 +110,8 @@ export class GameScene extends Phaser.Scene
 
             const position = player.getPosition();
 
-            camera.position.set(position.x, position.y + 10, position.z + 5);
+            //camera.position.set(position.x, position.y + 10, position.z + 5);
+            camera.position.set(position.x, position.y + 3, position.z + 3);
             camera.lookAt(position.x, position.y, position.z);
 
             const joystick = GameScene.Instance.joystick;
