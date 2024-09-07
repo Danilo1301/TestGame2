@@ -114,6 +114,7 @@ export class Input extends BaseObject
 
     public static isKeyDown(key: string)
     {
+        if(!Input.Instance) return false;
         if(!Input.Instance._keysPressed.has(key)) return false;
 
         return Input.Instance._keysPressed.get(key);

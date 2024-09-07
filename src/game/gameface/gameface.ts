@@ -13,6 +13,7 @@ import { GameObject } from "../gameObject/gameObject";
 import { Ped } from "../entities/ped";
 import { getIsMobile } from "../constants/config";
 import { initAmmoExtension } from "../../utils/utils";
+import { Vehicle } from "../entities/vehicle";
 
 export class Gameface extends BaseObject
 {
@@ -21,6 +22,7 @@ export class Gameface extends BaseObject
 
     public playerId: string = "";
     public player?: Ped;
+    public vehicle?: Vehicle;
 
     public get phaser() { return this._phaser!; }
     public get sceneManager() { return this._sceneManager; }
@@ -77,7 +79,7 @@ export class Gameface extends BaseObject
 
         this.sceneManager.startScene(GameScene);
 
-        this.game.serverScene.init();
+        this.game.init();
 
         this.network.connect(async () => {
             console.log("conectado");
@@ -90,7 +92,7 @@ export class Gameface extends BaseObject
 
             this.game.serverScene.create();
 
-            //this.player = this.game.spawnPed();
+            this.vehicle = this.game.spawnVehicle();
             //this.player.setPosition(0, 0, 5);
         });
     }

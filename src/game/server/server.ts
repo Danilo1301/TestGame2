@@ -9,6 +9,7 @@ import { Ped } from '../entities/ped';
 import { GameObject_JSON } from '../gameObject/gameObject';
 import { IPacketData_GameObjects, PACKET_TYPE } from '../network/packet';
 import { gameSettings } from '../constants/config';
+import { Triangle } from '../gameObject/gameObjectCollision';
 
 export class Server
 {
@@ -58,7 +59,7 @@ export class Server
 
             for(const client of this.clients)
             {
-                client.send(PACKET_TYPE.PACKET_GAME_OBJECTS, data);
+                //client.send(PACKET_TYPE.PACKET_GAME_OBJECTS, data);
             }
         }
     }
@@ -91,3 +92,10 @@ export class Server
         }
     }
 }
+
+/*
+const mesh = gltf.scene.children[0] as THREE.Mesh;
+
+                // Convert the mesh to Ammo.js format
+                const triangles = convertMeshToTriangles(mesh);
+                */

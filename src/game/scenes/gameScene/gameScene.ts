@@ -94,7 +94,7 @@ export class GameScene extends Phaser.Scene
         }
 
        
-        const player = Gameface.Instance.player;
+        const player = Gameface.Instance.vehicle;
         const camera = ThreeScene.Instance.third.camera;
 
         if(player)
@@ -110,8 +110,7 @@ export class GameScene extends Phaser.Scene
 
             const position = player.getPosition();
 
-            //camera.position.set(position.x, position.y + 10, position.z + 5);
-            camera.position.set(position.x, position.y + 3, position.z + 3);
+            camera.position.set(position.x, position.y + 5, position.z + 5);
             camera.lookAt(position.x, position.y, position.z);
 
             const joystick = GameScene.Instance.joystick;

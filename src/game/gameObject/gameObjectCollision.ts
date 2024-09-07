@@ -2,17 +2,63 @@ import THREE from "three";
 import { threeQuaternionToAmmo, threeVector3ToAmmo } from "../../utils/utils";
 import { GLTFData } from "../game/gltfCollection";
 
+
+export class Triangle {
+    public v0: Ammo.btVector3;
+    public v1: Ammo.btVector3;
+    public v2: Ammo.btVector3;
+
+    constructor(v0: Ammo.btVector3, v1: Ammo.btVector3, v2: Ammo.btVector3)
+    {
+        this.v0 = v0;
+        this.v1 = v1;
+        this.v2 = v2;
+    }
+
+    public toJSON()
+    {
+        const json: number[][] = [];
+
+        json.push(this.vector3ToArray(this.v0))
+        json.push(this.vector3ToArray(this.v1))
+        json.push(this.vector3ToArray(this.v2))
+
+        return json;
+    }
+
+    public fromJSON(json: number[][])
+    {
+        this.arrayToVector3(json[0], this.v0);
+        this.arrayToVector3(json[1], this.v1);
+        this.arrayToVector3(json[2], this.v2);
+    }
+
+    public vector3ToArray(v: Ammo.btVector3)
+    {
+        return [v.x(), v.y(), v.z()];
+    }
+
+    public arrayToVector3(array: number[], v: Ammo.btVector3)
+    {
+        v.setValue(array[0], array[1], array[2]);
+    }
+}
+
 export interface CollisionShape_JSON {
     type: CollisionShapeType
     position: number[]
     scale: number[]
     size: number[]
     rotation: number[]
-    color: number
+    color: number,
+    triangles?: number[][][]
 }
 
 export enum CollisionShapeType {
-    COLLISION_TYPE_BOX
+    COLLISION_TYPE_BOX,
+    COLLISION_TYPE_CAPSULE,
+    COLLISION_TYPE_MESH,
+    COLLISION_TYPE_CYLINDER,
 }
 
 export class CollisionShape {
@@ -22,6 +68,7 @@ export class CollisionShape {
     public size = new THREE.Vector3(1, 1, 1);
     public rotation = new THREE.Quaternion();
     public color: number = 0xffffff;
+    public triangles: Triangle[] = [];
 
     constructor(type: CollisionShapeType)
     {
@@ -36,7 +83,8 @@ export class CollisionShape {
             scale: [this.scale.x, this.scale.y, this.scale.z],
             size: [this.size.x, this.size.y, this.size.z],
             rotation: [this.rotation.x, this.rotation.y, this.rotation.z, this.rotation.w],
-            color: this.color
+            color: this.color,
+            triangles: this.triangles.map(triangle => triangle.toJSON())
         }
         return json;
     }
@@ -49,6 +97,20 @@ export class CollisionShape {
         this.size.set(json.size[0], json.size[1], json.size[2]);
         this.rotation.set(json.rotation[0], json.rotation[1], json.rotation[2], json.rotation[3]);
         this.color = json.color;
+
+        this.triangles = [];
+        if(json.triangles)
+        {
+            for(const jsonTriangle of json.triangles)
+            {
+                const v0 = new Ammo.btVector3();
+                const v1 = new Ammo.btVector3();
+                const v2 = new Ammo.btVector3();
+                const triangle = new Triangle(v0, v1, v2);
+                triangle.fromJSON(jsonTriangle);
+                this.triangles.push(triangle);
+            }
+        }
     }
 }
 
@@ -74,6 +136,28 @@ export class GameObjectCollision {
         return shape;
     }
 
+    public addCylinder(position: THREE.Vector3, radiusBottom: number, radiusTop: number, height: number)
+    {
+        const shape = new CollisionShape(CollisionShapeType.COLLISION_TYPE_CYLINDER);
+        shape.position = position;
+        shape.size = new THREE.Vector3(radiusBottom, height, radiusTop);
+
+        this.shapes.push(shape);
+
+        return shape;
+    }
+
+    public addCapsule(position: THREE.Vector3, radius: number, height: number)
+    {
+        const shape = new CollisionShape(CollisionShapeType.COLLISION_TYPE_CAPSULE);
+        shape.position = position;
+        shape.size = new THREE.Vector3(radius, height, 0);
+
+        this.shapes.push(shape);
+
+        return shape;
+    }
+
     public makeBody(options: MakeBodyOptions)
     {
         console.log(`Making body`);
@@ -85,6 +169,8 @@ export class GameObjectCollision {
     
         for(const shape of shapes)
         {
+            const size = shape.size;
+
             const shapeTransform = new Ammo.btTransform();
             shapeTransform.setIdentity();
             shapeTransform.setOrigin(new Ammo.btVector3(shape.position.x, shape.position.y, shape.position.z));
@@ -92,16 +178,50 @@ export class GameObjectCollision {
 
             if(shape.type == CollisionShapeType.COLLISION_TYPE_BOX)
             {
-                const size = shape.size;
-                const scale = shape.scale;
+                console.log(`Add box`);
 
                 const box = new Ammo.btBoxShape(new Ammo.btVector3(size.x/2, size.y/2, size.z/2));
-
                 box.setLocalScaling(new Ammo.btVector3(shape.scale.x, shape.scale.y, shape.scale.z));
 
                 compoundShape.addChildShape(shapeTransform, box);
+            }
 
-                console.log(`Add box`);
+            if(shape.type == CollisionShapeType.COLLISION_TYPE_CAPSULE)
+            {
+                console.log(`Add capsule`);
+
+                const box = new Ammo.btCapsuleShape(size.x, size.y);
+                box.setLocalScaling(new Ammo.btVector3(shape.scale.x, shape.scale.y, shape.scale.z));
+
+                compoundShape.addChildShape(shapeTransform, box);
+            }
+
+            if(shape.type == CollisionShapeType.COLLISION_TYPE_CYLINDER)
+            {
+                console.log(`Add COLLISION_TYPE_CYLINDER`);
+
+                const box = new Ammo.btCylinderShape(new Ammo.btVector3(size.x, size.y/2, size.z));
+                box.setLocalScaling(new Ammo.btVector3(shape.scale.x, shape.scale.y, shape.scale.z));
+
+                compoundShape.addChildShape(shapeTransform, box);
+            }
+
+            if(shape.type == CollisionShapeType.COLLISION_TYPE_MESH)
+            {
+                console.log(`Add mesh`, shape);
+
+                const ammoTriangleMesh = new Ammo.btTriangleMesh();
+
+                for(const triangle of shape.triangles)
+                {
+                    ammoTriangleMesh.addTriangle(triangle.v0, triangle.v1, triangle.v2, true);
+                }
+
+                ammoTriangleMesh.setScaling(new Ammo.btVector3(shape.scale.x, shape.scale.y, shape.scale.z));
+
+                const collisionShape = new Ammo.btBvhTriangleMeshShape(ammoTriangleMesh, true);
+
+                compoundShape.addChildShape(shapeTransform, collisionShape);
             }
         }
     
@@ -137,10 +257,45 @@ export class GameObjectCollision {
             this.shapes.push(collision);
         }
 
-        console.log(this.shapes);
+        //console.log(this.shapes);
 
         //const box = gameObject.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(10, 1, 10));
         //box.color = 0x00ff00;
         this.makeBody(options);
     }
+}
+
+export function convertMeshToTriangles(mesh: THREE.Mesh)
+{
+    // Get geometry data
+    const geometry = mesh.geometry as THREE.BufferGeometry;
+    const positions = geometry.attributes.position.array;
+    const indices = geometry.index ? geometry.index.array : [];
+
+    const triangles: Triangle[] = [];
+
+    // Create a new Ammo.js triangle mesh
+    //const ammoTriangleMesh = new Ammo.btTriangleMesh();
+
+    // Add triangles to the triangle mesh
+    for (let i = 0; i < indices.length; i += 3)
+    {
+        const v0 = new Ammo.btVector3(positions[indices[i] * 3], positions[indices[i] * 3 + 1], positions[indices[i] * 3 + 2]);
+        const v1 = new Ammo.btVector3(positions[indices[i + 1] * 3], positions[indices[i + 1] * 3 + 1], positions[indices[i + 1] * 3 + 2]);
+        const v2 = new Ammo.btVector3(positions[indices[i + 2] * 3], positions[indices[i + 2] * 3 + 1], positions[indices[i + 2] * 3 + 2]);
+        
+        const triangle = new Triangle(v0, v1, v2);
+
+        triangles.push(triangle);
+
+        //ammoTriangleMesh.addTriangle(v0, v1, v2, true);
+    }
+
+    // Create a collision shape from the triangle mesh
+    //const collisionShape = new Ammo.btBvhTriangleMeshShape(ammoTriangleMesh, true);
+
+    // Clean up temporary Ammo objects
+    //Ammo.destroy(ammoTriangleMesh);
+
+    return triangles;
 }

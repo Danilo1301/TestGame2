@@ -39,7 +39,7 @@ export class MasterServer extends BaseObject
 
         const server = this.createServer();
         await server.loadModels();
-        server.game.serverScene.init();
+        server.game.init();
         server.game.serverScene.create();
         server.game.serverScene.createServerScene();
 

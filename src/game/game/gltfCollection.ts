@@ -1,4 +1,4 @@
-import { CollisionShape, CollisionShape_JSON, CollisionShapeType } from "../gameObject/gameObjectCollision";
+import { CollisionShape, CollisionShape_JSON, CollisionShapeType, convertMeshToTriangles } from "../gameObject/gameObjectCollision";
 import { IPacketData_Models } from "../network/packet";
 
 export interface GLTFData_JSON {
@@ -20,27 +20,50 @@ export class GLTFData {
 
         for(const child of children)
         {
-            const name: string = child.name;
+            const childName: string = child.name;
 
             console.log("------ child -----");
-            console.log("name", name);
+            console.log("childName", childName);
 
-            if(name.includes("Collision"))
+            if(childName.includes("Collision"))
             {
                 for(const c of child.children)
                 {
-                    console.log("c", c.name);
+                    const collisionName: string = c.name;
 
-                    const box = new CollisionShape(CollisionShapeType.COLLISION_TYPE_BOX);
-                    box.color = 0xff0000;
-                    box.position.set(c.position.x, c.position.y, c.position.z);
-                    box.rotation.set(c.quaternion.x, c.quaternion.y, c.quaternion.z, c.quaternion.w);
-                    box.scale.set(c.scale.x, c.scale.y, c.scale.z);
-                    box.size.set(2, 2, 2);
+                    console.log("collisionName=", collisionName);
 
-                    this.collisions.push(box);
+                    if(collisionName.includes("mesh"))
+                    {
+                        
+                        const mesh = new CollisionShape(CollisionShapeType.COLLISION_TYPE_MESH);
+                        mesh.color = 0x0000ff;
+                        mesh.position.set(c.position.x, c.position.y, c.position.z);
+                        mesh.rotation.set(c.quaternion.x, c.quaternion.y, c.quaternion.z, c.quaternion.w);
+                        mesh.scale.set(c.scale.x, c.scale.y, c.scale.z);
 
-                    console.log(JSON.stringify(box));
+                        const threeMesh = c as THREE.Mesh;
+                        mesh.triangles = convertMeshToTriangles(threeMesh);
+
+                        this.collisions.push(mesh);
+    
+                        console.log(mesh.triangles)
+
+                        console.log(JSON.stringify(mesh.toJSON()));
+                    } else {
+                        const box = new CollisionShape(CollisionShapeType.COLLISION_TYPE_BOX);
+                        box.color = 0xff0000;
+                        box.position.set(c.position.x, c.position.y, c.position.z);
+                        box.rotation.set(c.quaternion.x, c.quaternion.y, c.quaternion.z, c.quaternion.w);
+                        box.scale.set(c.scale.x, c.scale.y, c.scale.z);
+                        box.size.set(2, 2, 2);
+    
+                        this.collisions.push(box);
+    
+                        console.log(JSON.stringify(box));
+                    }
+
+                   
                 }
             }
 

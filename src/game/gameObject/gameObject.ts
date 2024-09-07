@@ -23,6 +23,8 @@ export class GameObject extends BaseObject
 {
     public id: string = uuidv4();
     public displayName: string = "GameObject";
+
+    public get body() { return this.collision.body!; }
     
     public model?: string = undefined;
     public collision: GameObjectCollision = new GameObjectCollision();

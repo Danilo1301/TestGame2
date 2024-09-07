@@ -1,7 +1,7 @@
 import { Entity } from "./entity";
 
 export class Ped extends Entity {
-    public speed: number = 5;
+    public speed: number = 200;
 
     public init()
     {
@@ -17,7 +17,7 @@ export class Ped extends Entity {
         const force = new Ammo.btVector3(0, 0, 0);      
         
         force.setX(this.inputX * this.speed);
-        force.setY(this.inputY * 12);
+        force.setY(this.inputY * this.speed * 2);
         force.setZ(this.inputZ * this.speed);
 
         const body = this.collision.body!;

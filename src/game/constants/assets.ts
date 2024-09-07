@@ -14,5 +14,6 @@ export const audioAssets: AssetItem[] = [
 export const gltfModels: AssetItem[] = [
     {key: "building", path: "building/building.glb"},
     {key: "ped", path: "ped/ped.glb"},
-    {key: "ground", path: "ground/ground.glb"}
+    {key: "ground", path: "ground/ground.glb"},
+    {key: "wheel", path: "wheel/wheel.glb"}
 ]

@@ -55,12 +55,14 @@ export class ServerScene
 
         */
 
-        this.game.createBulding();
+        //this.game.createBulding();
 
-        const box2 = this.game.createBox();
+        //this.game.spawnVehicle();
+
+        //const box2 = this.game.createBox();
         //this.box2 = box2;
 
-        const box3 = this.game.createBox();
+        //const box3 = this.game.createBox();
 
     
         const ground = this.game.createGround();

@@ -76,22 +76,18 @@ export class ThreeModelManager {
 
             if(gltf.animations.length > 0)
             {
-                const anim1 = gltf.animations[1];
+                const baseAnim = gltf.animations[1]; // Assuming this is the base animation
                 const anim2 = gltf.animations[2];
                 const animHead = gltf.animations[0];
-                
-                //const addAnim2 = THREE.AnimationUtils.makeClipAdditive(anim2, 0, anim1);
-                //const addAnimHead = THREE.AnimationUtils.makeClipAdditive(animHead, 0, anim1);
+            
+                // Make animations additive relative to the first frame of the base animation
+                const addAnim2 = THREE.AnimationUtils.makeClipAdditive(anim2, 0, baseAnim);
+                const addAnimHead = THREE.AnimationUtils.makeClipAdditive(animHead, 0, baseAnim);
 
-                THREE.AnimationUtils.makeClipAdditive(anim2, 0, anim1);
-                THREE.AnimationUtils.makeClipAdditive(animHead, 0, anim1);
-
-                const action1 = mixer.clipAction(anim1);
-                //const action2 = mixer.clipAction(addAnim2);
-                //const actionHead = mixer.clipAction(addAnimHead);
-                const action2 = mixer.clipAction(anim2);
-                const actionHead = mixer.clipAction(animHead);
-                
+                const action1 = mixer.clipAction(baseAnim);
+                const action2 = mixer.clipAction(addAnim2);
+                const actionHead = mixer.clipAction(addAnimHead);
+            
                 action1.play();
                 action2.play();
                 actionHead.play();
