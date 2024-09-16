@@ -42,6 +42,10 @@ export class GameObject extends BaseObject
         return Quaternion_Multiply_Vector3(this.getRotation(), Vector3_Forward());
     };
 
+    public get right() {
+        return Quaternion_Multiply_Vector3(this.getRotation(), new Ammo.btVector3(1, 0, 0));
+    };
+
     constructor()
     {
         super();

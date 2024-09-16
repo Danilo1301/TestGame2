@@ -59,6 +59,7 @@ export enum CollisionShapeType {
     COLLISION_TYPE_CAPSULE,
     COLLISION_TYPE_MESH,
     COLLISION_TYPE_CYLINDER,
+    COLLISION_TYPE_SPHERE,
 }
 
 export class CollisionShape {
@@ -69,6 +70,8 @@ export class CollisionShape {
     public rotation = new THREE.Quaternion();
     public color: number = 0xffffff;
     public triangles: Triangle[] = [];
+    public radius = 1;
+    public depth = 1;
 
     constructor(type: CollisionShapeType)
     {
@@ -136,11 +139,23 @@ export class GameObjectCollision {
         return shape;
     }
 
-    public addCylinder(position: THREE.Vector3, radiusBottom: number, radiusTop: number, height: number)
+    public addSphere(position: THREE.Vector3, size: number)
+    {
+        const shape = new CollisionShape(CollisionShapeType.COLLISION_TYPE_SPHERE);
+        shape.position = position;
+        shape.size = new THREE.Vector3(size, size, size);
+
+        this.shapes.push(shape);
+
+        return shape;
+    }
+
+    public addCylinder(position: THREE.Vector3, radius: number, depth: number)
     {
         const shape = new CollisionShape(CollisionShapeType.COLLISION_TYPE_CYLINDER);
         shape.position = position;
-        shape.size = new THREE.Vector3(radiusBottom, height, radiusTop);
+        shape.radius = radius;
+        shape.depth = depth;
 
         this.shapes.push(shape);
 
@@ -200,7 +215,17 @@ export class GameObjectCollision {
             {
                 console.log(`Add COLLISION_TYPE_CYLINDER`);
 
-                const box = new Ammo.btCylinderShape(new Ammo.btVector3(size.x, size.y/2, size.z));
+                const box = new Ammo.btCylinderShape(new Ammo.btVector3(shape.radius, shape.depth, shape.radius));
+                box.setLocalScaling(new Ammo.btVector3(shape.scale.x, shape.scale.y, shape.scale.z));
+
+                compoundShape.addChildShape(shapeTransform, box);
+            }
+
+            if(shape.type == CollisionShapeType.COLLISION_TYPE_SPHERE)
+            {
+                console.log(`Add COLLISION_TYPE_SPHERE`);
+
+                const box = new Ammo.btSphereShape(size.x);
                 box.setLocalScaling(new Ammo.btVector3(shape.scale.x, shape.scale.y, shape.scale.z));
 
                 compoundShape.addChildShape(shapeTransform, box);

@@ -1,0 +1,4 @@
+Yaw (Z), Pitch (Y), Roll (X)
+
+this guy just saved my bike
+https://pybullet.org/Bullet/phpBB3/viewtopic.php?t=11238

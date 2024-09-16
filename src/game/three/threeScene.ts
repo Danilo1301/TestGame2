@@ -30,6 +30,8 @@ export class ThreeScene extends Scene3D
         camera.lookAt(0, 0, 0);
         camera.updateProjectionMatrix();
 
+        (window as any).camera = camera;
+
         /*
         var camera = ThreeScene.Instance.third.camera;
         camera.fov = 60;

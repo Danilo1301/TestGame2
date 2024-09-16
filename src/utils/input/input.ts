@@ -66,7 +66,19 @@ export class Input extends BaseObject
         });
 
         input.on('pointermove', (pointer: PointerEvent) => {
+
+            //console.log(pointer.movementX)
+            //console.log(pointer.movementY)
+
+            //const oldPosition = Input.mousePosition.clone();
+
             this.updateMousePosition(pointer)
+
+            //const newPosition = Input.mousePosition.clone();
+
+            //const movement = newPosition.subtract(oldPosition);
+
+            Input.events.emit('pointermove', pointer, pointer.movementX, pointer.movementY);
         });
     }
 

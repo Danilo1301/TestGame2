@@ -1,0 +1,601 @@
+
+    public setupBikeBody(game: Game)
+    {
+        // prevent Z axis to rotate in body
+        
+        this.body.setAngularFactor(new Ammo.btVector3(1, 1, 0))
+
+
+        //https://github.com/enable3d/enable3d-website/blob/master/src/examples/car-using-physics-constraints.html
+        
+        const gameObjectFactory = game.gameObjectFactory;
+
+        const vehicleSize = {x: 0.5, y: 0.5, z: 4.7};
+
+        const wheelX = 0,
+            wheelZ = 2,
+            axisZ = 0.2
+
+        const wheelOptions = {radius: 0.5, depth: 0.35, mass: 100};
+
+        // blue wheels
+        const wheelFrontLeft = gameObjectFactory.spawnWheel(-wheelX, -wheelZ, wheelOptions)
+        const wheelBackLeft = gameObjectFactory.spawnWheel(-wheelX, wheelZ, wheelOptions)
+
+        const testWheel = gameObjectFactory.spawnWheel(-wheelX, wheelZ, wheelOptions)
+        //testWheel.body.setAngularFactor(new Ammo.btVector3(1, 1, 0))
+        
+        //wheelFrontLeft.body.setAngularFactor(new Ammo.btVector3(1, 0, 1))
+        //wheelBackLeft.body.setAngularFactor(new Ammo.btVector3(1, 0, 1))
+        //testWheel.body.setAngularFactor(new Ammo.btVector3(1, 0, 1))
+
+        this.wheels.push(wheelFrontLeft);
+        this.wheels.push(wheelBackLeft);
+
+        // red rotors
+        const rotorOptions = {mass: 500};
+        const rotorFrontLeft = gameObjectFactory.addRotor(-wheelX, -wheelZ, rotorOptions)
+        const rotorBackLeft = gameObjectFactory.addRotor(-wheelX, wheelZ, rotorOptions)
+
+        
+
+        this.rotors.push(rotorFrontLeft);
+        this.rotors.push(rotorBackLeft);
+
+        
+
+        // blue axis
+        const axisSize = vehicleSize.x;
+        const axisRadius = 0.06;
+        const axisFrontTwo = gameObjectFactory.addAxis(-wheelZ - axisZ, axisSize, axisRadius);
+        const axisBackOne = gameObjectFactory.addAxis(wheelZ, axisSize, axisRadius) // the one at the back
+
+        this.axis.push(axisFrontTwo);
+        this.axis.push(axisBackOne);
+        
+
+    
+
+
+        // this part attaches the rotors (small cylinders) to the wheelse (big cylinders)
+
+        const wheelToRotorConstraint = { axisA: { y: 1 }, axisB: { y: 1 } }
+        const motorBackLeft = game.ammoUtils.add_constraints_hinge(
+            wheelBackLeft.body,
+            rotorBackLeft.body,
+            wheelToRotorConstraint
+        );
+
+        const motorFrontLeft = game.ammoUtils.add_constraints_hinge(
+            wheelFrontLeft.body,
+            rotorFrontLeft.body,
+            wheelToRotorConstraint
+        )
+
+        this.motors.push(motorBackLeft);
+        this.motors.push(motorFrontLeft);
+
+        const a = game.ammoUtils.add_constraints_lock(rotorBackLeft.body, axisBackOne.body)
+
+        //a.setLinearLowerLimit(new Ammo.btVector3(0, 0, 0))
+        //a.setLinearUpperLimit(new Ammo.btVector3(0.5, 0.5, 0.5))
+
+        // constraint axis to rotor
+        const axisToRotor = (rotorRight: GameObject | undefined, rotorLeft: GameObject, axis: GameObject, z: number) => {
+
+            const altura = 2;
+            const distancia = 0;
+
+            let right: Ammo.btHingeConstraint | undefined;
+
+            if(rotorRight)
+            {
+                right = game.ammoUtils.add_constraints_hinge(rotorRight.body, axis.body, {
+                    pivotA: { y: 0, z: z },
+                    pivotB: { y: -distancia },
+                    axisA: { x: altura },
+                    axisB: { x: altura }
+                })
+            }
+            const left = game.ammoUtils.add_constraints_hinge(rotorLeft.body, axis.body, {
+                pivotA: { y: 0, z: z },
+                pivotB: { y: distancia },
+                axisA: { x: altura },
+                axisB: { x: altura }
+            })
+            return { right, left }
+        }
+        
+
+        const m0 = axisToRotor(undefined, rotorFrontLeft, axisFrontTwo, 0)
+        //axisToRotor(rotorFrontRight, rotorFrontLeft, axisFrontOne, 0.4)
+            
+        const plate = this;
+
+        game.ammoUtils.add_constraints_lock(plate.body, axisBackOne.body)
+        game.ammoUtils.add_constraints_lock(plate.body, axisFrontTwo.body)
+
+        const limit = 0.3
+        const dofSettings = {
+            angularLowerLimit: { x: 0, y: 0, z: 0 },
+            angularUpperLimit: { x: 0, y: 0, z: 0 },
+            linearLowerLimit: { x: 0, y: -limit, z: -0.1 },
+            linearUpperLimit: { x: 0, y: limit, z: 0.1 }
+        }
+        //this.ammoUtils.add_constraints_dof(plate.body, axisFrontOne.body, { ...dofSettings, offset: { y: 0.9 } })
+        //this.ammoUtils.add_constraints_dof(plate.body, axisFrontOne.body, { ...dofSettings, offset: { y: -0.9 } })
+
+        m0.left.enableAngularMotor(true, 0, 2000)
+        if(m0.right) m0.right.enableAngularMotor(true, 0, 2000)
+
+        let initialForceMult = 0;
+
+        setInterval(() => {
+            
+            const speed = 50
+            const impulse = 0.25;
+
+            const force = this.force;
+
+            const forward = this.forward;
+            const mforce = forward.op_mul(force);
+            const wheelTorque = new Ammo.btVector3(mforce.z(), mforce.y(), -mforce.x())
+            
+            if(Input.isKeyDown("W"))
+            {
+                if(initialForceMult < 4)
+                    initialForceMult += 0.02;
+
+
+                //const torque = new Ammo.btVector3(-force, 0, 0)
+
+                console.log(FormatVector3(mforce));
+
+                const newTorque = wheelTorque.op_mul(-1 * initialForceMult);
+
+                wheelBackLeft.body.applyTorque(newTorque);
+
+            } else if(Input.isKeyDown("S"))
+            {
+                if(initialForceMult < 4)
+                    initialForceMult += 0.02;
+                
+                const newTorque = wheelTorque.op_mul(1 * initialForceMult);
+
+                wheelBackLeft.body.applyTorque(newTorque);
+
+                //motorBackLeft.enableAngularMotor(true, speed, impulse)
+                //motorBackRight.enableAngularMotor(true, speed, impulse)
+            } else {
+                initialForceMult = 0;
+                //motorBackLeft.enableAngularMotor(true, 0, impulse)
+                //motorBackRight.enableAngularMotor(true, 0, impulse)
+            }
+            //motorFrontLeft.enableAngularMotor(true, -speed, 0.25)
+            //motorFrontRight.enableAngularMotor(true, -speed, 0.25)
+
+            const maxAngle = 0.9
+
+          if (Input.isKeyDown("A")) {
+            m0.left.setMotorTarget(-maxAngle, 0.2)
+            if(m0.right) m0.right.setMotorTarget(-maxAngle, 0.2)
+          } else if (Input.isKeyDown("D")) {
+            m0.left.setMotorTarget(maxAngle, 0.2)
+            if(m0.right) m0.right.setMotorTarget(maxAngle, 0.2)
+          } else {
+            m0.left.setMotorTarget(0, 0.2)
+            if(m0.right) m0.right.setMotorTarget(0, 0.2)
+          }
+
+        }, 0);
+    }
+
+    public setupBikeBody2(game: Game)
+    {
+        const gameObjectFactory = game.gameObjectFactory;
+        const chassis = this;
+        const physicsWorld = game.serverScene.physics.physicsWorld;
+
+        
+
+        // wheels
+        const wheelOptions = {radius: 0.5, depth: 0.35, mass: 100};
+        const wheelFront = gameObjectFactory.spawnWheel(0, -2, wheelOptions)
+        const wheelBack = gameObjectFactory.spawnWheel(0, 2, wheelOptions)
+
+        // rotors
+        const rotorOptions = {mass: 500};
+        const rotorFront = gameObjectFactory.addRotor(0, -2, rotorOptions)
+        const rotorBack = gameObjectFactory.addRotor(0, 2, rotorOptions)
+
+
+        //chassis.body.setAngularFactor(new Ammo.btVector3(1, 1, 1))
+        rotorBack.body.setAngularFactor(new Ammo.btVector3(1, 1, 0))
+
+        //
+        const wheelToRotorConstraint = { axisA: { y: 1 }, axisB: { y: 1 } }
+        /*
+        const motorFront = game.ammoUtils.add_constraints_hinge(
+            wheelFront.body,
+            rotorFront.body,
+            wheelToRotorConstraint
+        )
+        */
+
+        /*
+        const motorBack = game.ammoUtils.add_constraints_hinge(
+            wheelBack.body,
+            rotorBack.body,
+            wheelToRotorConstraint
+        );
+        */
+
+  
+        // Create transform for chassis (frameA)
+        const pivotInA = new Ammo.btVector3(0, -2, 2); // Define the offset for wheel relative to chassis
+        
+
+        // Create transform for the wheel (frameB)
+        const pivotInB = new Ammo.btVector3(0, 0, 0); // No offset in wheel's local space
+
+        // Set the axis of rotation for the hinge constraint (usually in the chassis frame)
+        const axis = new Ammo.btVector3(1, 0, 0); // Rotate around the Y-axis (you can change it to X or Z based on your needs)
+
+        // Create the hinge constraint between the chassis and the wheel with an offset
+        const hingeConstraint = new Ammo.btHingeConstraint(
+            chassis.body,    // The chassis body
+            rotorBack.body,      // The wheel or secondary body
+            pivotInA,       // Frame of chassis (includes the offset)
+            pivotInB,       // Frame of wheel (usually centered on the wheel)
+            axis,           // Axis of rotation for the hinge
+            axis,           // Axis for the second body (wheel)
+            false           // UseLinearReferenceFrameA
+        );
+
+
+        // Optional: Set hinge limits if you need to limit the rotation
+        // Example: Set the hinge to rotate between -90 to 90 degrees
+        //hingeConstraint.setLimit(-Math.PI / 2, Math.PI / 2, 1, 1); 
+
+        // Add the constraint to the physics world
+        physicsWorld.addConstraint(hingeConstraint, true);
+
+        setInterval(() => {
+            
+            const force = 1000;
+            
+            if(Input.isKeyDown("W"))
+            {
+                rotorFront.body.applyTorque(new Ammo.btVector3(force, 0, 0))
+                rotorBack.body.applyTorque(new Ammo.btVector3(force, 0, 0))
+                //chassis.body.applyForce(new Ammo.btVector3(force, 0, 0), new Ammo.btVector3(0, 0, 0))
+            } else if(Input.isKeyDown("S"))
+            {
+
+            } else {
+            }
+
+        }, 0);
+    }
+
+    public setupBikeBody3(game: Game)
+    {
+        //https://github.com/enable3d/enable3d-website/blob/master/src/examples/car-using-physics-constraints.html
+        
+        const gameObjectFactory = game.gameObjectFactory;
+
+        const vehicleSize = {x: 0.5, y: 0.5, z: 4.7};
+
+        const wheelX = 0,
+            wheelZ = 2,
+            axisZ = 0.2
+
+        const wheelOptions = {radius: 0.5, depth: 0.35, mass: 100};
+
+        // blue wheels
+        const wheelFrontLeft = gameObjectFactory.spawnSphereWheel(-wheelX, -wheelZ, wheelOptions)
+        const wheelBackLeft = gameObjectFactory.spawnSphereWheel(-wheelX, wheelZ, wheelOptions)
+
+        const testWheel = gameObjectFactory.spawnSphereWheel(10, 10, wheelOptions)
+
+        // red rotors
+        const rotorOptions = {mass: 500};
+        const rotorFrontLeft = gameObjectFactory.addRotor2(-wheelX, -wheelZ, rotorOptions)
+        const rotorBackLeft = gameObjectFactory.addRotor2(-wheelX, wheelZ, rotorOptions)
+
+        
+
+
+        
+
+        // blue axis
+        const axisSize = vehicleSize.x;
+        const axisRadius = 0.06;
+        const axisFrontTwo = gameObjectFactory.addAxis2(-wheelZ - axisZ, axisSize, axisRadius);
+        const axisBackOne = gameObjectFactory.addAxis2(wheelZ, axisSize, axisRadius) // the one at the back
+
+        this.axis.push(axisFrontTwo);
+        this.axis.push(axisBackOne);
+        
+
+    
+
+
+        // this part attaches the rotors (small cylinders) to the wheelse (big cylinders)
+
+        const wheelToRotorConstraint = { axisA: { y: 1 }, axisB: { y: 1 } }
+        
+        const motorBackLeft = game.ammoUtils.add_constraints_hinge(
+            wheelBackLeft.body,
+            rotorBackLeft.body,
+            wheelToRotorConstraint
+        );
+
+        const motorFrontLeft = game.ammoUtils.add_constraints_hinge(
+            wheelFrontLeft.body,
+            rotorFrontLeft.body,
+            wheelToRotorConstraint
+        )
+
+        game.ammoUtils.add_constraints_lock(rotorBackLeft.body, axisBackOne.body);
+
+        // constraint axis to rotor
+        const axisToRotor = (rotorRight: GameObject | undefined, rotorLeft: GameObject, axis: GameObject, z: number) => {
+
+            const altura = 2;
+            const distancia = 0;
+
+            let right: Ammo.btHingeConstraint | undefined;
+
+            if(rotorRight)
+            {
+                right = game.ammoUtils.add_constraints_hinge(rotorRight.body, axis.body, {
+                    pivotA: { y: 0, z: z },
+                    pivotB: { y: -distancia },
+                    axisA: { x: altura },
+                    axisB: { x: altura }
+                })
+            }
+            const left = game.ammoUtils.add_constraints_hinge(rotorLeft.body, axis.body, {
+                pivotA: { y: 0, z: z },
+                pivotB: { y: distancia },
+                axisA: { x: altura },
+                axisB: { x: altura }
+            })
+            return { right, left }
+        }
+        
+
+        //const m0 = axisToRotor(undefined, rotorFrontLeft, axisFrontTwo, 0)
+        //axisToRotor(rotorFrontRight, rotorFrontLeft, axisFrontOne, 0.4)
+            
+        const plate = this;
+
+        game.ammoUtils.add_constraints_lock(plate.body, axisBackOne.body)
+        game.ammoUtils.add_constraints_lock(plate.body, axisFrontTwo.body)
+
+        //m0.left.enableAngularMotor(true, 0, 2000)
+        //if(m0.right) m0.right.enableAngularMotor(true, 0, 2000)
+
+
+        setInterval(() => {
+            
+            const force = 1000;
+
+            if(Input.isKeyDown("W"))
+            {
+                rotorBackLeft.body.applyTorque(new Ammo.btVector3(-force, 0, 0));
+
+            } else if(Input.isKeyDown("S"))
+            {
+                
+            } else {
+                
+            }
+
+            const maxAngle = 0.9
+
+            /*
+            if (Input.isKeyDown("A")) {
+                m0.left.setMotorTarget(-maxAngle, 0.2)
+                if(m0.right) m0.right.setMotorTarget(-maxAngle, 0.2)
+            } else if (Input.isKeyDown("D")) {
+                m0.left.setMotorTarget(maxAngle, 0.2)
+                if(m0.right) m0.right.setMotorTarget(maxAngle, 0.2)
+            } else {
+                m0.left.setMotorTarget(0, 0.2)
+                if(m0.right) m0.right.setMotorTarget(0, 0.2)
+            }
+                */
+
+        }, 0);
+    }
+
+    public setupVehicleBody(game: Game)
+    {
+        //https://github.com/enable3d/enable3d-website/blob/master/src/examples/car-using-physics-constraints.html
+        
+        const gameObjectFactory = game.gameObjectFactory;
+
+        const vehicleSize = {x: 1.8, y: 3, z: 4.7};
+
+        const wheelX = 1.4,
+            wheelZ = 2,
+            axisZ = 0.2
+
+        const wheelOptions = {radius: 0.5, depth: 0.35, mass: 100};
+
+        // blue wheels
+        const wheelBackRight = gameObjectFactory.spawnWheel(wheelX, wheelZ, wheelOptions)
+        const wheelBackLeft = gameObjectFactory.spawnWheel(-wheelX, wheelZ, wheelOptions)
+        const wheelFrontRight = gameObjectFactory.spawnWheel(wheelX, -wheelZ, wheelOptions) // right front
+        const wheelFrontLeft = gameObjectFactory.spawnWheel(-wheelX, -wheelZ, wheelOptions)
+
+        const rotorOptions = {mass: 500};
+
+        // red rotors
+        const rotorBackRight = gameObjectFactory.addRotor(wheelX, wheelZ, rotorOptions)
+        const rotorBackLeft = gameObjectFactory.addRotor(-wheelX, wheelZ, rotorOptions)
+        const rotorFrontRight = gameObjectFactory.addRotor(wheelX, -wheelZ, rotorOptions)
+        const rotorFrontLeft = gameObjectFactory.addRotor(-wheelX, -wheelZ, rotorOptions)
+
+        // blue axis
+        const axisSize = vehicleSize.x;
+        const axisRadius = 0.06;
+        
+        const axisBackOne = gameObjectFactory.addAxis(wheelZ, axisSize, axisRadius) // the one at the back
+        //const axisFrontOne = this.addAxis(-wheelZ + axisZ, 0.04)
+        const axisFrontTwo = gameObjectFactory.addAxis(-wheelZ - axisZ, axisSize, axisRadius);
+
+        (window as any).wheelBackRight = wheelBackRight;
+        (window as any).rotorBackRight = rotorBackRight;
+
+        const pivotInA = new Ammo.btVector3(0, 0, 0); // Pivot point in bodyA
+        const pivotInB = new Ammo.btVector3(0, 0, 0); // Pivot point in bodyB
+
+        // this part attaches the rotors (small cylinders) to the wheelse (big cylinders)
+
+        const wheelToRotorConstraint = { axisA: { y: 1 }, axisB: { y: 1 } }
+        const motorBackLeft = game.ammoUtils.add_constraints_hinge(
+            wheelBackLeft.body,
+            rotorBackLeft.body,
+            wheelToRotorConstraint
+        );
+
+        const motorBackRight = game.ammoUtils.add_constraints_hinge(
+            wheelBackRight.body,
+            rotorBackRight.body,
+            wheelToRotorConstraint
+        )
+
+        const motorFrontLeft = game.ammoUtils.add_constraints_hinge(
+            wheelFrontLeft.body,
+            rotorFrontLeft.body,
+            wheelToRotorConstraint
+        )
+
+        const motorFrontRight = game.ammoUtils.add_constraints_hinge(
+            wheelFrontRight.body,
+            rotorFrontRight.body,
+            wheelToRotorConstraint
+        )
+        
+        const makeDofBetter = (dofConstraint: Ammo.btGeneric6DofConstraint) =>
+        {
+            // that's the neat part, you don't
+        }
+
+        const c1 = game.ammoUtils.add_constraints_lock(rotorBackRight.body, axisBackOne.body)
+        const c2 = game.ammoUtils.add_constraints_lock(rotorBackLeft.body, axisBackOne.body)
+        
+        makeDofBetter(c1);
+        makeDofBetter(c2);
+
+        // constraint axis to rotor
+        const axisToRotor = (rotorRight: GameObject, rotorLeft: GameObject, axis: GameObject, z: number) => {
+
+            const altura = 2;
+            const distancia = wheelX;
+
+            const right = game.ammoUtils.add_constraints_hinge(rotorRight.body, axis.body, {
+                pivotA: { y: 0, z: z },
+                pivotB: { y: -distancia },
+                axisA: { x: altura },
+                axisB: { x: altura }
+            })
+            const left = game.ammoUtils.add_constraints_hinge(rotorLeft.body, axis.body, {
+                pivotA: { y: 0, z: z },
+                pivotB: { y: distancia },
+                axisA: { x: altura },
+                axisB: { x: altura }
+            })
+            return { right, left }
+        }
+        
+
+        const m0 = axisToRotor(rotorFrontRight, rotorFrontLeft, axisFrontTwo, 0)
+        //axisToRotor(rotorFrontRight, rotorFrontLeft, axisFrontOne, 0.4)
+            
+        const plate = this;
+
+        game.ammoUtils.add_constraints_lock(plate.body, axisBackOne.body)
+        game.ammoUtils.add_constraints_lock(plate.body, axisFrontTwo.body)
+
+        const limit = 0.3
+        const dofSettings = {
+            angularLowerLimit: { x: 0, y: 0, z: 0 },
+            angularUpperLimit: { x: 0, y: 0, z: 0 },
+            linearLowerLimit: { x: 0, y: -limit, z: -0.1 },
+            linearUpperLimit: { x: 0, y: limit, z: 0.1 }
+        }
+        //this.ammoUtils.add_constraints_dof(plate.body, axisFrontOne.body, { ...dofSettings, offset: { y: 0.9 } })
+        //this.ammoUtils.add_constraints_dof(plate.body, axisFrontOne.body, { ...dofSettings, offset: { y: -0.9 } })
+
+        m0.left.enableAngularMotor(true, 0, 2000)
+        m0.right.enableAngularMotor(true, 0, 2000)
+
+        let initialForceMult = 0;
+
+        setInterval(() => {
+            
+            const speed = 50
+            const impulse = 0.25;
+
+            const force = this.force;
+
+            const forward = this.forward;
+            const mforce = forward.op_mul(force);
+            const wheelTorque = new Ammo.btVector3(mforce.z(), mforce.y(), -mforce.x())
+            
+            if(Input.isKeyDown("W"))
+            {
+                if(initialForceMult < 4)
+                    initialForceMult += 0.02;
+
+
+                //const torque = new Ammo.btVector3(-force, 0, 0)
+
+                console.log(FormatVector3(mforce));
+
+                const newTorque = wheelTorque.op_mul(-1 * initialForceMult);
+
+                wheelBackRight.body.applyTorque(newTorque);
+                wheelBackLeft.body.applyTorque(newTorque);
+
+            } else if(Input.isKeyDown("S"))
+            {
+                if(initialForceMult < 4)
+                    initialForceMult += 0.02;
+                
+                const newTorque = wheelTorque.op_mul(1 * initialForceMult);
+
+                wheelBackRight.body.applyTorque(newTorque);
+                wheelBackLeft.body.applyTorque(newTorque);
+
+                //motorBackLeft.enableAngularMotor(true, speed, impulse)
+                //motorBackRight.enableAngularMotor(true, speed, impulse)
+            } else {
+                initialForceMult = 0;
+                //motorBackLeft.enableAngularMotor(true, 0, impulse)
+                //motorBackRight.enableAngularMotor(true, 0, impulse)
+            }
+            //motorFrontLeft.enableAngularMotor(true, -speed, 0.25)
+            //motorFrontRight.enableAngularMotor(true, -speed, 0.25)
+
+            const maxAngle = 0.9
+
+          if (Input.isKeyDown("A")) {
+            m0.left.setMotorTarget(-maxAngle, 0.2)
+            m0.right.setMotorTarget(-maxAngle, 0.2)
+          } else if (Input.isKeyDown("D")) {
+            m0.left.setMotorTarget(maxAngle, 0.2)
+            m0.right.setMotorTarget(maxAngle, 0.2)
+          } else {
+            m0.left.setMotorTarget(0, 0.2)
+            m0.right.setMotorTarget(0, 0.2)
+          }
+
+        }, 0);
+
+    }
+}

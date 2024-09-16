@@ -73,6 +73,8 @@ export class Gameface extends BaseObject
             {
                 this.enterFullscreen();
             }
+
+            MainScene.Instance.input.mouse?.requestPointerLock();
         });
 
         await this.fuckingWaitForFirstClick();
@@ -92,7 +94,7 @@ export class Gameface extends BaseObject
 
             this.game.serverScene.create();
 
-            this.vehicle = this.game.spawnVehicle();
+            this.vehicle = this.game.gameObjectFactory.spawnVehicle();
             //this.player.setPosition(0, 0, 5);
         });
     }

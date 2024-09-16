@@ -7,6 +7,7 @@ import { Joystick } from "../../../utils/ui/joystick";
 import THREE from "three";
 import { ammoVector3ToThree, threeVector3ToAmmo } from "../../../utils/utils";
 import { Vector3_MoveAlongAngle } from "../../../utils/ammo/vector";
+import { Camera } from "../../camera/camera";
 
 export class GameScene extends Phaser.Scene
 {
@@ -15,6 +16,8 @@ export class GameScene extends Phaser.Scene
     public gameObjects = new Map<GameObject, ClientGameObject>();
 
     public joystick: Joystick = new Joystick();
+
+    public camera: Camera = new Camera();
 
     constructor()
     {
@@ -26,6 +29,7 @@ export class GameScene extends Phaser.Scene
     public async create()
     {
         this.joystick.create();
+        this.camera.init();
 
         Input.events.on("pointerdown", () => {
             console.log("shoot");
@@ -33,7 +37,7 @@ export class GameScene extends Phaser.Scene
             const player = Gameface.Instance.player!;
             const rotation = player.getRotation();
 
-            const bullet = Gameface.Instance.game.spawnBullet();
+            const bullet = Gameface.Instance.game.gameObjectFactory.spawnBullet();
 
             let bulletPosition = threeVector3ToAmmo(player.getPosition());
 
@@ -94,8 +98,19 @@ export class GameScene extends Phaser.Scene
         }
 
        
+        
+
         const player = Gameface.Instance.vehicle;
-        const camera = ThreeScene.Instance.third.camera;
+
+        if(player)
+        {
+            const position = player.getPosition();
+            this.camera.position.setX(position.x);
+            this.camera.position.setY(position.y);
+            this.camera.position.setZ(position.z);
+        }
+
+        this.camera.update();
 
         if(player)
         {
@@ -110,8 +125,12 @@ export class GameScene extends Phaser.Scene
 
             const position = player.getPosition();
 
-            camera.position.set(position.x, position.y + 5, position.z + 5);
-            camera.lookAt(position.x, position.y, position.z);
+            const offX = (mousePosition.x / Gameface.Instance.getGameSize().x * 10) - 5;
+            const offY = (mousePosition.y / Gameface.Instance.getGameSize().y * 10) - 5;
+
+            
+
+            
 
             const joystick = GameScene.Instance.joystick;
 
@@ -148,5 +167,6 @@ export class GameScene extends Phaser.Scene
 
             //player.setPosition(new THREE.Vector3(0, 0, 5));
         }
+        
     }
 }

@@ -112,8 +112,8 @@ export class Network extends BaseObject
 
                 if(!game.gameObjects.has(obj.id))
                 {
-                    const ped = game.spawnPed();
-                    game.changeGameObjectId(ped, obj.id);
+                    const ped = game.gameObjectFactory.spawnPed();
+                    game.gameObjectFactory.changeGameObjectId(ped, obj.id);
                 }
 
                 const ped = game.gameObjects.get(obj.id);

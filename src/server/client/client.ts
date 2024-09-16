@@ -101,7 +101,7 @@ export class Client extends BaseObject
         this._server = server;
         server.clients.push(this);
 
-        const player = server.game.spawnPed();
+        const player = server.game.gameObjectFactory.spawnPed();
         this._player = player;
 
         this.send<IPacketData_JoinedServer>(PACKET_TYPE.PACKET_JOINED_SERVER, {

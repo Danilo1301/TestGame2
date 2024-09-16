@@ -65,13 +65,13 @@ export class ServerScene
         //const box3 = this.game.createBox();
 
     
-        const ground = this.game.createGround();
+        const ground = this.game.gameObjectFactory.createGround();
     }
 
     public createServerScene()
     {
-        this.game.spawnNPC();
-        this.game.spawnNPC();
+        this.game.gameObjectFactory.spawnNPC();
+        this.game.gameObjectFactory.spawnNPC();
     }
 
     public update(delta: number)

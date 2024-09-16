@@ -82,7 +82,20 @@ export class ClientGameObject {
             if(shape.type == CollisionShapeType.COLLISION_TYPE_CYLINDER)
             {
                 const box = new THREE.Mesh(
-                    new THREE.CylinderGeometry(shape.size.x, shape.size.z, shape.size.y),
+                    new THREE.CylinderGeometry(shape.radius, shape.radius, shape.depth),
+                    new THREE.MeshBasicMaterial({ color: shape.color, opacity: 0.5, transparent: true })
+                );                
+                box.position.set(shape.position.x, shape.position.y, shape.position.z);
+                box.rotation.setFromQuaternion(shape.rotation);
+                box.scale.set(shape.scale.x, shape.scale.y, shape.scale.z);
+        
+                this.threeGroup.add(box);
+            }
+
+            if(shape.type == CollisionShapeType.COLLISION_TYPE_SPHERE)
+            {
+                const box = new THREE.Mesh(
+                    new THREE.SphereGeometry(shape.size.x),
                     new THREE.MeshBasicMaterial({ color: shape.color, opacity: 0.5, transparent: true })
                 );                
                 box.position.set(shape.position.x, shape.position.y, shape.position.z);
