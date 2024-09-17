@@ -56,10 +56,18 @@ export class Bike extends Vehicle {
 
         if(Input.getKey("X"))
         {
-            console.log("force")
-
             this.setVehiclePosition(0, 5, 0);
+            this.setVehicleRotation(0, 0, 0, 1);
 
+        }
+
+        if(Input.getKey("Z"))
+        {
+            const quat = new Ammo.btQuaternion(0, 0, 0, 1);
+            quat.setEulerZYX(0, Math.PI/2, 0);
+            
+            this.setVehiclePosition(0, 5, 0);
+            this.setVehicleRotation(quat.x(), quat.y(), quat.z(), quat.w());
         }
 
 

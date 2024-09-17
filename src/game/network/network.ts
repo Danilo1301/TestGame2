@@ -6,6 +6,8 @@ import THREE from "three";
 import { Ped } from "../entities/ped";
 import { eSyncType } from "../gameObject/gameObjectSync";
 import { gameSettings } from "../constants/config";
+import { GameObject, GameObjectType } from "../gameObject/gameObject";
+import { Bike } from "../entities/bike";
 
 class PacketListener {
     public functions = new Map<PACKET_TYPE, Function[]>();
@@ -110,37 +112,61 @@ export class Network extends BaseObject
             {
                 //console.log(obj);
 
+                let gameObject: GameObject | undefined = undefined;
+
                 if(!game.gameObjects.has(obj.id))
                 {
-                    const ped = game.gameObjectFactory.spawnPed();
-                    game.gameObjectFactory.changeGameObjectId(ped, obj.id);
+                    switch(obj.type)
+                    {
+                        case GameObjectType.PED:
+                            gameObject = game.gameObjectFactory.spawnPed();
+                            break;
+                        case GameObjectType.VEHICLE:
+                            gameObject = game.gameObjectFactory.spawnVehicle();
+                            break;
+                        case GameObjectType.BIKE:
+                            gameObject = game.gameObjectFactory.spawnBike();
+                            gameObject.displayName += "(Balengando)";
+
+                            break;
+                        default:
+                            break;
+                    }
+
+                    if(gameObject)
+                        game.gameObjectFactory.changeGameObjectId(gameObject, obj.id);
                 }
 
-                const ped = game.gameObjects.get(obj.id);
+                if(!gameObject) gameObject = game.gameObjects.get(obj.id);
 
-                if(ped)
+                if(gameObject)
                 {
-                    if(ped.id == Gameface.Instance.playerId)
+                    if(gameObject.id == Gameface.Instance.playerId)
                     {
                         if(!Gameface.Instance.player)
                         {
-                            Gameface.Instance.player = ped as Ped;
+                            Gameface.Instance.player = gameObject as Ped;
                         }
                     } else {
-                        ped.sync.syncType = eSyncType.SYNC_DEFAULT;
+                        
+                        
 
-                        const position = obj.position;
-                        const velocity = obj.velocity;
+                            gameObject.sync.syncType = eSyncType.SYNC_DEFAULT;
 
-                        //console.log(velocity);
+                            const position = obj.position;
+                            const velocity = obj.velocity;
+                            const rotation = obj.rotation;
+    
+                            //console.log(velocity);
+    
+                            gameObject.sync.setPosition(position[0], position[1], position[2]);
+                            gameObject.sync.setVelocity(velocity[0], velocity[1], velocity[2]);
+                            gameObject.sync.setRotation(rotation[0], rotation[1], rotation[2], rotation[3]);
+                        
 
-                        ped.sync.setPosition(position[0], position[1], position[2]);
-                        ped.sync.setVelocity(velocity[0], velocity[1], velocity[2]);
+                       
                     }
-
                 }
-                
-
             }
         }
     }

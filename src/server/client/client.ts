@@ -2,10 +2,11 @@ import socketio, { Socket } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import { BaseObject } from '../../utils/baseObject';
 import { User } from '../user/user';
-import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_JoinedServer, IPacketData_Models, PACKET_TYPE } from '../../game/network/packet';
+import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_EnterLeaveVehicle, IPacketData_JoinedServer, IPacketData_Models, PACKET_TYPE } from '../../game/network/packet';
 import { MasterServer } from '../masterServer/masterServer';
-import { Server } from '../../game/server/server';
+import { Server } from '../server/server';
 import { Ped } from '../../game/entities/ped';
+import { Vehicle } from '../../game/entities/vehicle';
 
 export class Client extends BaseObject
 {
@@ -87,6 +88,23 @@ export class Client extends BaseObject
                 player.inputZ = input[2];
                 player.setPosition(position[0], position[1], position[2]);
             }
+        }
+
+        if(packet.type == PACKET_TYPE.PACKET_ENTER_LEAVE_VEHICLE)
+        {
+            const data = packet.data as IPacketData_EnterLeaveVehicle;
+            const vehicleId = data.vehicleId;
+
+            const player = this._player!;
+            const vehicle = this._server!.game.gameObjects.get(vehicleId)! as Vehicle;
+
+            if(!player.onVehicle)
+            {
+                player.enterVehicle(vehicle);
+            } else {
+                player.leaveVehicle();
+            }
+
         }
     }
 

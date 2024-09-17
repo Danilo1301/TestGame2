@@ -158,6 +158,11 @@ export function FormatVector3(vec: Ammo.btVector3)
   return `${vec.x()}, ${vec.y()}, ${vec.z()}`;
 }
 
+export function FormatQuaternion(q: Ammo.btQuaternion)
+{
+  return `${q.x()}, ${q.y()}, ${q.z()}, ${q.w()}`;
+}
+
 export function Vector3_Subtract(vec1: Ammo.btVector3, vec2: Ammo.btVector3)
 {
   const result = new Ammo.btVector3(
@@ -166,6 +171,15 @@ export function Vector3_Subtract(vec1: Ammo.btVector3, vec2: Ammo.btVector3)
     vec1.z() - vec2.z()
   );
   return result
+}
+
+
+export function Vector3_DistanceTo(vec: Ammo.btVector3, vec2: Ammo.btVector3) {
+
+  const dx = vec.x() - vec2.x(), dy = vec.y() - vec2.y(), dz = vec.z() - vec2.z();
+
+  return dx * dx + dy * dy + dz * dz;
+
 }
 
 export function Quaternion_ToEuler(quat: Ammo.btQuaternion)

@@ -72,6 +72,12 @@ export class ServerScene
     {
         this.game.gameObjectFactory.spawnNPC();
         this.game.gameObjectFactory.spawnNPC();
+
+        const bike = this.game.gameObjectFactory.spawnBike();
+        bike.setVehiclePosition(15, 2, 0);
+
+        const car = this.game.gameObjectFactory.spawnVehicle();
+        car.setVehiclePosition(10, 2, 0);
     }
 
     public update(delta: number)

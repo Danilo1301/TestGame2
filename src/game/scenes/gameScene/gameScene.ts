@@ -9,6 +9,9 @@ import { ammoVector3ToThree, threeVector3ToAmmo } from "../../../utils/utils";
 import { Vector3_MoveAlongAngle } from "../../../utils/ammo/vector";
 import { Camera } from "../../camera/camera";
 import { FormatVector3, Quaternion_ToEuler } from "../../game/ammoUtils";
+import { Ped } from "../../entities/ped";
+import { ClientPed } from "../../clientEntities/clientPed";
+import { IPacketData_EnterLeaveVehicle, PACKET_TYPE } from "../../network/packet";
 
 export class GameScene extends Phaser.Scene
 {
@@ -79,7 +82,14 @@ export class GameScene extends Phaser.Scene
             {
                 console.log("create client game object...");
 
-                const clientGameObject = new ClientGameObject(gameObject);
+                let clientGameObject: ClientGameObject | undefined;
+                if(gameObject instanceof Ped)
+                {
+                    clientGameObject = new ClientPed(gameObject);
+                } else {
+                    clientGameObject = new ClientGameObject(gameObject);
+                }
+                    
                 this.gameObjects.set(gameObject, clientGameObject);
                 clientGameObject.create();
             }
@@ -149,7 +159,11 @@ export class GameScene extends Phaser.Scene
             {
                 player.inputY = 1;
             }
+        }
 
+        if(player)
+        {
+        // player enter car
             if(Input.getKeyDown("F"))
             {
                 if(!player.getVehicleIsUsing())
@@ -161,14 +175,19 @@ export class GameScene extends Phaser.Scene
                         console.log("enter vehicle")
 
                         player.enterVehicle(vehicle);
+
+                        Gameface.Instance.network.send<IPacketData_EnterLeaveVehicle>(PACKET_TYPE.PACKET_ENTER_LEAVE_VEHICLE, {
+                            vehicleId: vehicle.id
+                        });
                     } else {
                         console.log("no vehicle found")
                     }
                 } else {
+                    Gameface.Instance.network.send<IPacketData_EnterLeaveVehicle>(PACKET_TYPE.PACKET_ENTER_LEAVE_VEHICLE, {
+                        vehicleId: player.onVehicle!.id
+                    });
                     player.leaveVehicle();
                 }
-
-                
             }
         }
 

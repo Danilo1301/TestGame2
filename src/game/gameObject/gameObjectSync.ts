@@ -12,6 +12,10 @@ export class GameObjectSync {
 
     public targetPosition = new THREE.Vector3(0, 0, 0);
     public targetVelocity = new THREE.Vector3(0, 0, 0);
+    public targetRotation = new Ammo.btQuaternion(0, 0, 0, 1);
+
+    public onSetGameObjectPosition?: (x: number, y: number, z: number) => boolean;
+    public onSetGameObjectRotation?: (x: number, y: number, z: number, w: number) => boolean;
 
     public update(delta: number)
     {
@@ -19,6 +23,7 @@ export class GameObjectSync {
 
         this.syncPosition(delta);
         this.syncVelocity(delta);
+        this.syncRotation(delta);
     }
 
     private syncPosition(delta: number)
@@ -33,7 +38,22 @@ export class GameObjectSync {
 
         const newPosition = position.lerp(targetPosition, syncPower);
 
-        this.gameObject.setPosition(newPosition.x, newPosition.y, newPosition.z);
+        this.setGameObjectPosition(newPosition.x, newPosition.y, newPosition.z);
+    }
+
+    private setGameObjectPosition(x: number, y: number, z: number)
+    {
+        if(this.onSetGameObjectPosition)
+        {
+            const result = this.onSetGameObjectPosition(x, y, z);
+            if(result == false)
+            {
+                //console.log("set cancelled")
+                return;
+            }
+        }
+
+        this.gameObject.setPosition(x, y, z);
     }
 
     private syncVelocity(delta: number)
@@ -43,7 +63,29 @@ export class GameObjectSync {
 
         if(targetVelocity.length() > 0) this.gameObject.activateBody();
 
-        this.gameObject.setVelocity(targetVelocity.x, targetVelocity.y, targetVelocity.y);
+        this.gameObject.setVelocity(targetVelocity.x, targetVelocity.y, targetVelocity.z);
+    }
+
+    private syncRotation(delta: number)
+    {
+        const targetRotation = this.targetRotation;
+
+        this.setGameObjectRotation(targetRotation.x(), targetRotation.y(), targetRotation.z(), targetRotation.w());
+    }
+
+    private setGameObjectRotation(x: number, y: number, z: number, w: number)
+    {
+        if(this.onSetGameObjectRotation)
+        {
+            const result = this.onSetGameObjectRotation(x, y, z, w);
+            if(result == false)
+            {
+                //console.log("set cancelled")
+                return;
+            }
+        }
+
+        this.gameObject.setRotation(x, y, z, w);
     }
 
     public setPosition(x: number, y: number, z: number)
@@ -54,5 +96,10 @@ export class GameObjectSync {
     public setVelocity(x: number, y: number, z: number)
     {
         this.targetVelocity.set(x, y, z);
+    }
+
+    public setRotation(x: number, y: number, z: number, w: number)
+    {
+        this.targetRotation.setValue(x, y, z, w);
     }
 }

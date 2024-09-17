@@ -2,13 +2,15 @@ import { ExtendedObject3D } from "@enable3d/phaser-extension";
 import { ThreeScene } from "../three/threeScene";
 import { GameObject } from "./gameObject";
 import { DebugText } from "../../utils/debug/debugText";
-import { ammoQuaternionToThree, ammoVector3ToThree } from "../../utils/utils"
+import { ammoQuaternionToThree, ammoVector3ToThree, threeVector3ToAmmo } from "../../utils/utils"
 import THREE from "three";
 import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { ThreeModel, ThreeModelManager } from "../three/threeModelManager";
 import { CollisionShapeType } from "./gameObjectCollision";
 import { gltfModels } from "../constants/assets";
 import { Ped } from "../entities/ped";
+import { GameScene } from "../scenes/gameScene/gameScene";
+import { Vector3_DistanceTo } from "../game/ammoUtils";
 
 export class ClientGameObject {
     public gameObject: GameObject;
@@ -146,20 +148,16 @@ export class ClientGameObject {
 
         const debugTextPosition = ammoVector3ToThree(position);
 
-        if(this.gameObject instanceof Ped)
-        {
-            debugTextPosition.y += 2.3;
-            this.debugText.setTitle("Player");
-
-            this.gltfModel?.object?.setRotationFromEuler(new THREE.Euler(0, this.gameObject.angle, 0));
-        }
-
         this.gltfModel?.mixer?.update(delta / 1000);
 
         //console.log(this.gameObject.displayName, debugTextPosition);
 
+        const cameraPosition = GameScene.Instance.camera.position
+        const distanceFromGameObject = Vector3_DistanceTo(position, cameraPosition);
+
         this.debugText.set3DPosition(debugTextPosition);
         this.debugText.update();
+        this.debugText.visible = distanceFromGameObject < 100.0;
     }
 
     public destroy()

@@ -4,32 +4,41 @@ import THREE from "three";
 import { GameObjectCollision } from "./gameObjectCollision";
 import { ammoQuaternionToThree, ammoVector3ToThree } from "../../utils/utils";
 import { GameObjectSync } from './gameObjectSync';
-import { Vector3_Forward } from '../../utils/ammo/vector';
-import { Quaternion_Multiply_Vector3 } from '../../utils/ammo/quaterion';
+import { Quaternion_Clone, Quaternion_Forward, Quaternion_Multiply_Vector3, Quaternion_Right, Quaternion_Up } from '../../utils/ammo/quaterion';
 import { Game } from '../game/game';
 
+export interface EntityData_JSON {
+    
+}
+
 export enum GameObjectType {
-    PED
+    UNDEFINED,
+    PED,
+    VEHICLE,
+    BIKE
 }
 
 export interface GameObject_JSON {
     id: string
     type: GameObjectType
     position: number[]
+    rotation: number[]
     velocity: number[]
     input: number[]
+    data?: EntityData_JSON
 }
 
 export class GameObject extends BaseObject
 {
     public id: string = uuidv4();
     public displayName: string = "GameObject";
+    public tag: string = "";
 
     public get body() { return this.collision.body!; }
     
     public model?: string = undefined;
     public collision: GameObjectCollision = new GameObjectCollision();
-    public sync: GameObjectSync = new  GameObjectSync();
+    public sync = new GameObjectSync();
 
     public inputX: number = 0;
     public inputY: number = 0;
@@ -42,11 +51,17 @@ export class GameObject extends BaseObject
     public game!: Game;
 
     public get forward() {
-        return Quaternion_Multiply_Vector3(this.getRotation(), Vector3_Forward());
+        const rotation = Quaternion_Clone(this.getRotation());
+        const forward = Quaternion_Forward(rotation);
+        Ammo.destroy(rotation);
+        return forward;
     };
 
     public get right() {
-        return Quaternion_Multiply_Vector3(this.getRotation(), new Ammo.btVector3(1, 0, 0));
+        const rotation = Quaternion_Clone(this.getRotation());
+        const right = Quaternion_Right(rotation);
+        Ammo.destroy(rotation);
+        return right;
     };
 
     constructor()
@@ -141,11 +156,13 @@ export class GameObject extends BaseObject
     {
         const position = this.getPosition();
         const velocity = this.getVelocity();
+        const rotation = this.getRotation();
 
         const json: GameObject_JSON = {
             id: this.id,
-            type: GameObjectType.PED,
+            type: GameObjectType.UNDEFINED,
             position: [position.x, position.y, position.z],
+            rotation: [rotation.x(), rotation.y(), rotation.z(), rotation.w()],
             velocity: [velocity.x, velocity.y, velocity.z],
             input: [this.inputX, this.inputY, this.inputZ]
         }
@@ -156,5 +173,47 @@ export class GameObject extends BaseObject
     public destroy()
     {
         this.destroyed = true;
+    }
+
+    public transformFromObjectSpace(body: Ammo.btRigidBody, offset: Ammo.btVector3)
+    {
+        const transform = body.getWorldTransform();
+        const position = transform.getOrigin();
+        const rotation = transform.getRotation();
+
+        const result = {x: 0, y: 0, z: 0}
+
+        result.x = position.x();
+        result.y = position.y();
+        result.z = position.z();
+
+        const forward = Quaternion_Forward(rotation);
+        const right = Quaternion_Right(rotation);
+        const up = Quaternion_Up(rotation);
+
+        forward.normalize();
+        right.normalize();
+        up.normalize();
+
+        const translate = {x: 0, y: 0, z: 0};
+        translate.x = forward.x() * offset.z();
+        translate.y = forward.y() * offset.z();
+        translate.z = forward.z() * offset.z();
+
+        translate.x += right.x() * offset.x();
+        translate.y += right.y() * offset.x();
+        translate.z += right.z() * offset.x();
+
+        translate.x += up.x() * offset.y();
+        translate.y += up.y() * offset.y();
+        translate.z += up.z() * offset.y();
+
+        result.x += translate.x;
+        result.y += translate.y;
+        result.z += translate.z;
+
+        //result.op_add(offset);
+
+        return new Ammo.btVector3(result.x, result.y, result.z);
     }
 }

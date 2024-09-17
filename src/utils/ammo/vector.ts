@@ -1,8 +1,3 @@
-export function Vector3_Forward()
-{
-    return new Ammo.btVector3(0, 0, 1);
-}
-
 export function Vector3_MoveAlongAngle(vector: Ammo.btVector3, angle: number, distance: number)
 {
     // Create a new vector for direction calculation

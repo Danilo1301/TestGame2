@@ -6,7 +6,8 @@ export enum PACKET_TYPE {
     PACKET_MODELS,
     PACKET_JOINED_SERVER,
     PACKET_GAME_OBJECTS,
-    PACKET_CLIENT_DATA
+    PACKET_CLIENT_DATA,
+    PACKET_ENTER_LEAVE_VEHICLE
 }
 
 export interface IPacketData {
@@ -33,4 +34,8 @@ export interface IPacketData_GameObjects {
 
 export interface IPacketData_ClientData {
     player: GameObject_JSON
+}
+
+export interface IPacketData_EnterLeaveVehicle {
+    vehicleId: string
 }

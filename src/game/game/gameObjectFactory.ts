@@ -9,6 +9,7 @@ import { MakeBodyOptions } from "../gameObject/gameObjectCollision";
 import { Debug } from "../../utils/debug/debug";
 import { Bike } from "../entities/bike";
 import { Input } from "../../utils/input/input";
+import { Wheel } from "../entities/wheel";
 
 export class GameObjectFactory extends BaseObject {
     public game: Game;
@@ -100,7 +101,7 @@ export class GameObjectFactory extends BaseObject {
 
     public spawnWheel2(x: number, z: number, options: {radius: number, depth: number, mass: number})
     {
-        const gameObject = new GameObject();
+        const gameObject = new Wheel();
         gameObject.displayName = "Wheel";
         gameObject.model = "wheel2";
 
@@ -109,8 +110,6 @@ export class GameObjectFactory extends BaseObject {
         this.setupGameObject(gameObject, {mass: options?.mass});
 
         gameObject.body.setFriction(3)
-
-        gameObject.setPosition(x, 1, z);
 
         return gameObject;
     }

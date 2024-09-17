@@ -16,6 +16,7 @@ import { AmmoUtils, FormatVector3 } from "./ammoUtils";
 import { Input } from "../../utils/input/input";
 import { Quaternion_Multiply_Vector3 } from "../../utils/ammo/quaterion";
 import { GameObjectFactory } from "./gameObjectFactory";
+import { Vehicle } from "../entities/vehicle";
 
 const WHEEL_MASS = 100;
 const ROTOR_MASS = 500;
@@ -57,13 +58,20 @@ export class Game extends BaseObject
         {
             gameObject.update(delta);
 
-            const spawn = new THREE.Vector3(0, 0, 3);
+            const spawn = new THREE.Vector3(0, 2, 0);
 
             if(gameObject.getPosition().distanceTo(spawn) > 80)
             {
                 const newPos = gameObject.getPosition();
 
-                gameObject.setPosition(spawn.x, spawn.y, spawn.z);
+                if(gameObject instanceof Vehicle)
+                {
+                    gameObject.setVehiclePosition(spawn.x, spawn.y, spawn.z);
+                    gameObject.setRotation(0, 0, 0, 1);
+                } else {
+                    gameObject.setPosition(spawn.x, spawn.y, spawn.z);
+                }
+
                 gameObject.setVelocity(0, 0, 0);
             }
         }

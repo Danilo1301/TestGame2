@@ -1,6 +1,18 @@
 import { Quaternion_ToEuler } from "../game/ammoUtils";
+import { EntityData_JSON } from "../gameObject/gameObject";
 import { Entity } from "./entity";
 import { Vehicle } from "./vehicle";
+
+export interface PedData_JSON extends EntityData_JSON {
+    lookDir: number[]
+}
+
+export interface PedNameTag_JSON {
+    nickname: string;
+    nicknameColor: string;
+    tag: string;
+    tagColor: string;
+}
 
 export class Ped extends Entity {
     public speed: number = 200;
@@ -8,6 +20,11 @@ export class Ped extends Entity {
     public lookDir = new Ammo.btQuaternion(0, 0, 0, 1);
 
     public onVehicle?: Vehicle;
+
+    public nickname: string = "Ped";
+    public nicknameColor: string = "#ff0000";
+    public tag: string = "Disconnected";
+    public tagColor: string = "#cccccc";
 
     public init()
     {
@@ -126,5 +143,17 @@ export class Ped extends Entity {
         }
 
         return closestVehicle;
+    }
+
+    public toJSON()
+    {
+        const data: PedData_JSON = {
+            lookDir: []
+        }
+        
+        const json = super.toJSON();
+        json.data = data;
+
+        return json;
     }
 }

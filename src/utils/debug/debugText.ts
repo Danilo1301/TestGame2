@@ -5,6 +5,7 @@ export class DebugText {
     public lines: Map<string, string> = new Map<string, string>();
     public text?: Phaser.GameObjects.Text;
     public position: Phaser.Math.Vector2 = new Phaser.Math.Vector2(0, 0);
+    public visible: boolean = true;
     
     constructor(title: string)
     {
@@ -58,6 +59,7 @@ export class DebugText {
             //text.setText(`${this.name} (${screenPosition.x}, ${screenPosition.y})`);
             text.setText(str);
             text.setPosition(this.position.x, this.position.y);
+            text.setVisible(this.visible);
             //text.setPosition(400, 300);
         }
         

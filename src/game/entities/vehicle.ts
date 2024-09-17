@@ -1,27 +1,40 @@
+import { Quaternion_Difference } from "../../utils/ammo/quaterion";
 import { Input } from "../../utils/input/input";
-import { FormatVector3, Vector3_Subtract } from "../game/ammoUtils";
+import { FormatQuaternion, FormatVector3, Vector3_Subtract } from "../game/ammoUtils";
 import { Game } from "../game/game";
 import { GameObject } from "../gameObject/gameObject";
+import { GameObjectSync } from "../gameObject/gameObjectSync";
 import { Entity } from "./entity";
 import { Ped } from "./ped";
+import { Wheel } from "./wheel";
 
 export class Vehicle extends Entity {
-  
+
     public force: number = 20;
 
     public chassisHeight: number = 2.0;
 
-    public darGrau: boolean = true; //melhor variavel
+    public darGrau: boolean = false; //melhor variavel
 
     public frontWheelContraints: Ammo.btGeneric6DofSpringConstraint[] = [];
     public backWheelConstraints: Ammo.btHingeConstraint[] = [];
-    public wheels: GameObject[] = [];
+    public wheels: Wheel[] = [];
 
     public pedDriving?: Ped;
 
     public init()
     {
         super.init();
+
+        this.sync.onSetGameObjectPosition = (x: number, y: number, z:number) => {
+            this.setVehiclePosition(x, y, z);
+            return false;
+        };
+
+        this.sync.onSetGameObjectRotation = (x: number, y: number, z: number, w: number) => {
+            this.setVehicleRotation(x, y, z, w);
+            return false;
+        };
     }
 
     public update(delta: number)
@@ -35,7 +48,7 @@ export class Vehicle extends Entity {
             this.activateVehicleBodies();
         }
 
-        const velocity = this.force * this.inputZ;
+        const velocity = this.force * this.inputZ * (this.darGrau ? 5 : 1);
 
         this.setBackWheelsVelocity(velocity);
 
@@ -98,15 +111,16 @@ export class Vehicle extends Entity {
 
         const createWheel = (x: number, z: number, canSteer: boolean) => {
             const wheelOptions = {radius: 0.5, depth: 0.35, mass: 100};
+            const wheelY = -this.chassisHeight/2;
 
             const wheel = gameObjectFactory.spawnWheel2(x, z, wheelOptions)
             wheel.displayName += `${canSteer ? "F" : "B"}`;
+            wheel.setPosition(x, wheelY, z);
+            wheel.offsetFromChassis.setValue(x, wheelY, z);
 
             this.wheels.push(wheel);
 
             const pivotWheel = new Ammo.btVector3(0, 0, 0);  // Wheels' local pivot
-
-            const wheelY = -this.chassisHeight/2;
 
             if(canSteer)
             {
@@ -200,5 +214,27 @@ export class Vehicle extends Entity {
         }
 
         this.setPosition(x, y, z);
+    }
+
+    public setVehicleRotation(x: number, y: number, z: number, w: number)
+    {
+        //const prevRotation = this.getRotation();
+
+        this.setRotation(x, y, z, w);
+
+        //const newRotation = new Ammo.btQuaternion(x, y, z, w);
+
+        //const diff = Quaternion_Difference(prevRotation, newRotation);
+
+        for(const wheel of this.wheels)
+        {
+            const wheelOffset = wheel.offsetFromChassis;
+            const transformedPosition = this.transformFromObjectSpace(this.body, wheelOffset);
+            wheel.setPosition(transformedPosition.x(), transformedPosition.y(), transformedPosition.z());
+
+            //const wheelRotation = wheel.getRotation();
+            //wheelRotation.op_mulq(diff);
+            //wheel.setRotation(wheelRotation.x(), wheelRotation.w(), wheelRotation.z(), wheelRotation.w());
+        }
     }
 }

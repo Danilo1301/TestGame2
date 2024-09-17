@@ -1,7 +1,7 @@
 import socketio from 'socket.io';
 import Phaser from 'phaser';
 import path from "path"
-import { Server } from "../../game/server/server";
+import { Server } from "../server/server";
 import { User } from "../user/user";
 import { BaseObject } from '../../utils/baseObject';
 import { Client } from '../client/client';
