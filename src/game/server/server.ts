@@ -59,7 +59,7 @@ export class Server
 
             for(const client of this.clients)
             {
-                //client.send(PACKET_TYPE.PACKET_GAME_OBJECTS, data);
+                client.send(PACKET_TYPE.PACKET_GAME_OBJECTS, data);
             }
         }
     }

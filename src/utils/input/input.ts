@@ -13,6 +13,8 @@ export class Input extends BaseObject
     private _scene?: Phaser.Scene;
 
     private _keysPressed: Map<string, boolean> = new Map<string, boolean>();
+    private _keysJustDown: string[] = [];
+    private _keysJustUp: string[] = [];
     private _mouseDown: boolean = false;
 
     public get sceneInput() { return this.scene.input; }
@@ -82,6 +84,12 @@ export class Input extends BaseObject
         });
     }
 
+    public postUpdate()
+    {
+        this._keysJustDown = [];
+        this._keysJustUp = [];
+    }
+
     public updateMousePosition(pointer: PointerEvent)
     {
         Input.mousePosition.x = pointer.x;
@@ -95,6 +103,9 @@ export class Input extends BaseObject
         Debug.log("Input", `key press: ${key}`);
 
         this._keysPressed.set(key, true);
+        this._keysJustDown.push(key);
+
+        Input.events.emit('keydown', key);
     }
 
     private onKeyUp(key: string)
@@ -104,6 +115,9 @@ export class Input extends BaseObject
         //Debug.log("Input", `key up: ${key}`);
 
         this._keysPressed.set(key, false);
+        this._keysJustUp.push(key);
+
+        Input.events.emit('keyup', key);
     }
 
     private onPointerDown(pointer: PointerEvent)
@@ -124,12 +138,22 @@ export class Input extends BaseObject
         this._mouseDown = false;
     }
 
-    public static isKeyDown(key: string)
+    public static getKey(key: string)
     {
         if(!Input.Instance) return false;
         if(!Input.Instance._keysPressed.has(key)) return false;
 
         return Input.Instance._keysPressed.get(key);
+    }
+
+    public static getKeyDown(key: string)
+    {
+        return Input.Instance._keysJustDown.includes(key);
+    }
+
+    public static getKeyUp(key: string)
+    {
+        return Input.Instance._keysJustUp.includes(key);
     }
 
     public static isPointInsideRect(pos: Phaser.Math.Vector2, rectPos: Phaser.Math.Vector2, rectSize: Phaser.Math.Vector2)

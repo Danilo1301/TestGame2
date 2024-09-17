@@ -236,6 +236,8 @@ export class GameObjectFactory extends BaseObject {
 
     private setupGameObject(gameObject: GameObject, options: MakeBodyOptions)
     {
+        gameObject.game = this.game;
+
         const modelName = gameObject.model;
 
         if(modelName)

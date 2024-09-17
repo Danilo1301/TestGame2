@@ -54,7 +54,7 @@ export class Bike extends Vehicle {
         newQuat.setEulerZYX(0, euler.y(), euler.x());
         this.setRotation(newQuat.x(), newQuat.y(), newQuat.z(), newQuat.w());
 
-        if(Input.isKeyDown("X"))
+        if(Input.getKey("X"))
         {
             console.log("force")
 

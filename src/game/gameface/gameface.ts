@@ -94,8 +94,12 @@ export class Gameface extends BaseObject
 
             this.game.serverScene.create();
 
-            this.vehicle = this.game.gameObjectFactory.spawnVehicle();
-            //this.player.setPosition(0, 0, 5);
+            const bike = this.game.gameObjectFactory.spawnBike();
+            bike.setVehiclePosition(10, 2, 0)
+
+            const car = this.game.gameObjectFactory.spawnVehicle();
+
+            this.vehicle = bike;
         });
     }
 
@@ -103,6 +107,12 @@ export class Gameface extends BaseObject
     {
         this.game.update(delta);
         this.network.update(delta);
+        
+    }
+
+    public postUpdate(delta: number)
+    {
+        this.input.postUpdate();
     }
 
     public isFullscreen()
@@ -125,6 +135,11 @@ export class Gameface extends BaseObject
 
         const orientation: any = window.screen.orientation;
         orientation.lock("landscape");
+    }
+
+    public isPointerLocked()
+    {
+        return document.pointerLockElement !== null;
     }
 
     public leaveFullscreen()

@@ -41,7 +41,7 @@ export class GameObjectSync {
         //const position = this.gameObject.getPosition();
         const targetVelocity = this.targetVelocity;
 
-        if(targetVelocity.length() > 0) this.gameObject.activate();
+        if(targetVelocity.length() > 0) this.gameObject.activateBody();
 
         this.gameObject.setVelocity(targetVelocity.x, targetVelocity.y, targetVelocity.y);
     }

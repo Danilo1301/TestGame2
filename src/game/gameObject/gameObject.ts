@@ -6,6 +6,7 @@ import { ammoQuaternionToThree, ammoVector3ToThree } from "../../utils/utils";
 import { GameObjectSync } from './gameObjectSync';
 import { Vector3_Forward } from '../../utils/ammo/vector';
 import { Quaternion_Multiply_Vector3 } from '../../utils/ammo/quaterion';
+import { Game } from '../game/game';
 
 export enum GameObjectType {
     PED
@@ -37,6 +38,8 @@ export class GameObject extends BaseObject
 
     public destroyed: boolean = false;
     public drawCollision: boolean = true;
+
+    public game!: Game;
 
     public get forward() {
         return Quaternion_Multiply_Vector3(this.getRotation(), Vector3_Forward());
@@ -126,7 +129,7 @@ export class GameObject extends BaseObject
         this.sync.update(delta);
     }
 
-    public activate()
+    public activateBody()
     {
         if(!this.collision.body!.isActive())
         {

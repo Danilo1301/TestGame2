@@ -3,10 +3,11 @@ import { FormatVector3, Vector3_Subtract } from "../game/ammoUtils";
 import { Game } from "../game/game";
 import { GameObject } from "../gameObject/gameObject";
 import { Entity } from "./entity";
+import { Ped } from "./ped";
 
 export class Vehicle extends Entity {
   
-    public force: number = 300;
+    public force: number = 20;
 
     public chassisHeight: number = 2.0;
 
@@ -14,11 +15,9 @@ export class Vehicle extends Entity {
 
     public frontWheelContraints: Ammo.btGeneric6DofSpringConstraint[] = [];
     public backWheelConstraints: Ammo.btHingeConstraint[] = [];
-
-    public axis: GameObject[] = [];
     public wheels: GameObject[] = [];
-    public rotors: GameObject[] = [];
-    public motors: Ammo.btHingeConstraint[] = [];
+
+    public pedDriving?: Ped;
 
     public init()
     {
@@ -28,6 +27,38 @@ export class Vehicle extends Entity {
     public update(delta: number)
     {
         super.update(delta);
+
+        //if(Input.getKey("SHIFT")) this.darGrau = true;
+
+        if(this.inputX != 0 || this.inputY != 0 || this.inputZ != 0)
+        {
+            this.activateVehicleBodies();
+        }
+
+        const velocity = this.force * this.inputZ;
+
+        this.setBackWheelsVelocity(velocity);
+
+        if(this.inputX == 0)
+        {
+            this.steerWheels(0);
+        } else if(this.inputX < 0)
+        {
+            this.steerWheels(-Math.PI / 2);
+        } else if(this.inputX > 0)
+        {
+            this.steerWheels(Math.PI / 2);
+        }
+    }
+
+    public activateVehicleBodies()
+    {
+        for(const wheel of this.wheels)
+        {
+            if(!wheel.body.isActive()) wheel.body.activate();
+        }
+
+        this.activateBody();
     }
 
     public steerWheels(angle: number)
@@ -70,6 +101,8 @@ export class Vehicle extends Entity {
 
             const wheel = gameObjectFactory.spawnWheel2(x, z, wheelOptions)
             wheel.displayName += `${canSteer ? "F" : "B"}`;
+
+            this.wheels.push(wheel);
 
             const pivotWheel = new Ammo.btVector3(0, 0, 0);  // Wheels' local pivot
 
@@ -151,38 +184,6 @@ export class Vehicle extends Entity {
             createWheel(wheelX, wheelZ, false);
             createWheel(-wheelX, wheelZ, false);
         }
-
-        setInterval(() => {
-            
-            const force = 1000;
-
-            if(Input.isKeyDown("W"))
-            {
-                this.darGrau = false;
-                if(Input.isKeyDown("X")) this.darGrau = true;
-
-                this.setBackWheelsVelocity(200);
-            } else if(Input.isKeyDown("S"))
-            {
-                this.setBackWheelsVelocity(-50);
-            } else {
-                this.setBackWheelsVelocity(0);
-            }
-
-            if(Input.isKeyDown("A"))
-            {
-                this.steerWheels(-Math.PI / 2);
-                //steerWheel(-Math.PI / 2);
-            } else if(Input.isKeyDown("D"))
-            {
-                this.steerWheels(Math.PI / 2);
-                //steerWheel(Math.PI / 2);
-            } else {
-                this.steerWheels(0);
-                //steerWheel(0);
-            }
-
-        }, 0);
     }
 
     public setVehiclePosition(x: number, y: number, z: number)

@@ -10,9 +10,13 @@ export class Camera extends BaseObject
 
     public cameraView = new Phaser.Math.Vector2(0, 0);
 
+    public get threeCamera() { return ThreeScene.Instance.third.camera; };
+
     public init()
     {
         Input.events.on('pointermove', (pointer: PointerEvent, movementX: number, movementY: number) => {
+
+            if(!Gameface.Instance.isPointerLocked()) return;
 
             const sentitivity = 0.4;
 
@@ -21,14 +25,12 @@ export class Camera extends BaseObject
 
             this.cameraView.y = clamp(this.cameraView.y, -90, 90);
 
-
-
         });
     }
 
     public update()
     {
-        const camera = ThreeScene.Instance.third.camera;
+        const camera = this.threeCamera;
 
         const angleX = Phaser.Math.DegToRad(this.cameraView.x % 360);
         const angleY = Phaser.Math.DegToRad(this.cameraView.y);
@@ -49,5 +51,12 @@ export class Camera extends BaseObject
             this.position.z() + lDirection.z
         );
         camera.lookAt(this.position.x(), this.position.y(), this.position.z());
+    }
+
+    public getCameraQuaternion()
+    {
+        const camQuat = this.threeCamera.quaternion;
+        const quat = new Ammo.btQuaternion(camQuat.x, camQuat.y, camQuat.z, camQuat.w);
+        return quat;
     }
 }

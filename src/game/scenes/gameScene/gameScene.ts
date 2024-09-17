@@ -8,6 +8,7 @@ import THREE from "three";
 import { ammoVector3ToThree, threeVector3ToAmmo } from "../../../utils/utils";
 import { Vector3_MoveAlongAngle } from "../../../utils/ammo/vector";
 import { Camera } from "../../camera/camera";
+import { FormatVector3, Quaternion_ToEuler } from "../../game/ammoUtils";
 
 export class GameScene extends Phaser.Scene
 {
@@ -59,10 +60,17 @@ export class GameScene extends Phaser.Scene
 
     public update(time: number, delta: number)
     {
-        this.joystick.update();
-
         Gameface.Instance.update(delta / 1000);
 
+        this.joystick.update();
+
+        this.updateGameScene(delta);
+
+        Gameface.Instance.postUpdate(delta / 1000);
+    }
+
+    private updateGameScene(delta: number)
+    {
         const game = Gameface.Instance.game;
 
         for(const gameObject of game.gameObjects.values())
@@ -96,15 +104,13 @@ export class GameScene extends Phaser.Scene
             clientGameObject.destroy();
             this.gameObjects.delete(gameObject);
         }
-
-       
-        
-
-        const player = Gameface.Instance.vehicle;
+    
+        const player = Gameface.Instance.player;
 
         if(player)
         {
-            const position = player.getPosition();
+            const vehicle = player.getVehicleIsUsing();
+            const position = vehicle ? vehicle.getPosition() : player.getPosition();
             this.camera.position.setX(position.x);
             this.camera.position.setY(position.y);
             this.camera.position.setZ(position.z);
@@ -112,61 +118,70 @@ export class GameScene extends Phaser.Scene
 
         this.camera.update();
 
+        // player movement
         if(player)
         {
-            const gameSize = Gameface.Instance.getGameSize();
-            const centerOfScreen = new Phaser.Math.Vector2(gameSize.x / 2, gameSize.y / 2);
-            const mousePosition = Input.mousePosition;
-            const angle = -Phaser.Math.Angle.BetweenPoints(centerOfScreen, mousePosition) + Math.PI/2;
+            const cameraDir = this.camera.getCameraQuaternion();
 
-            player.angle = angle;
-
-            const body = player.collision.body!;
-
-            const position = player.getPosition();
-
-            const offX = (mousePosition.x / Gameface.Instance.getGameSize().x * 10) - 5;
-            const offY = (mousePosition.y / Gameface.Instance.getGameSize().y * 10) - 5;
-
-            
-
-            
-
-            const joystick = GameScene.Instance.joystick;
+            player.lookDir = cameraDir;
 
             player.inputX = 0;
             player.inputY = 0;
             player.inputZ = 0;
+
+            if(Input.getKey("W"))
+            {
+                player.inputZ = 1;
+            } else if(Input.getKey("S"))
+            {
+                player.inputZ = -1;
+            }
+
+            if(Input.getKey("A"))
+            {
+                player.inputX = -1;
+            } else if(Input.getKey("D"))
+            {
+                player.inputX = 1;
+            }
+
+            if(Input.getKey(" "))
+            {
+                player.inputY = 1;
+            }
+
+            if(Input.getKeyDown("F"))
+            {
+                if(!player.getVehicleIsUsing())
+                {
+                    const vehicle = player.getClosestVehicle();
+                
+                    if(vehicle)
+                    {
+                        console.log("enter vehicle")
+
+                        player.enterVehicle(vehicle);
+                    } else {
+                        console.log("no vehicle found")
+                    }
+                } else {
+                    player.leaveVehicle();
+                }
+
+                
+            }
+        }
+
+        // joystick
+        if(player)
+        {
+            const joystick = GameScene.Instance.joystick;
             
             if(joystick.isMoving)
             {
                 player.inputX = joystick.inputX * joystick.intensity;
                 player.inputZ = joystick.inputY * joystick.intensity;
             }
-
-            if(Input.isKeyDown("A"))
-            {
-                player.inputX = -1;
-            }
-            if(Input.isKeyDown("D"))
-            {
-                player.inputX = 1;
-            }
-            if(Input.isKeyDown("W"))
-            {
-                player.inputZ = -1;
-            }
-            if(Input.isKeyDown("S"))
-            {
-                player.inputZ = 1;
-            }
-            if(Input.isKeyDown(" "))
-            {
-                player.inputY = 1;
-            }
-
-            //player.setPosition(new THREE.Vector3(0, 0, 5));
         }
-        
     }
 }
