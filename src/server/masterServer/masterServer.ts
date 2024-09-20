@@ -1,49 +1,61 @@
-import socketio from 'socket.io';
-import Phaser from 'phaser';
-import path from "path"
-import { Server } from "../server/server";
-import { User } from "../user/user";
 import { BaseObject } from '../../utils/baseObject';
-import { Client } from '../client/client';
 import { loadAmmo } from '../../utils/loadAmmo';
-import { Loaders, ServerClock } from "@enable3d/ammo-on-nodejs";
-import { gltfModels } from '../../game/constants/assets';
-import { GLTFCollection, GLTFData } from '../../game/game/gltfCollection';
+import socketio from 'socket.io';
+import { Server } from '../server/server';
+import { ServerClock } from '@enable3d/ammo-on-nodejs';
+import { Client } from '../client/client';
+
+interface MasterServerStartOptions {
+    ammo: any
+    io: socketio.Server
+    assetsPath: string
+}
 
 export class MasterServer extends BaseObject
 {
     public static Instance: MasterServer;
 
-    private _servers = new Map<string, Server>([]); 
-    private _users = new Map<string, User>([]); 
-    private _io: socketio.Server;
+    public options!: MasterServerStartOptions;
 
-    constructor(io: socketio.Server) {
+    private _servers = new Map<string, Server>([]); 
+
+    constructor() {
         super();
         MasterServer.Instance = this;
-        
-        this._io = io;
     }
 
-    public async start()
+    public async start(options: MasterServerStartOptions)
     {
-        console.log(`waiting for ammo...`);
-        await loadAmmo();
-        console.log(`ammo loaded!`);
+        this.log(`start`);
 
-        const io = this._io;
+        this.options = options;
+
+        this.log("assetsPath: " + options.assetsPath)
+
+        this.log(`loading ammo...`);
+        await loadAmmo(options.ammo);
+        this.log(`ammo loaded!`);
+
+        const io = options.io;
 
         io.on('connection', socket => {
+            this.log("socket " + socket.id + " connected");
+
+            socket.on('disconnect', () => {
+                this.log("socket " + socket.id + " disconnected");
+                this.onSocketDisconnect(socket);
+            });
+            
             this.onSocketConnect(socket);
         });
 
         const server = this.createServer();
+        server.assetsPath = this.options.assetsPath;
         await server.loadModels();
         server.game.init();
         server.game.serverScene.create();
         server.game.serverScene.createServerScene();
 
-        //server.game.startClock();
         const clock = new ServerClock()
 
         // for debugging you disable high accuracy
@@ -55,29 +67,15 @@ export class MasterServer extends BaseObject
 
     public update(delta: number)
     {
-        for(const server of this.getServers())
-        {
-            server.update(delta);
-        }
+        for(const server of this.getServers()) server.update(delta);
     }
-
-    private onSocketConnect(socket: socketio.Socket)
+    
+    public createServer()
     {
-        console.log("socket connected");
-
-        const client = new Client(socket);
-
-        this.onClientConnect(client);
-    }
-
-    public onClientConnect(client: Client)
-    {
-        /*
-        const server = this.createServer(`${client.username}'s server`);
-        server.start();
-        client.setMainServer(server);
-        */
-        client.onConnect();
+        const server = new Server();
+        this._servers.set(server.id, server);
+        
+        return server;
     }
 
     public getServers()
@@ -85,11 +83,15 @@ export class MasterServer extends BaseObject
         return Array.from(this._servers.values());
     }
 
-    public createServer()
+    private onSocketConnect(socket: socketio.Socket)
     {
-        const server = new Server();
-        this._servers.set(server.id, server);
-        
-        return server;
+        const client = new Client(socket);
+
+        client.onConnect();
+    }
+
+    private onSocketDisconnect(socket: socketio.Socket)
+    {
+
     }
 }

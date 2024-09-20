@@ -2,11 +2,12 @@ import socketio, { Socket } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import { BaseObject } from '../../utils/baseObject';
 import { User } from '../user/user';
-import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_EnterLeaveVehicle, IPacketData_JoinedServer, IPacketData_Models, PACKET_TYPE } from '../../game/network/packet';
 import { MasterServer } from '../masterServer/masterServer';
 import { Server } from '../server/server';
-import { Ped } from '../../game/entities/ped';
+import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_EnterLeaveVehicle, IPacketData_JoinedServer, IPacketData_Models, PACKET_TYPE } from '../../game/network/packet';
+import { Ped, PedData_JSON } from '../../game/entities/ped';
 import { Vehicle } from '../../game/entities/vehicle';
+import { Entity_JSON, EntityData_JSON, EntityType } from '../../game/entities/entity';
 
 export class Client extends BaseObject
 {
@@ -27,12 +28,7 @@ export class Client extends BaseObject
 
         this._socket = socket;
 
-        socket.on('disconnect', () => {
-            console.log("socket disconnected");
-        });
         socket.on('p', (packet: IPacket) => {
-            //console.log("received packet");
-
             try {
                 this.onReceivePacket(packet);
             } catch (error) {
@@ -78,15 +74,51 @@ export class Client extends BaseObject
 
             const data = packet.data as IPacketData_ClientData;
 
+            //console.log(data.player.type)
+
             if(player)
             {
-                const position = data.player.position;
-                const input = data.player.input;
+                if(data.player.type == EntityType.PED)
+                {
+                    const pedData = data.player.data as PedData_JSON;
 
-                player.inputX = input[0];
-                player.inputY = input[1];
-                player.inputZ = input[2];
-                player.setPosition(position[0], position[1], position[2]);
+                    const position = data.player.position;
+                    const input = data.player.input;
+    
+                    player.inputX = input[0];
+                    player.inputY = input[1];
+                    player.inputZ = input[2];
+                    player.lookDir.setValue(pedData.lookDir[0], pedData.lookDir[1], pedData.lookDir[2], pedData.lookDir[3]);
+                    
+                    console.log(position)
+
+                    player.setPosition(position[0], position[1], position[2]);
+                }
+                
+                const vehicle = player.onVehicle;
+
+                if(vehicle)
+                {
+                    if(data.player.type == EntityType.VEHICLE)
+                    {
+                        //const vehicleData = data.player.data as Entity_JSON;
+    
+                        console.log(data.player);
+
+                        const position = data.player.position;
+                        const rotation = data.player.rotation;
+                        const input = data.player.input;
+        
+                        player.inputX = input[0];
+                        player.inputY = input[1];
+                        player.inputZ = input[2];
+                        
+                        vehicle.setVehiclePosition(position[0], position[1], position[2]);
+                        vehicle.setVehicleRotation(rotation[0], rotation[1], rotation[2], rotation[3]);
+                    }
+                }
+
+                
             }
         }
 
@@ -95,16 +127,18 @@ export class Client extends BaseObject
             const data = packet.data as IPacketData_EnterLeaveVehicle;
             const vehicleId = data.vehicleId;
 
-            const player = this._player!;
-            const vehicle = this._server!.game.gameObjects.get(vehicleId)! as Vehicle;
+            const player = this._player;
+            const vehicle = this._server!.game.entityFactory.entities.get(vehicleId) as Vehicle | undefined;
 
-            if(!player.onVehicle)
-            {
-                player.enterVehicle(vehicle);
-            } else {
-                player.leaveVehicle();
+            if(player && vehicle)
+                {
+                if(!player.onVehicle)
+                {
+                    player.enterVehicle(vehicle);
+                } else {
+                    player.leaveVehicle();
+                }
             }
-
         }
     }
 
@@ -116,10 +150,12 @@ export class Client extends BaseObject
 
     public joinServer(server: Server)
     {
-        this._server = server;
-        server.clients.push(this);
+        this.log("joining server " + server.id);
 
-        const player = server.game.gameObjectFactory.spawnPed();
+        this._server = server;
+        this._server.clients.push(this);
+
+        const player = server.game.entityFactory.spawnPed(0, 5, 0);
         this._player = player;
 
         this.send<IPacketData_JoinedServer>(PACKET_TYPE.PACKET_JOINED_SERVER, {

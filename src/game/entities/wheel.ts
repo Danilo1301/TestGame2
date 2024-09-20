@@ -1,19 +1,19 @@
-import { setRigidBodyNoGravity } from "../../utils/utils";
-import { Entity } from "./entity";
+import { Entity, EntityData_JSON } from "./entity";
+import { Vehicle } from "./vehicle";
 
 export class Wheel extends Entity {
-
-    public speed: number = 5;
-
-    public offsetFromChassis = new Ammo.btVector3(0, 0, 0)
+    public offsetFromChassis = new Ammo.btVector3(0, 0, 0);
 
     public init()
     {
         super.init();
+
+        this.body.setFriction(3);
     }
 
     public update(delta: number)
     {
         super.update(delta);
+
     }
 }

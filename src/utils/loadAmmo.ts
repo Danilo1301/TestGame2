@@ -1,6 +1,4 @@
-const _ammo: any = require('@enable3d/ammo-on-nodejs/ammo/ammo.js')
-
-export async function loadAmmo()
+export async function loadAmmo(_ammo: any)
 {
     await new Promise<void>((resolve) => {
         // wait for Ammo to be loaded

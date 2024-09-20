@@ -1,6 +1,6 @@
-import { Quaternion_ToEuler } from "../game/ammoUtils";
-import { EntityData_JSON } from "../gameObject/gameObject";
-import { Entity } from "./entity";
+import { Quaternion_ToEuler } from "../../utils/ammo/quaterion";
+import { Vector3_DistanceTo } from "../../utils/ammo/vector";
+import { Entity, EntityData_JSON } from "./entity";
 import { Vehicle } from "./vehicle";
 
 export interface PedData_JSON extends EntityData_JSON {
@@ -15,7 +15,7 @@ export interface PedNameTag_JSON {
 }
 
 export class Ped extends Entity {
-    public speed: number = 200;
+    public speed: number = 2000;
 
     public lookDir = new Ammo.btQuaternion(0, 0, 0, 1);
 
@@ -28,17 +28,22 @@ export class Ped extends Entity {
 
     public init()
     {
+        super.init();
+
         const body = this.collision.body!;
+
+        const DISABLE_DEACTIVATION = 4;
 
         body.setAngularFactor(new Ammo.btVector3(0, 0, 0))
         body.setFriction(0.5);
+        body.setActivationState(DISABLE_DEACTIVATION);
     }
 
     public update(delta: number)
     {
         super.update(delta);
 
-        const vehicle = this.getVehicleIsUsing();
+        const vehicle = this.onVehicle;
 
         if(vehicle)
         {
@@ -46,38 +51,39 @@ export class Ped extends Entity {
             vehicle.inputY = this.inputY;
             vehicle.inputZ = this.inputZ;
         } else {
-            this.updateInputMovement();
+            this.updateInputMovement(delta);
         }
     }
 
-    private updateInputMovement()
+    private updateInputMovement(delta: number)
     {
         const force = new Ammo.btVector3(0, 0, 0);      
         
         //console.log(this.inputX, this.inputZ)
 
-        
         const quat = this.lookDir;
         const euler = Quaternion_ToEuler(quat);
 
         const pitch = euler.y();
+
+        Ammo.destroy(euler);
 
         let forward = this.inputZ;
 
         let right = this.inputX;
 
         const movementDir = {
-            x: -Math.sin(pitch) * forward,
+            x: Math.sin(pitch) * forward,
             y: 0,
-            z: -Math.cos(pitch) * forward
+            z: Math.cos(pitch) * forward
         }
 
-        movementDir.x += Math.cos(pitch) * right;
-        movementDir.z += -Math.sin(pitch) * right;
+        movementDir.x += -Math.cos(pitch) * right;
+        movementDir.z += Math.sin(pitch) * right;
 
-        force.setX(movementDir.x * this.speed);
-        force.setY(movementDir.y * this.speed * 2);
-        force.setZ(movementDir.z * this.speed);
+        force.setX(movementDir.x * this.speed * delta);
+        force.setY(movementDir.y * this.speed * 2 * delta);
+        force.setZ(movementDir.z * this.speed * delta);
 
         const body = this.collision.body!;
 
@@ -90,6 +96,8 @@ export class Ped extends Entity {
         
             body.applyForce(force, new Ammo.btVector3(0, 0, 0));
         }
+
+        Ammo.destroy(force);
     }
 
     public enterVehicle(vehicle: Vehicle)
@@ -113,14 +121,9 @@ export class Ped extends Entity {
         this.onVehicle.pedDriving = undefined;
         this.onVehicle = undefined;
 
-        this.setPosition(vehiclePos.x, vehiclePos.y + 3, vehiclePos.z);
+        this.setPosition(vehiclePos.x(), vehiclePos.y() + 3, vehiclePos.z());
     }
-
-    public getVehicleIsUsing()
-    {
-        return this.onVehicle;
-    }
-
+    
     public getClosestVehicle()
     {
         let closestVehicle: Vehicle | undefined;
@@ -128,11 +131,11 @@ export class Ped extends Entity {
 
         const pedPosition = this.getPosition();
 
-        for(const gameObject of this.game.gameObjects.values())
+        for(const gameObject of this.game.entityFactory.entities.values())
         {
             if(gameObject instanceof Vehicle)
             {
-                const distance = gameObject.getPosition().distanceTo(pedPosition);
+                const distance = Vector3_DistanceTo(gameObject.getPosition(), pedPosition);
 
                 if(distance < closestDistance)
                 {
@@ -148,7 +151,7 @@ export class Ped extends Entity {
     public toJSON()
     {
         const data: PedData_JSON = {
-            lookDir: []
+            lookDir: [this.lookDir.x(), this.lookDir.y(), this.lookDir.z(), this.lookDir.w()]
         }
         
         const json = super.toJSON();
@@ -156,4 +159,5 @@ export class Ped extends Entity {
 
         return json;
     }
+    
 }

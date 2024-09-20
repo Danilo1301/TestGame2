@@ -71,4 +71,33 @@ export class ThreeScene extends Scene3D
 
         return screenPosition;
     }
+
+    public lines: THREE.Line[] = [];
+
+    public drawLine(position: THREE.Vector3, end: THREE.Vector3, color: number)
+    {
+        const points: any[] = [];
+        points.push(position); // Starting point
+        points.push(end);  // Ending point
+
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+
+        // Create a material for the line
+        const material = new THREE.LineBasicMaterial({ color: color });
+
+        // Create the line using the geometry and material
+        const line = new THREE.Line(geometry, material);
+
+        this.lines.push(line);
+
+        this.third.add.existing(line);
+    }
+
+    public clearDebugObjects()
+    {
+        for(const line of this.lines)
+        {
+            this.third.scene.remove(line);
+        }
+    }
 }

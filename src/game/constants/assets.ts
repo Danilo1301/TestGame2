@@ -1,4 +1,4 @@
-interface AssetItem {
+export interface AssetItem {
     key: string,
     path: string
 }

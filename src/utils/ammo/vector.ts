@@ -1,3 +1,8 @@
+export function FormatVector3(vec: Ammo.btVector3)
+{
+  return `${vec.x()}, ${vec.y()}, ${vec.z()}`;
+}
+
 export function Vector3_MoveAlongAngle(vector: Ammo.btVector3, angle: number, distance: number)
 {
     // Create a new vector for direction calculation
@@ -24,4 +29,26 @@ export function Vector3_MoveAlongAngle(vector: Ammo.btVector3, angle: number, di
     
     // Clean up temporary Ammo objects
     Ammo.destroy(direction);
+}
+
+export function Vector3_Subtract(vec1: Ammo.btVector3, vec2: Ammo.btVector3)
+{
+  const result = new Ammo.btVector3(
+    vec1.x() - vec2.x(),
+    vec1.y() - vec2.y(),
+    vec1.z() - vec2.z()
+  );
+  return result
+}
+
+export function Vector3_DistanceTo(vec: Ammo.btVector3, vec2: Ammo.btVector3)
+{
+  return Math.sqrt(Vector3_DistanceToSquared(vec, vec2));
+}
+
+export function Vector3_DistanceToSquared(vec: Ammo.btVector3, vec2: Ammo.btVector3)
+{
+  const dx = vec.x() - vec2.x(), dy = vec.y() - vec2.y(), dz = vec.z() - vec2.z();
+
+  return dx * dx + dy * dy + dz * dz;
 }

@@ -1,25 +1,16 @@
-import { Quaternion_Difference } from "../../utils/ammo/quaterion";
-import { Input } from "../../utils/input/input";
-import { FormatQuaternion, FormatVector3, Vector3_Subtract } from "../game/ammoUtils";
-import { Game } from "../game/game";
-import { GameObject } from "../gameObject/gameObject";
-import { GameObjectSync } from "../gameObject/gameObjectSync";
-import { Entity } from "./entity";
+import { Quaternion_ToEuler } from "../../utils/ammo/quaterion";
+import { FormatVector3, Vector3_Subtract } from "../../utils/ammo/vector";
+import { Entity, EntityData_JSON } from "./entity";
 import { Ped } from "./ped";
 import { Wheel } from "./wheel";
 
 export class Vehicle extends Entity {
-
-    public force: number = 20;
-
     public chassisHeight: number = 2.0;
-
-    public darGrau: boolean = false; //melhor variavel
-
     public frontWheelContraints: Ammo.btGeneric6DofSpringConstraint[] = [];
     public backWheelConstraints: Ammo.btHingeConstraint[] = [];
     public wheels: Wheel[] = [];
-
+    
+    public darGrau: boolean = false;
     public pedDriving?: Ped;
 
     public init()
@@ -41,14 +32,13 @@ export class Vehicle extends Entity {
     {
         super.update(delta);
 
-        //if(Input.getKey("SHIFT")) this.darGrau = true;
-
         if(this.inputX != 0 || this.inputY != 0 || this.inputZ != 0)
         {
             this.activateVehicleBodies();
         }
 
-        const velocity = this.force * this.inputZ * (this.darGrau ? 5 : 1);
+        const force = 30;
+        const velocity = force * this.inputZ * (this.darGrau ? 5 : 1);
 
         this.setBackWheelsVelocity(velocity);
 
@@ -74,17 +64,6 @@ export class Vehicle extends Entity {
         this.activateBody();
     }
 
-    public steerWheels(angle: number)
-    {
-        const steerAngle = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, angle));
-
-        for(const constraint of this.frontWheelContraints)
-        {
-            constraint.setAngularLowerLimit(new Ammo.btVector3(-Math.PI, steerAngle, 0));
-            constraint.setAngularUpperLimit(new Ammo.btVector3(Math.PI, steerAngle, 0));
-        }
-    }
-
     public setBackWheelsVelocity(velocity: number)
     {
         for(const constraint of this.backWheelConstraints)
@@ -101,21 +80,46 @@ export class Vehicle extends Entity {
         }
     }
 
-    public setupVehicleBoke(game: Game, isBike: boolean)
+    public steerWheels(angle: number)
     {
-        const gameObjectFactory = game.gameObjectFactory;
+        const steerAngle = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, angle));
+
+        for(const constraint of this.frontWheelContraints)
+        {
+            const alower = new Ammo.btVector3(-Math.PI, steerAngle, 0);
+            const aupper = new Ammo.btVector3(Math.PI, steerAngle, 0);
+
+            constraint.setAngularLowerLimit(alower);
+            constraint.setAngularUpperLimit(aupper);
+
+            Ammo.destroy(alower);
+            Ammo.destroy(aupper);
+        }
+    }
+
+    public setupVehicleBody(isBike: boolean)
+    {
+        const game = this.game;
+        const entityFactory = game.entityFactory;
         const chassis = this;
         const world = game.serverScene.physics.physicsWorld;
+
+        const chassisPosition = chassis.getPosition();
         
         //chassis.body.setAngularFactor(new Ammo.btVector3(1, 1, 0))
 
         const createWheel = (x: number, z: number, canSteer: boolean) => {
-            const wheelOptions = {radius: 0.5, depth: 0.35, mass: 100};
+            const wheelOptions = {radius: 0.5, depth: 0.35, mass: 20};
             const wheelY = -this.chassisHeight/2;
-
-            const wheel = gameObjectFactory.spawnWheel2(x, z, wheelOptions)
+            
+            const wheel = entityFactory.spawnWheel(
+                chassisPosition.x() + x,
+                chassisPosition.y() + wheelY,
+                chassisPosition.z() + z,
+                wheelOptions
+            )
+            
             wheel.displayName += `${canSteer ? "F" : "B"}`;
-            wheel.setPosition(x, wheelY, z);
             wheel.offsetFromChassis.setValue(x, wheelY, z);
 
             this.wheels.push(wheel);
@@ -177,8 +181,6 @@ export class Vehicle extends Entity {
                 world.addConstraint(rearWheelHinge, true);
 
                 this.backWheelConstraints.push(rearWheelHinge);
-
-                   // Enable motor for rear wheel
             }
         };
 
@@ -198,6 +200,8 @@ export class Vehicle extends Entity {
             createWheel(wheelX, wheelZ, false);
             createWheel(-wheelX, wheelZ, false);
         }
+
+        this.steerWheels(0)
     }
 
     public setVehiclePosition(x: number, y: number, z: number)
@@ -211,6 +215,8 @@ export class Vehicle extends Entity {
             const diff = Vector3_Subtract(wheelPosition, vehiclePosition);
 
             wheel.setPosition(x + diff.x(), y + diff.y(), z + diff.z());
+
+            Ammo.destroy(diff);
         }
 
         this.setPosition(x, y, z);
@@ -218,23 +224,42 @@ export class Vehicle extends Entity {
 
     public setVehicleRotation(x: number, y: number, z: number, w: number)
     {
-        //const prevRotation = this.getRotation();
-
+        const rotation = this.getRotation();
+        const euler = Quaternion_ToEuler(rotation);
+        
         this.setRotation(x, y, z, w);
+        
+        const newRotation = this.getRotation();
+        const newEuler = Quaternion_ToEuler(newRotation);
 
-        //const newRotation = new Ammo.btQuaternion(x, y, z, w);
+        //console.log(euler.y(), "->", newEuler.y());
 
-        //const diff = Quaternion_Difference(prevRotation, newRotation);
-
+        const diffEulerY = newEuler.y() - euler.y();
+        
         for(const wheel of this.wheels)
         {
             const wheelOffset = wheel.offsetFromChassis;
             const transformedPosition = this.transformFromObjectSpace(this.body, wheelOffset);
             wheel.setPosition(transformedPosition.x(), transformedPosition.y(), transformedPosition.z());
+            
+            Ammo.destroy(transformedPosition);
 
-            //const wheelRotation = wheel.getRotation();
-            //wheelRotation.op_mulq(diff);
-            //wheel.setRotation(wheelRotation.x(), wheelRotation.w(), wheelRotation.z(), wheelRotation.w());
+            const wheelRotation = wheel.getRotation();
+            const wheelEuler = Quaternion_ToEuler(wheelRotation);
+
+            const newWheelEulerY = wheelEuler.y() + diffEulerY;
+
+            const newWheelRotation = new Ammo.btQuaternion(0, 0, 0, 1);
+            newWheelRotation.setEulerZYX(wheelEuler.z(), newWheelEulerY, wheelEuler.x());
+
+            wheel.setRotation(newWheelRotation.x(), newWheelRotation.y(), newWheelRotation.z(), wheelRotation.w());
+
+            Ammo.destroy(wheelEuler);
+            Ammo.destroy(newWheelRotation);
+
         }
+
+        Ammo.destroy(euler);
+        Ammo.destroy(newEuler);
     }
 }

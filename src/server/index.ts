@@ -41,5 +41,14 @@ Debug.log("index", "Geckos started!");
 import { MasterServer } from './masterServer/masterServer';
 
 Debug.log("index", "index");
-const masterServer = new MasterServer(io);
-masterServer.start();
+
+const assetsPath = path.join(__dirname, "..", "..", "public", "assets");
+
+console.log(assetsPath)
+
+const masterServer = new MasterServer();
+masterServer.start({
+  ammo: require('@enable3d/ammo-on-nodejs/ammo/ammo.js'),
+  io: io,
+  assetsPath: assetsPath
+});

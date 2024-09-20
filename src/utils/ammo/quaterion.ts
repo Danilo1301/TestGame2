@@ -1,3 +1,8 @@
+export function FormatQuaternion(q: Ammo.btQuaternion)
+{
+  return `${q.x()}, ${q.y()}, ${q.z()}, ${q.w()}`;
+}
+
 // Rotates the point /point/ with /rotation/.
 // Quaternion * Vector3
 export function Quaternion_Multiply_Vector3(rotation: Ammo.btQuaternion, point: Ammo.btVector3)
@@ -60,4 +65,39 @@ export function Quaternion_Difference(q1: Ammo.btQuaternion, q2: Ammo.btQuaterni
     q2.op_mulq(q1Inverse)
 
     return q2;
+}
+
+
+export function Quaternion_ToEuler(quat: Ammo.btQuaternion)
+{
+    let heading = 0, attitude = 0, bank = 0;
+    const q1 = new Ammo.btQuaternion(0, 0, 0, 1);
+    q1.setX(quat.x());
+    q1.setY(quat.y());
+    q1.setZ(quat.z());
+    q1.setW(quat.w());
+    const test = q1.x() * q1.y() + q1.z() * q1.w();
+    if (test > 0.499) { // singularity at north pole
+        heading = 2 * Math.atan2(q1.x(), q1.w());
+        attitude = Math.PI/2;
+        bank = 0;
+        return new Ammo.btVector3(0, 0, 0)
+    }
+    if (test < -0.499) { // singularity at south pole
+        heading = -2 * Math.atan2(q1.x(), q1.w());
+        attitude = -Math.PI/2;
+        bank = 0;
+        return new Ammo.btVector3(0, 0, 0)
+    }
+    const sqx = q1.x() * q1.x();
+    const sqy = q1.y() * q1.y();
+    const sqz = q1.z() * q1.z();
+    heading = Math.atan2(2*q1.y()*q1.w()-2*q1.x()*q1.z() , 1 - 2*sqy - 2*sqz);
+    attitude = Math.asin(2*test);
+    bank = Math.atan2(2*q1.x()*q1.w()-2*q1.y()*q1.z() , 1 - 2*sqx - 2*sqz);
+
+    Ammo.destroy(q1);
+
+    const vec = new Ammo.btVector3(bank,heading,attitude);
+    return vec;
 }

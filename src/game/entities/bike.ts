@@ -1,28 +1,53 @@
-import { clamp } from "three/src/math/MathUtils";
-import { FormatVector3, Quaternion_ToEuler } from "../game/ammoUtils";
+import { Quaternion_Clone, Quaternion_ToEuler } from "../../utils/ammo/quaterion";
+import { Entity, EntityData_JSON } from "./entity";
 import { Vehicle } from "./vehicle";
 import { Input } from "../../utils/input/input";
 
-/*
-this guy just saved my bike
-https://pybullet.org/Bullet/phpBB3/viewtopic.php?t=11238
-*/
 export class Bike extends Vehicle {
-
     public init()
     {
         super.init();
+
+        //this.collision.body!.setAngularFactor(new Ammo.btVector3(1, 1, 0));
     }
 
     public update(delta: number)
     {
         super.update(delta);
 
-        //console.log("angular velocity", FormatVector3(this.body.getAngularVelocity()))
-
         const rotation = this.getRotation();
-
         const euler = Quaternion_ToEuler(rotation);
+        const yaw = euler.z();
+
+        const right = this.right;
+        right.op_mul(30000);
+
+        const forceRelative = new Ammo.btVector3(0, 2, 0)
+
+        //console.log(yaw);
+        if(yaw > 0)
+        {
+            right.op_mul(Math.abs(yaw));
+            this.body.applyForce(right, forceRelative);
+        }
+        if(yaw < 0)
+        {
+            right.op_mul(Math.abs(yaw));
+            right.op_mul(-1);
+            this.body.applyForce(right, forceRelative);
+        }
+
+        const newQuat = new Ammo.btQuaternion(0, 0, 0, 1);
+        newQuat.setEulerZYX(0, euler.y(), euler.x());
+        this.setRotation(newQuat.x(), newQuat.y(), newQuat.z(), newQuat.w());
+
+        Ammo.destroy(euler);
+        Ammo.destroy(right);
+        Ammo.destroy(forceRelative);
+        Ammo.destroy(newQuat);
+
+        /*
+
 
         //console.log(euler)
         
@@ -48,37 +73,29 @@ export class Bike extends Vehicle {
             //this.body.applyForce(new Ammo.btVector3(-8000, 0, 0), new Ammo.btVector3(0, 2, 0));
         }
 
-        
+        Ammo.destroy(right);
+        Ammo.destroy(euler);
+        */
 
-        const newQuat = new Ammo.btQuaternion(0, 0, 0, 1);
-        newQuat.setEulerZYX(0, euler.y(), euler.x());
-        this.setRotation(newQuat.x(), newQuat.y(), newQuat.z(), newQuat.w());
-
+        const bike = this;             
         if(Input.getKey("X"))
         {
-            this.setVehiclePosition(0, 5, 0);
-            this.setVehicleRotation(0, 0, 0, 1);
-
+            bike.setPosition(0, 5, 0);
+            bike.setVehicleRotation(0, 0, 0, 1);
+            bike.setVelocity(0, 0, 0);
         }
 
         if(Input.getKey("Z"))
         {
-            const quat = new Ammo.btQuaternion(0, 0, 0, 1);
-            quat.setEulerZYX(0, Math.PI/2, 0);
+            const rotation = bike.getRotation();
+            Quaternion_Clone(rotation);
+            rotation.setEulerZYX(0, Math.PI/2, 0);
+
+            bike.setPosition(0, 5, 0);
+            bike.setVehicleRotation(rotation.x(), rotation.y(), rotation.z(), rotation.w());
+            bike.setVelocity(0, 0, 0);
             
-            this.setVehiclePosition(0, 5, 0);
-            this.setVehicleRotation(quat.x(), quat.y(), quat.z(), quat.w());
+            Ammo.destroy(rotation);
         }
-
-
-        //this.stabilizeChassis(this.body);
-
-        for(const wheel of this.wheels)
-        {
-            //this.checkWheelRotation(wheel.body);
-        }
-
-
-        //this.body.setAngularVelocity(new Ammo.btVector3(0, 0, 0))
     }
 }

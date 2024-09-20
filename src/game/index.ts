@@ -1,5 +1,6 @@
 import { Debug } from "../utils/debug/debug";
 import { Gameface } from "./gameface/gameface";
+import { GameScene } from "./scenes/gameScene";
 
 Debug.log("index", "index");
 
@@ -16,6 +17,7 @@ async function main()
     
     //tests
     _window["gameface"] = gameface;
+    _window["GameScene"] = GameScene;
 
     await gameface.start();
 

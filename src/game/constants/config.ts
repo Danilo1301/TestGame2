@@ -2,11 +2,6 @@ import Phaser from "phaser";
 
 import { isMobile } from "../../utils/utils";
 
-export const gameSettings = {
-    clientSendDataInterval: 50,
-    serverSendDataInterval: 50
-}
-
 export const getIsMobile = () => {
     if(location.href.includes("#mobile")) return true;
     return isMobile.any() != null;

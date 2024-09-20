@@ -1,46 +1,26 @@
-import { Scene3D, Types } from "@enable3d/phaser-extension";
-import { ServerScene } from "../scenes/serverScene";
-import { GameObject } from "../gameObject/gameObject";
-import { Player } from "../player/player";
-import { Debug } from "../../utils/debug/debug";
 import { ServerClock } from "@enable3d/ammo-on-nodejs";
-import THREE from "three";
-import path from "path"
-import { isNode, randomIntFromInterval } from "../../utils/utils";
-import { ThreeModelManager } from "../three/threeModelManager";
-import { GLTFCollection } from "./gltfCollection";
-import { Ped } from "../entities/ped";
-import { MakeBodyOptions } from "../gameObject/gameObjectCollision";
+import { AmmoUtils } from "../../utils/ammo/ammoUtils";
 import { BaseObject } from "../../utils/baseObject";
-import { AmmoUtils, FormatVector3 } from "./ammoUtils";
-import { Input } from "../../utils/input/input";
-import { Quaternion_Multiply_Vector3 } from "../../utils/ammo/quaterion";
-import { GameObjectFactory } from "./gameObjectFactory";
-import { Vehicle } from "../entities/vehicle";
-
-const WHEEL_MASS = 100;
-const ROTOR_MASS = 500;
-const AXIS_MASS = 300;
-const VEHICLE_MASS = 300;
-const FORCE = 300;
+import { ServerScene } from "../scenes/serverScene";
+import { EntityFactory } from "../entities/entityFactory";
+import { GLTFCollection } from "../../utils/gltf/gltfCollection";
 
 export class Game extends BaseObject
 {
+    public isServer: boolean = false;
     public serverScene: ServerScene;
-
-    public gameObjectFactory: GameObjectFactory;
-    public gameObjects = new Map<string, GameObject>();
-
-    public gltfCollection: GLTFCollection = new GLTFCollection();
-
+    public entityFactory: EntityFactory;
     public ammoUtils: AmmoUtils;
+    public gltfCollection = new GLTFCollection();
     
+    private _prevAA: number = 0;
+
     constructor()
     {
         super()
 
-        this.gameObjectFactory = new GameObjectFactory(this);
         this.serverScene = new ServerScene(this);
+        this.entityFactory = new EntityFactory(this);
         this.ammoUtils = new AmmoUtils();
     }
 
@@ -52,30 +32,20 @@ export class Game extends BaseObject
 
     public update(delta: number)
     {
+        for(const entity of this.entityFactory.entities.values()) entity.update(delta);
+        
         this.serverScene.update(delta);
 
-        for(const gameObject of this.gameObjects.values())
+        const vec = new Ammo.btVector3(0, 0, 0);
+        const aa = (vec as any).aa;
+        Ammo.destroy(vec);
+
+        const diff = aa - this._prevAA;
+        if(diff > 1000)
         {
-            gameObject.update(delta);
-
-            const spawn = new THREE.Vector3(0, 2, 0);
-
-            if(gameObject.getPosition().distanceTo(spawn) > 80)
-            {
-                const newPos = gameObject.getPosition();
-
-                if(gameObject instanceof Vehicle)
-                {
-                    gameObject.setVehiclePosition(spawn.x, spawn.y, spawn.z);
-                    gameObject.setRotation(0, 0, 0, 1);
-                } else {
-                    gameObject.setPosition(spawn.x, spawn.y, spawn.z);
-                }
-
-                gameObject.setVelocity(0, 0, 0);
-            }
+            this.log(`Possible memory leak detected! (aa: ${this._prevAA} -> ${aa}, ${diff})`);
+            this._prevAA = aa;
         }
-        
     }
 
     public startClock()

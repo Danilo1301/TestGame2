@@ -2,12 +2,13 @@
   "name": "game",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "",
   "scripts": {
     "start": "ts-node src/server/index.ts",
     "server": "nodemon src/server/index.ts",
     "server_ignore": "nodemon src/server/index.ts --ignore ./public --ignore ./src",
-    "client": "webpack --config webpack/webpack.client.config.js --watch"
+    "client": "webpack --config webpack/webpack.client.config.js --watch",
+    "build_lib": "webpack --config webpack/webpack.lib.config.js --watch"
   },
   "author": "Danilo1301",
   "license": "ISC",
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
+    "@types/node": "^22.5.5",
     "typescript": "^5.5.4",
     "webpack-cli": "^5.1.4"
   },

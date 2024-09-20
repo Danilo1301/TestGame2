@@ -4,25 +4,24 @@ import { Input } from "../../utils/input/input";
 import { PhaserLoad } from "../../utils/phaserLoad/phaserLoad";
 import { MainScene } from "../scenes/mainScene";
 import { SceneManager } from "./sceneManager";
-import { GameScene } from "../scenes/gameScene/gameScene";
+import { GameScene } from "../scenes/gameScene";
 import { Game } from "../game/game";
 import { Network } from "../network/network";
 import { ThreeScene } from "../three/threeScene";
 import { IPacketData_Models, PACKET_TYPE } from "../network/packet";
-import { GameObject } from "../gameObject/gameObject";
-import { Ped } from "../entities/ped";
 import { getIsMobile } from "../constants/config";
-import { initAmmoExtension } from "../../utils/utils";
-import { Vehicle } from "../entities/vehicle";
+import THREE from "three";
+import { Entity } from "../entities/entity";
+import { Quaternion_Clone } from "../../utils/ammo/quaterion";
+import { Ped } from "../entities/ped";
 
 export class Gameface extends BaseObject
 {
     public static Instance: Gameface;
     public static isLowPerformance: boolean = true;
 
-    public playerId: string = "";
     public player?: Ped;
-    public vehicle?: Vehicle;
+    public playerId: string = "";
 
     public get phaser() { return this._phaser!; }
     public get sceneManager() { return this._sceneManager; }
@@ -54,8 +53,6 @@ export class Gameface extends BaseObject
 
         this._phaser = await PhaserLoad.loadAsync();
 
-        initAmmoExtension();
-
         this.log(this.phaser);
 
         this.sceneManager.startScene(MainScene);
@@ -83,31 +80,32 @@ export class Gameface extends BaseObject
 
         this.game.init();
 
+        (window as any).Ammo = Ammo;
+        (window as any).THREE = THREE;
+
         this.network.connect(async () => {
-            console.log("conectado");
+            this.log("conectado");
 
             this.network.send(PACKET_TYPE.PACKET_REQUEST_MODELS, {});
+
+            this.log("waiting for models");
 
             const models = await this.network.waitForPacket<IPacketData_Models>(PACKET_TYPE.PACKET_MODELS);
 
             Gameface.Instance.game.gltfCollection.fromPacketData(models);
-
+            
             this.game.serverScene.create();
 
-            //const bike = this.game.gameObjectFactory.spawnBike();
-            //bike.setVehiclePosition(10, 0, 10)
+            //const bike = this.game.entityFactory.spawnBike(0, 3, 0);
 
-            //const car = this.game.gameObjectFactory.spawnVehicle();
-
-            //this.vehicle = bike;
         });
     }
 
     public update(delta: number)
     {
+        ThreeScene.Instance.clearDebugObjects();
         this.game.update(delta);
         this.network.update(delta);
-        
     }
 
     public postUpdate(delta: number)

@@ -1,13 +1,10 @@
 import { io, Socket } from "socket.io-client";
 import { BaseObject } from "../../utils/baseObject";
-import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_GameObjects, IPacketData_JoinedServer, PACKET_TYPE } from "./packet";
+import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_Entities, IPacketData_JoinedServer, PACKET_TYPE } from "./packet";
+import { SyncHelper } from "./syncHelper";
+import { gameSettings } from "../constants/gameSettings";
 import { Gameface } from "../gameface/gameface";
-import THREE from "three";
-import { Ped } from "../entities/ped";
-import { eSyncType } from "../gameObject/gameObjectSync";
-import { gameSettings } from "../constants/config";
-import { GameObject, GameObjectType } from "../gameObject/gameObject";
-import { Bike } from "../entities/bike";
+import { EntityType } from "../entities/entity";
 
 class PacketListener {
     public functions = new Map<PACKET_TYPE, Function[]>();
@@ -99,75 +96,12 @@ export class Network extends BaseObject
 
             console.log(data);
         }
-
-        if(packet.type == PACKET_TYPE.PACKET_GAME_OBJECTS)
+            
+        if(packet.type == PACKET_TYPE.PACKET_ENTITIES)
         {
-            const game = Gameface.Instance.game;
+            const data = packet.data as IPacketData_Entities;
 
-            //console.log(packet);
-
-            const data = packet.data as IPacketData_GameObjects;
-
-            for(const obj of data.gameObjects)
-            {
-                //console.log(obj);
-
-                let gameObject: GameObject | undefined = undefined;
-
-                if(!game.gameObjects.has(obj.id))
-                {
-                    switch(obj.type)
-                    {
-                        case GameObjectType.PED:
-                            gameObject = game.gameObjectFactory.spawnPed();
-                            break;
-                        case GameObjectType.VEHICLE:
-                            gameObject = game.gameObjectFactory.spawnVehicle();
-                            break;
-                        case GameObjectType.BIKE:
-                            gameObject = game.gameObjectFactory.spawnBike();
-                            gameObject.displayName += "(Balengando)";
-
-                            break;
-                        default:
-                            break;
-                    }
-
-                    if(gameObject)
-                        game.gameObjectFactory.changeGameObjectId(gameObject, obj.id);
-                }
-
-                if(!gameObject) gameObject = game.gameObjects.get(obj.id);
-
-                if(gameObject)
-                {
-                    if(gameObject.id == Gameface.Instance.playerId)
-                    {
-                        if(!Gameface.Instance.player)
-                        {
-                            Gameface.Instance.player = gameObject as Ped;
-                        }
-                    } else {
-                        
-                        
-
-                            gameObject.sync.syncType = eSyncType.SYNC_DEFAULT;
-
-                            const position = obj.position;
-                            const velocity = obj.velocity;
-                            const rotation = obj.rotation;
-    
-                            //console.log(velocity);
-    
-                            gameObject.sync.setPosition(position[0], position[1], position[2]);
-                            gameObject.sync.setVelocity(velocity[0], velocity[1], velocity[2]);
-                            gameObject.sync.setRotation(rotation[0], rotation[1], rotation[2], rotation[3]);
-                        
-
-                       
-                    }
-                }
-            }
+            SyncHelper.onReceiveEntitiesPacket(data);
         }
     }
 
@@ -216,7 +150,23 @@ export class Network extends BaseObject
 
         if(!player) return;
 
+        const vehicle = player.onVehicle;
+
+        if(vehicle)
+        {
+            console.log("sending veh")
+
+            const json = vehicle.toJSON();
+            json.type = EntityType.VEHICLE;
+
+            this.send<IPacketData_ClientData>(PACKET_TYPE.PACKET_CLIENT_DATA, {
+                player: json
+            });
+            return;
+        } 
+
         const json = player.toJSON();
+        json.type = EntityType.PED;
 
         this.send<IPacketData_ClientData>(PACKET_TYPE.PACKET_CLIENT_DATA, {
             player: json

@@ -1,11 +1,11 @@
-import { GLTFData_JSON } from "../game/gltfCollection"
-import { GameObject_JSON } from "../gameObject/gameObject"
+import { GLTFData_JSON } from "../../utils/gltf/gltfData"
+import { Entity_JSON } from "../entities/entity"
 
 export enum PACKET_TYPE {
     PACKET_REQUEST_MODELS,
     PACKET_MODELS,
     PACKET_JOINED_SERVER,
-    PACKET_GAME_OBJECTS,
+    PACKET_ENTITIES,
     PACKET_CLIENT_DATA,
     PACKET_ENTER_LEAVE_VEHICLE
 }
@@ -24,18 +24,17 @@ export interface IPacketData_JoinedServer {
     serverId: string
 }
 
+export interface IPacketData_EnterLeaveVehicle {
+    vehicleId: string
+}
 export interface IPacketData_Models {
     models: GLTFData_JSON[]
 }
 
-export interface IPacketData_GameObjects {
-    gameObjects: GameObject_JSON[]
+export interface IPacketData_Entities {
+    entities: Entity_JSON[]
 }
 
 export interface IPacketData_ClientData {
-    player: GameObject_JSON
-}
-
-export interface IPacketData_EnterLeaveVehicle {
-    vehicleId: string
+    player: Entity_JSON
 }

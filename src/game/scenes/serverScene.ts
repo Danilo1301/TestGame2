@@ -1,9 +1,6 @@
 import { ExtendedObject3D, Physics, ServerClock } from '@enable3d/ammo-on-nodejs'
 import { Debug } from '../../utils/debug/debug';
-import { GameObject } from '../gameObject/gameObject'
 import { Game } from '../game/game';
-import THREE from 'three';
-import { Gameface } from '../gameface/gameface';
 import { isNode } from '../../utils/utils';
 
 export class ServerScene
@@ -15,7 +12,6 @@ export class ServerScene
     public objects: ExtendedObject3D[] = [];
 
     public box?: ExtendedObject3D;
-    public box2?: GameObject;
 
     public testRigidBody?: Ammo.btRigidBody;
 
@@ -40,10 +36,6 @@ export class ServerScene
     public create()
     {
         /*
-        this.physics.add.box({ name: 'box', y: 5 });
-        this.physics.add.box({ name: 'box', y: 5 });
-        this.physics.add.box({ name: 'box', y: 5 });
-
         const ground = this.physics.add.box({
             name: 'ground',
             width: 40,
@@ -55,6 +47,9 @@ export class ServerScene
 
         */
 
+        this.game.entityFactory.spawnGround(100, 100);
+        //
+
         //this.game.createBulding();
 
         //this.game.spawnVehicle();
@@ -64,20 +59,20 @@ export class ServerScene
 
         //const box3 = this.game.createBox();
 
-    
-        const ground = this.game.gameObjectFactory.createGround();
+        
     }
 
     public createServerScene()
     {
-        this.game.gameObjectFactory.spawnNPC();
-        this.game.gameObjectFactory.spawnNPC();
+        this.game.entityFactory.spawnBox(0.2, 6, 0);
+        this.game.entityFactory.spawnBox(0.3, 7, 0);
+        this.game.entityFactory.spawnBox(0.4, 8, 0);
+        this.game.entityFactory.spawnBox(0.5, 9, 0);
+        
+        this.game.entityFactory.spawnPed(0, 3, 0);
 
-        const bike = this.game.gameObjectFactory.spawnBike();
-        bike.setVehiclePosition(15, 2, 0);
-
-        const car = this.game.gameObjectFactory.spawnVehicle();
-        car.setVehiclePosition(10, 2, 0);
+        this.game.entityFactory.spawnVehicle(0, 2, -10);
+        this.game.entityFactory.spawnBike(5, 2, -10);
     }
 
     public update(delta: number)
@@ -90,24 +85,17 @@ export class ServerScene
         
         if(!this.physics) return;
 
+        this.physics.update(timeDiff)
+
+        /*
         if(isNode())
         {
             this.physics.update(timeDiff / (16/30)) // 16ms in client and 30ms in server
         } else {
             this.physics.update(timeDiff)
         }
+        */
 
-        //this.physics.update(delta * 1000)
-
-        if(this.box2)
-        {
-            const body = this.box2.collision.body!;
-            const transform = body.getWorldTransform();
-            const position = transform.getOrigin();
-
-            body.applyTorque(new Ammo.btVector3(1, 1, 1));
-
-            //console.log(position.y())
-        }
+        
     }
 }
