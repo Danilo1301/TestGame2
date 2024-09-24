@@ -14,10 +14,13 @@ export class ClientEntity {
     public entity: Entity;
 
     public threeGroup?: THREE.Group;
+    public threeObjects: THREE.Object3D[] = [];
+
     public gltfModel?: ThreeModel;
     //public object3d?: ExtendedObject3D;
     public debugText: DebugText;
     
+
     constructor(entity: Entity)
     {
         this.entity = entity;
@@ -95,6 +98,16 @@ export class ClientEntity {
     {
     }
 
+    public getThreeObjectByName(name: string)
+    {
+        for(const object of this.threeObjects)
+        {
+            if(object.name == name) return object;
+        }
+
+        return undefined;
+    }
+
     public createCollisionModels()
     {
         if(!this.threeGroup) return;
@@ -103,9 +116,13 @@ export class ClientEntity {
 
         const shapes = this.entity.collision.shapes;
 
+        console.log("create for " + this.entity.id)
+
         var i = 0;
         for(const shape of shapes)
         {
+            
+
             if(shape.type == CollisionShapeType.COLLISION_TYPE_BOX)
             {
                 const box = new THREE.Mesh(
@@ -117,6 +134,7 @@ export class ClientEntity {
                 box.scale.set(shape.scale.x, shape.scale.y, shape.scale.z);
         
                 this.threeGroup.add(box);
+                this.threeObjects.push(box);
             }
 
             if(shape.type == CollisionShapeType.COLLISION_TYPE_CAPSULE)
@@ -130,6 +148,7 @@ export class ClientEntity {
                 box.scale.set(shape.scale.x, shape.scale.y, shape.scale.z);
         
                 this.threeGroup.add(box);
+                this.threeObjects.push(box);
             }
 
             if(shape.type == CollisionShapeType.COLLISION_TYPE_CYLINDER)
@@ -143,6 +162,7 @@ export class ClientEntity {
                 box.scale.set(shape.scale.x, shape.scale.y, shape.scale.z);
         
                 this.threeGroup.add(box);
+                this.threeObjects.push(box);
             }
 
             if(shape.type == CollisionShapeType.COLLISION_TYPE_SPHERE)
@@ -156,6 +176,7 @@ export class ClientEntity {
                 box.scale.set(shape.scale.x, shape.scale.y, shape.scale.z);
         
                 this.threeGroup.add(box);
+                this.threeObjects.push(box);
             }
 
             if(shape.type == CollisionShapeType.COLLISION_TYPE_MESH)
@@ -204,12 +225,14 @@ export class ClientEntity {
 
                 // Create the mesh from the geometry and material
                 const mesh = new THREE.Mesh(geometry, material);
+                mesh.name = shape.name;
 
                 mesh.position.set(shape.position.x, shape.position.y, shape.position.z);
                 mesh.rotation.setFromQuaternion(shape.rotation);
                 mesh.scale.set(shape.scale.x, shape.scale.y, shape.scale.z);
 
                 this.threeGroup.add(mesh);
+                this.threeObjects.push(mesh);
             }
             i++;
         }
@@ -226,7 +249,9 @@ export class ClientEntity {
 
             this.gltfModel = model;
 
-            this.threeGroup!.add(model.object);
+            const object = model.object;
+
+            this.threeGroup!.add(object);
 
             break;
         }

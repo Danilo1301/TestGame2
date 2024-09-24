@@ -52,3 +52,18 @@ export function Vector3_DistanceToSquared(vec: Ammo.btVector3, vec2: Ammo.btVect
 
   return dx * dx + dy * dy + dz * dz;
 }
+
+export function Vector3_CrossVectors(a: Ammo.btVector3, b: Ammo.btVector3) {
+
+  const result = new Ammo.btVector3(0, 0, 0);
+
+  const ax = a.x(), ay = a.y(), az = a.z();
+  const bx = b.x(), by = b.y(), bz = b.z();
+
+  result.setX(ay * bz - az * by);
+  result.setY(az * bx - ax * bz);
+  result.setZ(ax * by - ay * bx);
+
+  return result;
+
+}

@@ -44,6 +44,7 @@ export class Triangle {
 }
 
 export interface CollisionShape_JSON {
+    name: string
     type: CollisionShapeType
     position: number[]
     scale: number[]
@@ -62,6 +63,7 @@ export enum CollisionShapeType {
 }
 
 export class CollisionShape {
+    public name: string = "";
     public type: CollisionShapeType = CollisionShapeType.COLLISION_TYPE_BOX;
     public position = new THREE.Vector3();
     public scale = new THREE.Vector3(1, 1, 1);
@@ -80,6 +82,7 @@ export class CollisionShape {
     public toJSON()
     {
         const json: CollisionShape_JSON = {
+            name: this.name,
             type: this.type,
             position: [this.position.x, this.position.y, this.position.z],
             scale: [this.scale.x, this.scale.y, this.scale.z],
@@ -93,6 +96,7 @@ export class CollisionShape {
 
     public fromJSON(json: CollisionShape_JSON)
     {
+        this.name = json.name;
         this.type = json.type;
         this.position.set(json.position[0], json.position[1], json.position[2]);
         this.scale.set(json.scale[0], json.scale[1], json.scale[2]);
@@ -124,8 +128,21 @@ export interface MakeBodyOptions {
 export class EntityCollision {
 
     public body?: Ammo.btRigidBody;
+    public compoundShape?: Ammo.btCompoundShape;
     public shapes: CollisionShape[] = [];
     public needToUpdateBody: boolean = false;
+
+    public getShapeByName(name: string)
+    {
+        for(const shape of this.shapes)
+        {
+            if(shape.name == name)
+            {
+                return shape
+            }
+        }
+        return undefined;
+    }
 
     public addBox(position: THREE.Vector3, size: THREE.Vector3)
     {
@@ -180,6 +197,7 @@ export class EntityCollision {
 
         // Create an empty compound shape
         const compoundShape = new Ammo.btCompoundShape();
+        this.compoundShape = compoundShape;
     
         for(const shape of shapes)
         {
@@ -270,8 +288,6 @@ export class EntityCollision {
         const body = new Ammo.btRigidBody(bodyInfo);
 
         this.body = body;
-
-        this.needToUpdateBody = true;
     }
 
     public createCollisionsFromGLTF(gltf: GLTFData, options: MakeBodyOptions)

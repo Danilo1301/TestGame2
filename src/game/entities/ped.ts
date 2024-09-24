@@ -1,7 +1,9 @@
-import { Quaternion_ToEuler } from "../../utils/ammo/quaterion";
-import { Vector3_DistanceTo } from "../../utils/ammo/vector";
+import THREE from "three";
+import { FormatQuaternion, Quaternion_Clone, Quaternion_Multiply_Vector3, Quaternion_ToEuler } from "../../utils/ammo/quaterion";
+import { FormatVector3, Vector3_CrossVectors, Vector3_DistanceTo } from "../../utils/ammo/vector";
 import { Entity, EntityData_JSON } from "./entity";
 import { Vehicle } from "./vehicle";
+import { ammoVector3ToThree, threeVector3ToAmmo } from "../../utils/utils";
 
 export interface PedData_JSON extends EntityData_JSON {
     lookDir: number[]
@@ -26,6 +28,8 @@ export class Ped extends Entity {
     public tag: string = "Disconnected";
     public tagColor: string = "#cccccc";
 
+    public targetDirection = new Ammo.btVector3(0, 0, 1);
+
     public init()
     {
         super.init();
@@ -35,7 +39,7 @@ export class Ped extends Entity {
         const DISABLE_DEACTIVATION = 4;
 
         body.setAngularFactor(new Ammo.btVector3(0, 0, 0))
-        body.setFriction(0.5);
+        body.setFriction(2.0);
         body.setActivationState(DISABLE_DEACTIVATION);
     }
 
@@ -57,16 +61,126 @@ export class Ped extends Entity {
 
     private updateInputMovement(delta: number)
     {
-        const force = new Ammo.btVector3(0, 0, 0);      
-        
-        //console.log(this.inputX, this.inputZ)
-
         const quat = this.lookDir;
         const euler = Quaternion_ToEuler(quat);
-
         const pitch = euler.y();
-
         Ammo.destroy(euler);
+
+        let inputForward = this.inputZ;
+        let inputUp = this.inputY;
+        let inputRight = this.inputX;
+
+        const movementDir = new THREE.Vector3(
+            Math.sin(pitch) * inputForward,
+            0,
+            Math.cos(pitch) * inputForward
+        );
+
+        movementDir.x += -Math.cos(pitch) * inputRight;
+        movementDir.z += Math.sin(pitch) * inputRight;
+
+        movementDir.y += inputUp;
+
+        movementDir.normalize();
+
+        if(movementDir.length() > 0)
+        {
+            console.log(movementDir);
+        }
+
+        this.targetDirection.setValue(movementDir.x, 0, movementDir.z);
+
+        //
+
+        const forward = this.forward;
+
+        const currentDirection = ammoVector3ToThree(forward);
+        const targetDirection = ammoVector3ToThree(this.targetDirection);
+        
+        const newDirection = new THREE.Vector3(currentDirection.x, currentDirection.y, currentDirection.z);
+        newDirection.lerp(targetDirection, delta * 10);
+        newDirection.normalize();
+
+        if(movementDir.length() > 0)
+        {
+            console.log(forward.x());
+            console.log(currentDirection.x + " -> " + targetDirection.x + " = " + newDirection.x);
+        }
+        
+        const newDirection_a = threeVector3ToAmmo(newDirection);
+        //console.log(newDirection)
+        //console.log(FormatVector3(newDirection_a))
+
+        // -------------
+
+        
+        //console.log(FormatQuaternion(currentQuaternion));
+
+        // Step 2: Get the current forward direction (assuming the forward axis is Z-axis in local space)
+        const forwardDirection = new Ammo.btVector3(0, 0, 1);
+
+        // Step 3: Calculate the cross product to get the axis of rotation
+        const rotationAxis = Vector3_CrossVectors(forwardDirection, newDirection_a);
+        rotationAxis.normalize();
+
+        if(Number.isNaN(rotationAxis.x()))
+        {
+            console.log(currentDirection)
+            console.log(newDirection)
+            console.log(FormatVector3(rotationAxis));
+        } else {
+
+            const dotProduct = forwardDirection.dot(newDirection_a);
+            const angle = Math.acos(dotProduct); // Angle in radians
+
+            const currentQuaternion = Quaternion_Clone(this.getRotation());
+            currentQuaternion.setRotation(rotationAxis, angle);
+
+            this.setRotation(currentQuaternion.x(), currentQuaternion.y(), currentQuaternion.z(), currentQuaternion.w())
+        }
+
+        // ---------------
+
+        const body = this.collision.body!;
+
+        const currentVelocity = body.getLinearVelocity();
+
+        const velocity = new Ammo.btVector3(
+            newDirection_a.x() * 200 * delta,
+            currentVelocity.y(),
+            newDirection_a.z() * 200 * delta
+        );
+
+        if(movementDir.x != 0 && movementDir.z != 0)
+        {
+            body.setLinearVelocity(velocity);
+        }
+
+
+        /*
+        const force = new Ammo.btVector3(0, 0, 0);
+
+        force.setX(newDirection_a.x() * 10000 * delta);
+        force.setY(inputUp * 100000 * delta);
+        force.setZ(newDirection_a.z() * 10000 * delta);
+
+        const body = this.collision.body!;
+
+        if(force.length() > 0)
+        {
+            if(!body.isActive() && force.length() > 0)
+            {
+                body.activate();
+            }
+        
+            body.applyForce(force, new Ammo.btVector3(0, 0, 0));
+        }
+        Ammo.destroy(force);
+        */
+
+
+
+        /*
 
         let forward = this.inputZ;
 
@@ -78,11 +192,54 @@ export class Ped extends Entity {
             z: Math.cos(pitch) * forward
         }
 
+    
+        
         movementDir.x += -Math.cos(pitch) * right;
         movementDir.z += Math.sin(pitch) * right;
 
+        movementDir.y += this.inputY;
+
+        //
+
+        //destroy
+        const targetDirection = new Ammo.btVector3(movementDir.x, 0, movementDir.z);
+        targetDirection.normalize();
+
+        if(targetDirection.length() > 0)
+        {
+
+            //destroy
+            const currentQuaternion = Quaternion_Clone(this.getRotation());
+
+            //console.log(FormatQuaternion(currentQuaternion));
+
+            // Step 2: Get the current forward direction (assuming the forward axis is Z-axis in local space)
+            const forwardDirection = new Ammo.btVector3(0, 0, 1);
+
+            // Step 3: Calculate the cross product to get the axis of rotation
+            const rotationAxis = Vector3_CrossVectors(forwardDirection, targetDirection);
+            rotationAxis.normalize();
+
+            const dotProduct = forwardDirection.dot(targetDirection);
+            const angle = Math.acos(dotProduct); // Angle in radians
+
+            //console.log(FormatVector3(rotationAxis));
+            //console.log(angle)
+
+            if(!Number.isNaN(angle))
+            {
+                currentQuaternion.setRotation(rotationAxis, angle);
+            }
+
+
+            this.setRotation(currentQuaternion.x(), currentQuaternion.y(), currentQuaternion.z(), currentQuaternion.w())
+        }
+
+        //
+
+
         force.setX(movementDir.x * this.speed * delta);
-        force.setY(movementDir.y * this.speed * 2 * delta);
+        force.setY(movementDir.y * 10000 * delta);
         force.setZ(movementDir.z * this.speed * delta);
 
         const body = this.collision.body!;
@@ -98,6 +255,7 @@ export class Ped extends Entity {
         }
 
         Ammo.destroy(force);
+        */
     }
 
     public enterVehicle(vehicle: Vehicle)

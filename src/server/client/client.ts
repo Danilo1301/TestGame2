@@ -90,7 +90,7 @@ export class Client extends BaseObject
                     player.inputZ = input[2];
                     player.lookDir.setValue(pedData.lookDir[0], pedData.lookDir[1], pedData.lookDir[2], pedData.lookDir[3]);
                     
-                    console.log(position)
+                    //console.log(position)
 
                     player.setPosition(position[0], position[1], position[2]);
                 }

@@ -154,8 +154,6 @@ export class Network extends BaseObject
 
         if(vehicle)
         {
-            console.log("sending veh")
-
             const json = vehicle.toJSON();
             json.type = EntityType.VEHICLE;
 

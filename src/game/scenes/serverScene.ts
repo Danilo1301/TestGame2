@@ -64,15 +64,15 @@ export class ServerScene
 
     public createServerScene()
     {
-        this.game.entityFactory.spawnBox(0.2, 6, 0);
-        this.game.entityFactory.spawnBox(0.3, 7, 0);
-        this.game.entityFactory.spawnBox(0.4, 8, 0);
-        this.game.entityFactory.spawnBox(0.5, 9, 0);
+        //this.game.entityFactory.spawnBox(0.2, 6, 0);
+        //this.game.entityFactory.spawnBox(0.3, 7, 0);
+        //this.game.entityFactory.spawnBox(0.4, 8, 0);
+        //this.game.entityFactory.spawnBox(0.5, 9, 0);
         
-        this.game.entityFactory.spawnPed(0, 3, 0);
+        //this.game.entityFactory.spawnPed(0, 3, 0);
 
-        this.game.entityFactory.spawnVehicle(0, 2, -10);
-        this.game.entityFactory.spawnBike(5, 2, -10);
+        //this.game.entityFactory.spawnVehicle(0, 2, -10);
+        //this.game.entityFactory.spawnBike(5, 2, -10);
     }
 
     public update(delta: number)

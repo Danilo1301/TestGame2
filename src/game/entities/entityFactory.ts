@@ -85,8 +85,9 @@ export class EntityFactory extends BaseObject {
         entity.model = "ped";
 
         const height = 1.5;
+        const calsuleRoundHeight = 0.2;
 
-        entity.collision.addCapsule(new THREE.Vector3(0, height/2, 0), 0.3, height);
+        entity.collision.addCapsule(new THREE.Vector3(0, height/2 + calsuleRoundHeight, 0), 0.2, height);
 
         this.setupEntity(entity, {mass: 20});
 

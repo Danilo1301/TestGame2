@@ -33,7 +33,79 @@ export class ClientPed extends ClientEntity {
         end.z += forward.z();
 
         ThreeScene.Instance.drawLine(start, end, 0xff0000);
-
+        
         Ammo.destroy(forward);
+
+        //
+
+        const object = this.gltfModel?.object;
+        if(object)
+        {
+            const objectWorldPosition = new THREE.Vector3();
+            object.getWorldPosition(objectWorldPosition);
+
+            const skeletonobj = object.getObjectByProperty('type', 'SkinnedMesh') as THREE.SkinnedMesh;
+            if(skeletonobj)
+            {
+                const skeleton = skeletonobj.skeleton;
+
+                for(const bone of skeleton.bones)
+                {
+                    const boneWorldPosition = new THREE.Vector3();
+                    bone.getWorldPosition(boneWorldPosition);
+                    const boneQuaternion = new THREE.Quaternion();
+                    bone.getWorldQuaternion(boneQuaternion);
+
+                    const boneLocalPosition = boneWorldPosition.clone();
+                    boneLocalPosition.sub(objectWorldPosition);
+
+                    const boneName = "bone_" + bone.name;
+
+                    const collisionShape = this.entity.collision.getShapeByName("bone_" + bone.name);
+                    
+                    if(collisionShape)
+                    {
+                        const shapeThree = this.getThreeObjectByName(boneName);
+
+                        if(shapeThree)
+                        {
+                            //shapeThree.position.set(boneLocalPosition.x, boneLocalPosition.y, boneLocalPosition.z);
+                            //shapeThree.quaternion.set(boneQuaternion.x, boneQuaternion.y, boneQuaternion.z, boneQuaternion.w);
+                        }
+
+                        ThreeScene.Instance.drawLine(new THREE.Vector3(0, 0, 0), boneWorldPosition, 0xFFFFFF);
+
+                        const collisionShapeIndex = this.entity.collision.shapes.indexOf(collisionShape);
+                        const compoundShape = this.entity.collision.compoundShape!;
+
+                        // Get the child shape (we can't get the transform directly)
+                        const childShape = compoundShape.getChildShape(collisionShapeIndex);
+
+                        /*
+                        // Create a new transform with the updated position
+                        const newTransform = new Ammo.btTransform();
+                        newTransform.setIdentity();
+                        newTransform.setOrigin(new Ammo.btVector3(boneLocalPosition.x, boneLocalPosition.y, boneLocalPosition.z)); // New position
+                        newTransform.setRotation(new Ammo.btQuaternion(boneQuaternion.x, boneQuaternion.y, boneQuaternion.z, boneQuaternion.w));
+
+                        // Remove the child shape (there is no direct remove function, so we recreate the compound shape)
+                        compoundShape.removeChildShapeByIndex(collisionShapeIndex); 
+
+                        // Re-add the child shape with the new transform
+                        compoundShape.addChildShape(newTransform, childShape);
+                        */
+                 
+                    }
+                }
+            }
+        }
+
+    
+        
+
+        //
+
+    
     }
 }
+

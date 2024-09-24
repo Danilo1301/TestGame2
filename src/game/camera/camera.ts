@@ -34,7 +34,7 @@ export class Camera extends BaseObject
 
         const angleX = Phaser.Math.DegToRad(this.cameraView.x % 360);
         const angleY = Phaser.Math.DegToRad(this.cameraView.y);
-        const distance = 10;
+        const distance = 4;
         
         const xDirection = -1;
         const yDirection = 1;

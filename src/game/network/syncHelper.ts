@@ -11,6 +11,9 @@ export class SyncHelper extends BaseObject {
     public static onReceiveEntitiesPacket(data: IPacketData_Entities)
     {
         const game = Gameface.Instance.game;
+        
+        // TEST
+        data.entities = [];
 
         //console.log(data);
 
@@ -66,19 +69,6 @@ export class SyncHelper extends BaseObject {
                 }
             }
 
-            if(entity instanceof Ped)
-            {
-                const ped = entity as Ped;
-
-                const pedData = entityJson.data as PedData_JSON;
-
-                //console.log(pedData.lookDir)
-
-                ped.lookDir.setValue(pedData.lookDir[0], pedData.lookDir[1], pedData.lookDir[2], pedData.lookDir[3]);
-            }
-
-            
-
             const position = entityJson.position;
             const velocity = entityJson.velocity;
             const rotation = entityJson.rotation;
@@ -88,6 +78,19 @@ export class SyncHelper extends BaseObject {
             entity.sync.setPosition(position[0], position[1], position[2]);
             entity.sync.setVelocity(velocity[0], velocity[1], velocity[2]);
             entity.sync.setRotation(rotation[0], rotation[1], rotation[2], rotation[3]);
+
+            if(entity.id == Gameface.Instance.playerId)
+            {
+                
+            } else {
+                if(entity instanceof Ped)
+                {
+                    const ped = entity as Ped;
+                    const pedData = entityJson.data as PedData_JSON;
+    
+                    ped.lookDir.setValue(pedData.lookDir[0], pedData.lookDir[1], pedData.lookDir[2], pedData.lookDir[3]);
+                }
+            }
         }
     }
 }
