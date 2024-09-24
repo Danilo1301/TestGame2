@@ -1,6 +1,6 @@
 import THREE from "three";
 import { FormatQuaternion, Quaternion_Clone, Quaternion_Multiply_Vector3, Quaternion_ToEuler } from "../../utils/ammo/quaterion";
-import { FormatVector3, Vector3_CrossVectors, Vector3_DistanceTo } from "../../utils/ammo/vector";
+import { FormatVector3, getTurnDirection, rotateVectorAroundY, Vector3_CrossVectors, Vector3_DistanceTo, Vector3_Lerp_MinMovement } from "../../utils/ammo/vector";
 import { Entity, EntityData_JSON } from "./entity";
 import { Vehicle } from "./vehicle";
 import { ammoVector3ToThree, threeVector3ToAmmo } from "../../utils/utils";
@@ -85,7 +85,7 @@ export class Ped extends Entity {
 
         if(movementDir.length() > 0)
         {
-            console.log(movementDir);
+            //console.log(movementDir);
         }
 
         this.targetDirection.setValue(movementDir.x, 0, movementDir.z);
@@ -97,14 +97,37 @@ export class Ped extends Entity {
         const currentDirection = ammoVector3ToThree(forward);
         const targetDirection = ammoVector3ToThree(this.targetDirection);
         
-        const newDirection = new THREE.Vector3(currentDirection.x, currentDirection.y, currentDirection.z);
-        newDirection.lerp(targetDirection, delta * 10);
+        const angle = currentDirection.angleTo(targetDirection);
+
+        const dir = getTurnDirection(currentDirection, targetDirection);
+
+        if(movementDir.length() > 0)
+        {
+
+            console.log(angle);
+
+            console.log("current:", currentDirection);
+            console.log("target:", targetDirection);
+        }
+
+        let rotateSpeed = 0.18;
+        let rotateAngle = 0;
+        if(dir == "left") rotateAngle = -rotateSpeed;
+        if(dir == "right") rotateAngle = rotateSpeed;
+
+        if(angle < 0.1) rotateAngle = 0;
+
+        const newDirection = rotateVectorAroundY(currentDirection, rotateAngle);
+
+        //const newDirection = Vector3_Lerp_MinMovement(currentDirection, targetDirection, 0.1, 0.2);
+        //newDirection.lerp(targetDirection, delta * 10);
         newDirection.normalize();
 
         if(movementDir.length() > 0)
         {
-            console.log(forward.x());
-            console.log(currentDirection.x + " -> " + targetDirection.x + " = " + newDirection.x);
+
+            //console.log(forward.x());
+            //console.log(currentDirection.x + " -> " + targetDirection.x + " = " + newDirection.x);
         }
         
         const newDirection_a = threeVector3ToAmmo(newDirection);
@@ -125,9 +148,9 @@ export class Ped extends Entity {
 
         if(Number.isNaN(rotationAxis.x()))
         {
-            console.log(currentDirection)
-            console.log(newDirection)
-            console.log(FormatVector3(rotationAxis));
+            //console.log(currentDirection)
+            //console.log(newDirection)
+            //console.log(FormatVector3(rotationAxis));
         } else {
 
             const dotProduct = forwardDirection.dot(newDirection_a);

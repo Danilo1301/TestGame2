@@ -1,3 +1,5 @@
+import THREE from "three";
+
 export function FormatVector3(vec: Ammo.btVector3)
 {
   return `${vec.x()}, ${vec.y()}, ${vec.z()}`;
@@ -65,5 +67,50 @@ export function Vector3_CrossVectors(a: Ammo.btVector3, b: Ammo.btVector3) {
   result.setZ(ax * by - ay * bx);
 
   return result;
+}
 
+export function Vector3_Lerp_MinMovement(v1: THREE.Vector3, v2: THREE.Vector3, alpha: number, minDistance: number): THREE.Vector3 {
+  // Create a new vector for the result
+  const result = new THREE.Vector3();
+
+  // Calculate the distance between the two vectors
+  const distance = v1.distanceTo(v2);
+  
+  // If the distance is smaller than the minimum, return v2 directly
+  if (distance <= minDistance) {
+    return v2.clone();  // Snap to target if within the minimum distance
+  }
+  
+  // Compute the actual lerp vector, but ensure it moves by at least 'minDistance'
+  const direction = new THREE.Vector3().subVectors(v2, v1).normalize(); // Get the direction from v1 to v2
+  const moveDistance = Math.max(distance * alpha, minDistance); // Ensure movement by at least 'minDistance'
+
+  result.copy(v1).addScaledVector(direction, moveDistance);
+
+  return result;
+}
+
+export function rotateVectorAroundY(v: THREE.Vector3, angle: number): THREE.Vector3 {
+  // Create a new quaternion for rotation around the Y-axis
+  const quaternion = new THREE.Quaternion();
+
+  // Set the quaternion to rotate around the Y-axis by the given angle
+  quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), angle);
+
+  // Apply the quaternion to the vector
+  return v.clone().applyQuaternion(quaternion);
+}
+
+export function getTurnDirection(currentDirection: THREE.Vector3, targetDirection: THREE.Vector3): string {
+  // Calculate the cross product between the two vectors
+  const crossProduct = new THREE.Vector3().crossVectors(currentDirection, targetDirection);
+
+  // Check the Y component of the cross product to determine left or right
+  if (crossProduct.y > 0) {
+      return "right";  // Target is to the right
+  } else if (crossProduct.y < 0) {
+      return "left";   // Target is to the left
+  } else {
+      return "straight"; // No turn, vectors are either parallel or directly opposite
+  }
 }
