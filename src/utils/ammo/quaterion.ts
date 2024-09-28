@@ -1,6 +1,8 @@
+import THREE from "three";
+
 export function FormatQuaternion(q: Ammo.btQuaternion)
 {
-  return `${q.x()}, ${q.y()}, ${q.z()}, ${q.w()}`;
+  return `${q.x().toFixed(2)}, ${q.y().toFixed(2)}, ${q.z().toFixed(2)}, ${q.w().toFixed(2)}`;
 }
 
 // Rotates the point /point/ with /rotation/.
@@ -67,7 +69,7 @@ export function Quaternion_Difference(q1: Ammo.btQuaternion, q2: Ammo.btQuaterni
     return q2;
 }
 
-
+// to exactly precise
 export function Quaternion_ToEuler(quat: Ammo.btQuaternion)
 {
     let heading = 0, attitude = 0, bank = 0;
@@ -100,4 +102,38 @@ export function Quaternion_ToEuler(quat: Ammo.btQuaternion)
 
     const vec = new Ammo.btVector3(bank,heading,attitude);
     return vec;
+}
+
+// test 2
+export function Quaternion_ToEuler_2(quaternion: Ammo.btQuaternion) {
+    const x = quaternion.x();
+    const y = quaternion.y();
+    const z = quaternion.z();
+    const w = quaternion.w();
+
+    // Roll (X-axis rotation)
+    const sinr_cosp = 2 * (w * x + y * z);
+    const cosr_cosp = 1 - 2 * (x * x + y * y);
+    const roll = Math.atan2(sinr_cosp, cosr_cosp);
+
+    // Pitch (Y-axis rotation)
+    const sinp = 2 * (w * y - z * x);
+    let pitch;
+    if (Math.abs(sinp) >= 1)
+        pitch = Math.sign(sinp) * Math.PI / 2; // Use 90 degrees if out of range
+    else
+        pitch = Math.asin(sinp);
+
+    // Yaw (Z-axis rotation)
+    const siny_cosp = 2 * (w * z + x * y);
+    const cosy_cosp = 1 - 2 * (y * y + z * z);
+    const yaw = Math.atan2(siny_cosp, cosy_cosp);
+
+    return new Ammo.btVector3(roll, pitch, yaw);
+}
+
+export function Quaternion_RotateQuaternion(q1: Ammo.btQuaternion, q2: Ammo.btQuaternion)
+{
+    // Rotate q1 by q2
+    q1.op_mulq(q2);  // This modifies q1 in place to be the result of the multiplication
 }

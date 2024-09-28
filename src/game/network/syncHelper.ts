@@ -13,7 +13,7 @@ export class SyncHelper extends BaseObject {
         const game = Gameface.Instance.game;
         
         // TEST
-        data.entities = [];
+        //data.entities = [];
 
         //console.log(data);
 

@@ -98,8 +98,8 @@ export class Gameface extends BaseObject
 
             //const bike = this.game.entityFactory.spawnVehicle(0, 0, 0);
 
-            const player = this.game.entityFactory.spawnPed(0, 5, 0);
-            this.player = player;
+            //const player = this.game.entityFactory.spawnPed(0, 5, 0);
+            //this.player = player;
 
         });
     }

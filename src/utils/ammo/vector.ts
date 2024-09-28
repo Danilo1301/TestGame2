@@ -114,3 +114,53 @@ export function getTurnDirection(currentDirection: THREE.Vector3, targetDirectio
       return "straight"; // No turn, vectors are either parallel or directly opposite
   }
 }
+
+export function getTurnDirectionSignal(currentDirection: THREE.Vector3, targetDirection: THREE.Vector3) {
+  const direction = getTurnDirection(currentDirection, targetDirection);
+
+  if(direction == "right") return -1;
+  if(direction == "left") return 1;
+
+  return 1;
+}
+
+export function vectorToQuaternion(direction: Ammo.btVector3): Ammo.btQuaternion {
+  // Normalize the input direction vector
+
+  direction = new Ammo.btVector3(direction.x(), direction.y(), direction.z());
+
+  direction.normalize();
+
+  const normDirection = direction;
+  
+  // Default forward vector (you can change this based on your axis system)
+  const forward = new Ammo.btVector3(0, 0, 1); // Z-axis is the forward vector
+
+  // Compute the dot product between the two vectors
+  const dot = forward.dot(normDirection);
+
+  // If the dot product is 1, the vectors are already aligned, return the identity quaternion
+  if (dot > 0.99999) {
+      return new Ammo.btQuaternion(0, 0, 0, 1);
+  }
+
+  // If the dot product is -1, the vectors are opposite, return a 180-degree rotation
+  if (dot < -0.99999) {
+      const axis = new Ammo.btVector3(0, 1, 0); // Choose an arbitrary axis perpendicular to forward
+      const resultQuat = new Ammo.btQuaternion(axis.x(), axis.y(), axis.z(), Math.PI);
+      return resultQuat;
+  }
+
+  // Calculate the axis of rotation using the cross product
+  const axis = Vector3_CrossVectors(forward, normDirection);
+  axis.normalize();
+
+  // Calculate the angle between the vectors
+  const angle = Math.acos(dot);
+
+  // Create the quaternion using the axis and angle
+  const resultQuat = new Ammo.btQuaternion(0, 0, 0, 1);
+  resultQuat.setRotation(axis, angle);
+
+  return resultQuat;
+}

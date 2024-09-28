@@ -37,8 +37,11 @@ export class Game extends BaseObject
         this.serverScene.update(delta);
 
         const vec = new Ammo.btVector3(0, 0, 0);
-        const aa = (vec as any).aa;
+        let aa = (vec as any).aa;
+        if(aa == undefined) aa = (vec as any).kB;
         Ammo.destroy(vec);
+
+        //console.log(aa)
 
         const diff = aa - this._prevAA;
         if(diff > 1000)
