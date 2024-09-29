@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 export interface ThreeModel {
+    gltf: GLTF,
     object: THREE.Group
     mixer?: THREE.AnimationMixer
     clip?: THREE.AnimationClip
@@ -68,6 +69,7 @@ export class ThreeModelManager {
         //scene.add(object);
         
         const result: ThreeModel = {
+            gltf: gltf,
             object: object
         }
 
@@ -76,26 +78,45 @@ export class ThreeModelManager {
 
             if(gltf.animations.length > 0)
             {
-                const baseAnim = gltf.animations[1]; // Assuming this is the base animation
-                const anim2 = gltf.animations[2];
-                const animHead = gltf.animations[0];
-            
-                // Make animations additive relative to the first frame of the base animation
-                const addAnim2 = THREE.AnimationUtils.makeClipAdditive(anim2, 0, baseAnim);
-                const addAnimHead = THREE.AnimationUtils.makeClipAdditive(animHead, 0, baseAnim);
 
-                const action1 = mixer.clipAction(baseAnim);
-                const action2 = mixer.clipAction(addAnim2);
-                const actionHead = mixer.clipAction(addAnimHead);
-            
-                action1.play();
-                action2.play();
-                actionHead.play();
+                console.log(gltf.animations);
+
+                /*
+                const walkAnim = gltf.animations[2];
+                const armsAnim = gltf.animations[0];
+
+                console.log("additional anim has these tracks:");
+                armsAnim.tracks.forEach(track => {
+                    console.log(track.name);
+                });
+
+                const toDelete: THREE.KeyframeTrack[] = [];
+
+                walkAnim.tracks.forEach(track => {
+                    if(track.name.includes("upper_arm_R") || track.name.includes("lower_arm_R"))
+                    {
+                        toDelete.push(track);
+                    }
+                });
+
+                console.log(walkAnim.tracks.length + " tracks");
+                toDelete.forEach(track => {
+                    walkAnim.tracks.splice(walkAnim.tracks.indexOf(track), 1);
+                });
+                console.log(walkAnim.tracks.length + " tracks");
+                
+                THREE.AnimationUtils.makeClipAdditive(walkAnim, 0, armsAnim);
+
+                const walkAction = mixer.clipAction(walkAnim);
+                const armsAction = mixer.clipAction(armsAnim);
+                
+                walkAction.play();
+                armsAction.play();
+                */
+
             }
            
-
-
-            console.log(gltf.animations);
+            
 
 
             /*

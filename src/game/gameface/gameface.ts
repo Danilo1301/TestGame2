@@ -14,6 +14,7 @@ import THREE from "three";
 import { Entity } from "../entities/entity";
 import { Quaternion_Clone } from "../../utils/ammo/quaterion";
 import { Ped } from "../entities/ped";
+import { MemoryDetector } from "../game/memoryDetector";
 
 export class Gameface extends BaseObject
 {
@@ -28,12 +29,14 @@ export class Gameface extends BaseObject
     public get game() { return this._game; }
     public get input() { return this._input; }
     public get network() { return this._network; }
+    public get memoryDetector() { return this._memoryDetector; }
 
     private _phaser?: Phaser.Game;
     private _sceneManager: SceneManager;
     private _game: Game;
     private _input: Input;
     private _network: Network;
+    private _memoryDetector = new MemoryDetector();
     
     constructor()
     {
@@ -104,16 +107,53 @@ export class Gameface extends BaseObject
         });
     }
 
+    public preUpdate(delta: number)
+    {
+        //this.log("---------------------");
+        //this.log("preUpdate");
+
+        this.memoryDetector.beginDetect();
+
+        ThreeScene.Instance.clearDebugObjects();
+
+        this.game.preUpdate(delta);
+
+        GameScene.Instance.clientEntityManager.preUpdate(delta);
+    }
+
     public update(delta: number)
     {
-        ThreeScene.Instance.clearDebugObjects();
+        //this.log("update");
+
+        //this.log("update joystick and player input");
+
+        GameScene.Instance.joystick.update();
+        GameScene.Instance.updatePlayerInput(delta);
+
+        //this.log("update game");
+
         this.game.update(delta);
+
         this.network.update(delta);
+
+        //this.log("update client entities");
+
+        GameScene.Instance.clientEntityManager.update(delta);
+
+        //this.log("update camera");
+
+        GameScene.Instance.updateCamera(delta);
     }
 
     public postUpdate(delta: number)
     {
+        //this.log("postUpdate");
+
         this.input.postUpdate();
+
+        GameScene.Instance.clientEntityManager.postUpdate(delta);
+
+        this.memoryDetector.finishDetect();
     }
 
     public isFullscreen()

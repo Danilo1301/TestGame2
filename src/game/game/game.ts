@@ -4,6 +4,7 @@ import { BaseObject } from "../../utils/baseObject";
 import { ServerScene } from "../scenes/serverScene";
 import { EntityFactory } from "../entities/entityFactory";
 import { GLTFCollection } from "../../utils/gltf/gltfCollection";
+import { MemoryDetector } from "./memoryDetector";
 
 export class Game extends BaseObject
 {
@@ -12,8 +13,6 @@ export class Game extends BaseObject
     public entityFactory: EntityFactory;
     public ammoUtils: AmmoUtils;
     public gltfCollection = new GLTFCollection();
-    
-    private _prevAA: number = 0;
 
     constructor()
     {
@@ -30,36 +29,20 @@ export class Game extends BaseObject
         this.ammoUtils.physicsWorld = this.serverScene.physics.physicsWorld;
     }
 
+    public preUpdate(delta: number)
+    {
+    }
+
     public update(delta: number)
     {
+        //this.log("update game entities");
+
         for(const entity of this.entityFactory.entities.values()) entity.update(delta);
         
         this.serverScene.update(delta);
-
-        const vec = new Ammo.btVector3(0, 0, 0);
-        let aa = (vec as any).aa;
-        if(aa == undefined) aa = (vec as any).kB;
-        Ammo.destroy(vec);
-
-        //console.log(aa)
-
-        const diff = aa - this._prevAA;
-        if(diff > 1000)
-        {
-            this.log(`Possible memory leak detected! (aa: ${this._prevAA} -> ${aa}, ${diff})`);
-            this._prevAA = aa;
-        }
     }
 
-    public startClock()
+    public postUpdate(delta: number)
     {
-        // clock
-        const clock = new ServerClock()
-
-        // for debugging you disable high accuracy
-        // high accuracy uses much more cpu power
-        if (process.env.NODE_ENV !== 'production') clock.disableHighAccuracy()
-
-        clock.onTick(delta => this.update(delta))
     }
 }

@@ -4,6 +4,7 @@ import socketio from 'socket.io';
 import { Server } from '../server/server';
 import { ServerClock } from '@enable3d/ammo-on-nodejs';
 import { Client } from '../client/client';
+import { MemoryDetector } from '../../game/game/memoryDetector';
 
 interface MasterServerStartOptions {
     ammo: any
@@ -16,6 +17,7 @@ export class MasterServer extends BaseObject
     public static Instance: MasterServer;
 
     public options!: MasterServerStartOptions;
+    public memoryDetector = new MemoryDetector();
 
     private _servers = new Map<string, Server>([]); 
 
@@ -56,13 +58,27 @@ export class MasterServer extends BaseObject
         server.game.serverScene.create();
         server.game.serverScene.createServerScene();
 
-        const clock = new ServerClock()
+        const clock = new ServerClock(40);
 
         // for debugging you disable high accuracy
         // high accuracy uses much more cpu power
         if (process.env.NODE_ENV !== 'production') clock.disableHighAccuracy()
 
-        clock.onTick(delta => this.update(delta))
+        clock.onTick(delta => {
+
+            delta *= 1000;
+
+            this.preUpdate(delta);
+            this.update(delta);
+            this.postUpdate(delta);
+        });
+    }
+
+    public preUpdate(delta: number)
+    {
+        this.memoryDetector.beginDetect();
+
+        for(const server of this.getServers()) server.preUpdate(delta);
     }
 
     public update(delta: number)
@@ -70,6 +86,13 @@ export class MasterServer extends BaseObject
         for(const server of this.getServers()) server.update(delta);
     }
     
+    public postUpdate(delta: number)
+    {
+        this.memoryDetector.finishDetect();
+
+        for(const server of this.getServers()) server.postUpdate(delta);
+    }
+
     public createServer()
     {
         const server = new Server();

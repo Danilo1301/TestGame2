@@ -18,6 +18,14 @@ export class ClientEntityManager extends BaseObject {
         this.gameScene = gameScene;
     }
 
+    public preUpdate(delta: number)
+    {
+        for(const clientEntity of this.clientEntities.values())
+        {
+            clientEntity.preUpdate(delta);
+        }
+    }
+
     public update(delta: number)
     {
         const entities = Gameface.Instance.game.entityFactory.entities.values();
@@ -58,6 +66,14 @@ export class ClientEntityManager extends BaseObject {
             const clientGameObject = this.clientEntities.get(entity)!;
             clientGameObject.destroy();
             this.clientEntities.delete(entity);
+        }
+    }
+
+    public postUpdate(delta: number)
+    {
+        for(const clientEntity of this.clientEntities.values())
+        {
+            clientEntity.postUpdate(delta);
         }
     }
 }

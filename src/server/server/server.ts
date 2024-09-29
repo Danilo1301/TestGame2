@@ -42,11 +42,22 @@ export class Server extends BaseObject
         this._entitiesInformation.set(Bike, EntityType.BIKE);
     }
 
+    public preUpdate(delta: number)
+    {
+        this.game.preUpdate(delta);
+    }
+
     public update(delta: number)
     {
         this.game.update(delta);
 
         this.processSendData();
+    }
+
+    public postUpdate(delta: number)
+    {
+        this.game.postUpdate(delta);
+
     }
 
     private processSendData()

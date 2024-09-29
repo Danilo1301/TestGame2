@@ -85,6 +85,8 @@ export class ServerScene
         
         if(!this.physics) return;
 
+        //Debug.log("ServerScene", "update physics");
+
         this.physics.update(timeDiff)
 
         /*

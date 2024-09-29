@@ -176,9 +176,9 @@ export class Ped extends Entity {
         const currentVelocity = body.getLinearVelocity();
 
         const velocity = new Ammo.btVector3(
-            newDirection_a.x() * 200 * delta,
+            newDirection_a.x() * 0.2 * delta,
             currentVelocity.y(),
-            newDirection_a.z() * 200 * delta
+            newDirection_a.z() * 0.2 * delta
         );
 
         if(movementDir.x != 0 && movementDir.z != 0)
@@ -188,7 +188,7 @@ export class Ped extends Entity {
 
         if(inputUp != 0)
         {
-            const force = new Ammo.btVector3(0, inputUp * 40000 * delta, 0);
+            const force = new Ammo.btVector3(0, inputUp * 40 * delta, 0);
             const pos_rel = new Ammo.btVector3(0, 0, 0);
 
             body.applyForce(force, pos_rel);

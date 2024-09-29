@@ -2,3 +2,10 @@ Yaw (Z), Pitch (Y), Roll (X)
 
 this guy just saved my bike
 https://pybullet.org/Bullet/phpBB3/viewtopic.php?t=11238
+
+
+ServerClock delta: 0.031
+
+Physics delta: 31.0
+
+GameScene delta 16.0

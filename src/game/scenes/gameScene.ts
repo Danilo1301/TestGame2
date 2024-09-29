@@ -29,21 +29,13 @@ export class GameScene extends Phaser.Scene
 
     public update(time: number, delta: number)
     {
-        Gameface.Instance.update(delta / 1000);
-
-        this.clientEntityManager.update(delta);
-
-        this.joystick.update();
-
-        this.updateGameScene(delta);
-
-        Gameface.Instance.postUpdate(delta / 1000);
+        Gameface.Instance.preUpdate(delta);
+        Gameface.Instance.update(delta);
+        Gameface.Instance.postUpdate(delta);
     }
 
-    private updateGameScene(delta: number)
+    public updateCamera(delta: number)
     {
-        const game = Gameface.Instance.game;
-
         const player = Gameface.Instance.player as Ped;
 
         // camera position
@@ -65,6 +57,11 @@ export class GameScene extends Phaser.Scene
         }
 
         this.camera.update();
+    }
+
+    public updatePlayerInput(delta: number)
+    {
+        const player = Gameface.Instance.player as Ped;
 
         // player movement
         if(player)
@@ -72,6 +69,8 @@ export class GameScene extends Phaser.Scene
             const cameraDir = this.camera.getCameraQuaternion();
             
             player.lookDir.setValue(cameraDir.x(), cameraDir.y(), cameraDir.z(), cameraDir.w());
+
+            Ammo.destroy(cameraDir);
 
             const rotationAxis = new Ammo.btVector3(0, 1, 0);    // Y-axis (change for other axes)
             const angle = Math.PI;                               // 180 degrees in radians
