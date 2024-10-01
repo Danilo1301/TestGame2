@@ -1,6 +1,7 @@
 import THREE from "three";
 import { Entity } from "./entity";
 import { Vector3_DistanceTo } from "../../utils/ammo/vector";
+import { ammoVector3ToThree } from "../../utils/utils";
 
 export enum eSyncType {
     SYNC_NONE,
@@ -45,8 +46,18 @@ export class EntitySync {
 
     private syncPosition(delta: number)
     {
-        const newPosition = this.targetPosition;
         let update = true;
+
+        const targetPosition_t = ammoVector3ToThree(this.targetPosition);
+        
+        const position = this.entity.getPosition();
+        const position_t = ammoVector3ToThree(position);
+
+        const lerpAmount = 0.005 * delta;
+        //console.log(lerpAmount);
+
+        const newPosition = position_t.lerp(targetPosition_t, lerpAmount);
+    
 
         if(this.syncType == eSyncType.SYNC_RECONCILIATE)
         {
@@ -57,7 +68,7 @@ export class EntitySync {
         }
 
         if(update)
-            this.setEntityPosition(newPosition.x(), newPosition.y(), newPosition.z())
+            this.setEntityPosition(newPosition.x, newPosition.y, newPosition.z)
     }
 
     private setEntityPosition(x: number, y: number, z: number)

@@ -1,4 +1,4 @@
-import THREE, { AnimationActionLoopStyles, LoopOnce } from "three";
+import THREE, { AnimationActionLoopStyles, LoopOnce, LoopRepeat } from "three";
 import { Entity } from "../entity";
 import { ThreeScene } from "../../three/threeScene";
 import { DebugText } from "../../../utils/debug/debugText";
@@ -16,7 +16,24 @@ export class AnimationManager extends BaseObject {
 
     public clientEntity: ClientEntity;
 
+    public get isPlayingBaseAction() { return this._baseAction != undefined; };
+    public get baseAction() { return this._baseAction; };
+    public get baseAnimName() { return this._baseAnimName; };
+
+    public get subAction() { return this._subAction; };
+    public get subAnimName() { return this._subAnimName; };
+
+    private _baseAnimName?: string;
     private _baseAction?: THREE.AnimationAction;
+    private _baseAnimRepetitions: number = Infinity;
+
+    private _subAnimName?: string;
+    private _subAnimStopAtEnd: boolean = false;
+    private _subAnimPaused: boolean = false;
+    private _subAction?: THREE.AnimationAction;
+    private _subActionRepetitions: number = Infinity;
+
+    private _hasSetupEvents: boolean = false;
 
     constructor(clientEntity: ClientEntity)
     {
@@ -27,31 +44,17 @@ export class AnimationManager extends BaseObject {
 
     public playAnimation(name: string)
     {
-        this.playAnimationLoop(name, LoopOnce, 1);
-    }
+        this.log(`play animation ${name}`);
 
-    public playAnimationLoop(name: string, loop: AnimationActionLoopStyles, repetitions: number)
-    {
-        const baseClip = this.getAnimationClipByName(name);
-
-        if(!baseClip) return;
-
-        if(this._baseAction)
+        if(!this.clientEntity.loadedGLTFModel)
         {
-            this.stopAnimation();
+            console.error("not loaded yet");
+            return;
         }
 
-        const clip = this.cloneClip(baseClip);
-
-        console.log("play animation " + clip.name);
-
-        const mixer = this.clientEntity.gltfModel!.mixer!;
-
-        const baseAction = mixer.clipAction(clip);
-        baseAction.setLoop(loop, repetitions)
-        baseAction.play();
-
-        this._baseAction = baseAction        
+        this._baseAnimName = name;
+        this._baseAnimRepetitions = 1;
+        this.playBaseAndSubAnimations();
     }
 
     public stopAnimation()
@@ -60,7 +63,191 @@ export class AnimationManager extends BaseObject {
         {
             this._baseAction.stop();
             this._baseAction = undefined;
+            this._baseAnimName = undefined;
         }
+    }
+
+    public playAnimationLoop(name: string)
+    {
+        this.log(`play sub animation ${name}`);
+
+        if(!this.clientEntity.loadedGLTFModel)
+        {
+            console.error("not loaded yet");
+            return;
+        }
+
+        this._baseAnimName = name;
+        this._baseAnimRepetitions = Infinity;
+        this.playBaseAndSubAnimations();
+    }
+
+    public playSubAnimation(name: string)
+    {
+        this.log(`play sub animation ${name}`);
+        
+        if(!this.clientEntity.loadedGLTFModel)
+        {
+            console.error("not loaded yet");
+            return;
+        }
+
+        if(this._subAction) this.stopSubAnimation();
+
+        this._subAnimName = name;
+        this._subActionRepetitions = 1;
+        this._subAnimStopAtEnd = false;
+        this.playBaseAndSubAnimations();
+    }
+
+    public stopSubAnimation()
+    {
+        if(this._subAction)
+        {
+            this._subAction.stop();
+            this._subAction = undefined;
+            this._subAction = undefined;
+            this._subAnimPaused = false;
+        }
+    }
+
+    public playSubAnimationAndStop(name: string)
+    {
+        this.log(`play sub animation ${name} and stop`);
+
+        if(this._subAction) this.stopSubAnimation();
+        this._subAnimName = name;
+        this._subActionRepetitions = 1;
+        this._subAnimStopAtEnd = true;
+        this.playBaseAndSubAnimations();
+    }
+    
+
+    private playBaseAndSubAnimations()
+    {
+        const modelBaseClip = this._baseAnimName != undefined ? this.getAnimationClipByName(this._baseAnimName) : undefined;
+        const modelSubClip = this._subAnimName != undefined ? this.getAnimationClipByName(this._subAnimName) : undefined;
+
+        const baseClip = modelBaseClip ? this.cloneClip(modelBaseClip) : undefined;
+        const subClip = modelSubClip ? this.cloneClip(modelSubClip) : undefined;
+
+        let baseActionTime = 0;
+        if(this._baseAction)
+        {
+            baseActionTime = this._baseAction.time;
+            this._baseAction.stop();
+        }
+        
+        let subActionTime = 0;
+        if(this._subAction)
+        {
+            subActionTime = this._subAction.time;
+            this._subAction.stop();
+        }
+
+        if(baseClip && subClip)
+        {
+            const toDelete: THREE.KeyframeTrack[] = [];
+
+            baseClip.tracks.forEach(track => {
+                if(track.name.includes("upper_arm_R") || track.name.includes("lower_arm_R")) toDelete.push(track);
+                if(track.name.includes("upper_arm_L") || track.name.includes("lower_arm_L")) toDelete.push(track);
+            });
+
+            console.log(baseClip.tracks.length + " tracks");
+            toDelete.forEach(track => {
+                baseClip.tracks.splice(baseClip.tracks.indexOf(track), 1);
+            });
+            console.log(baseClip.tracks.length + " tracks");
+            
+            THREE.AnimationUtils.makeClipAdditive(baseClip, 0, subClip);
+            
+            const baseAction = this.makeClip(baseClip, this._baseAnimRepetitions);
+            baseAction.time = baseActionTime;
+
+            const subAction = this.makeClip(subClip, this._subActionRepetitions);
+            subAction.time = subActionTime;
+
+            this._baseAction = baseAction;
+            this._subAction = subAction;
+
+            if(this._subAnimPaused)
+            {
+                subAction.paused = true;
+                subAction.time = subClip.duration;
+            }
+
+            baseAction.play();
+            subAction.play();
+
+        } else {
+
+            if(baseClip) {
+                const action = this.makeClip(baseClip, this._baseAnimRepetitions);
+                action.time = baseActionTime;
+                this._baseAction = action;
+
+                action.play();
+            }
+
+            if(subClip) {
+                const action = this.makeClip(subClip, this._subActionRepetitions);
+                action.time = subActionTime;
+                this._subAction = action;
+
+                if(this._subAnimPaused)
+                {
+                    action.paused = true;
+                    action.time = subClip.duration;
+                }
+
+                action.play();
+            }
+        }
+    }
+
+    private makeClip(clip: THREE.AnimationClip, repetitions: number)
+    {
+        const mixer = this.clientEntity.gltfModel!.mixer!;
+
+        const loop = repetitions != Infinity ? LoopOnce : LoopRepeat;
+
+        console.log("repetitions", repetitions);
+        console.log("loop", loop);
+
+        const action = mixer.clipAction(clip);
+        action.setLoop(repetitions != Infinity ? LoopOnce : LoopRepeat, repetitions)
+
+        if(!this._hasSetupEvents)
+        {
+            this._hasSetupEvents = true;
+            
+            const self = this;
+            mixer.addEventListener('finished', function (event) {
+                const eventAction = event.action;
+                
+                console.log('Animação terminou', eventAction);
+    
+                if(eventAction == self._subAction)
+                {
+                    if(self._subAnimStopAtEnd)
+                    {
+                        self._subAnimPaused = true;
+                        self.playBaseAndSubAnimations();
+                        return;
+                    }
+
+                    self._subAction = undefined;
+                    self._subAnimName = undefined;
+
+                    self.playBaseAndSubAnimations();
+                }
+            });
+        }
+        
+        
+
+        return action;
     }
 
     public getAnimationClipByName(name: string)
@@ -100,6 +287,8 @@ export class AnimationManager extends BaseObject {
 
 export class ClientEntity extends BaseObject {
     public entity: Entity;
+
+    public get loadedGLTFModel() { return this.gltfModel != undefined; }
 
     public threeGroup?: THREE.Group;
     public threeObjects: THREE.Object3D[] = [];
@@ -157,21 +346,20 @@ export class ClientEntity extends BaseObject {
         this.drawForwardAxis(delta);
     
         this.updateSkeletonCollision(delta);
-
-        if(Input.getKeyDown("B"))
-        {
-            this.animationManager.playAnimation("action1");
-        }
     }
 
     private updateThreeGroup(delta: number)
     {
         if(!this.threeGroup) return;
 
-        const body = this.entity.collision.body!;
-        const transform = body.getWorldTransform();
-        const position = transform.getOrigin();
-        const rotation = transform.getRotation();
+        const position = this.entity.getPosition();
+
+        //const body = this.entity.collision.body!;
+        //const transform = body.getWorldTransform();
+        //const position = transform.getOrigin();
+        //const rotation = transform.getRotation();
+
+        const rotation = this.entity.getRotation();
 
         this.threeGroup.position.set(position.x(), position.y(), position.z());
         this.threeGroup.setRotationFromQuaternion(ammoQuaternionToThree(rotation));
@@ -181,10 +369,8 @@ export class ClientEntity extends BaseObject {
 
     private drawForwardAxis(delta: number)
     {
-        const body = this.entity.collision.body!;
-        const transform = body.getWorldTransform();
-        const position = transform.getOrigin();
-        const rotation = transform.getRotation();
+        const position = this.entity.getPosition();
+        const rotation = this.entity.getRotation();
 
         //const cameraPosition = GameScene.Instance.camera.position;
         //const distanceFromGameObject = Vector3_DistanceTo(position, cameraPosition);
@@ -207,6 +393,26 @@ export class ClientEntity extends BaseObject {
     public postUpdate(delta: number)
     {
         
+    }
+
+    public getBone(name: string)
+    {
+        const object = this.gltfModel?.object;
+
+        if(!object) return undefined;
+
+        const skeletonobj = object.getObjectByProperty('type', 'SkinnedMesh') as THREE.SkinnedMesh | undefined;
+
+        if(!skeletonobj) return;
+
+        const skeleton = skeletonobj.skeleton;
+
+        for(const bone of skeleton.bones)
+        {
+            if(bone.name == name) return bone;
+        }
+
+        return undefined;
     }
 
     private updateSkeletonCollision(delta: number)
@@ -364,9 +570,7 @@ export class ClientEntity extends BaseObject {
     {
         //this.log("update 3d text");
 
-        const body = this.entity.collision.body!;
-        const transform = body.getWorldTransform();
-        const position = transform.getOrigin();
+        const position = this.entity.getPosition();
 
         const cameraPosition = GameScene.Instance.camera.position;
         const distanceFromGameObject = Vector3_DistanceTo(position, cameraPosition);

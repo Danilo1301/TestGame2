@@ -16,5 +16,6 @@ export const gltfModels: AssetItem[] = [
     {key: "ped", path: "ped/ped.glb"},
     {key: "ground", path: "ground/ground.glb"},
     {key: "wheel", path: "wheel/wheel.glb"},
-    {key: "wheel2", path: "wheel/wheel2.glb"}
+    {key: "wheel2", path: "wheel/wheel2.glb"},
+    {key: "m4", path: "weapons/m4/m4.glb"}
 ]

@@ -5,6 +5,7 @@ import { Entity, EntityData_JSON } from "./entity";
 import { Vehicle } from "./vehicle";
 import { ammoVector3ToThree, threeVector3ToAmmo } from "../../utils/utils";
 import { Input } from "../../utils/input/input";
+import { Weapon } from "../weapons/weapon"
 
 export interface PedData_JSON extends EntityData_JSON {
     lookDir: number[]
@@ -30,6 +31,8 @@ export class Ped extends Entity {
     public tagColor: string = "#cccccc";
 
     public targetDirection = new Ammo.btVector3(0, 0, 1);
+
+    public weapon?: Weapon;
 
     public init()
     {
@@ -201,6 +204,17 @@ export class Ped extends Entity {
         Ammo.destroy(forwardDirection);
         Ammo.destroy(forward);
         Ammo.destroy(rotationAxis);
+    }
+
+    public equipWeapon(id: number)
+    {
+        const weaponData = this.game.weapons.getWeaponData(id);
+
+        if(!weaponData) throw "Weapon ID " + id + " not found";
+
+        const weapon = new Weapon(weaponData);
+
+        this.weapon = weapon;
     }
 
     public enterVehicle(vehicle: Vehicle)

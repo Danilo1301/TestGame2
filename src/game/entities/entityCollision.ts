@@ -289,7 +289,7 @@ export class EntityCollision {
 
         this.body = body;
     }
-
+    
     public createCollisionsFromGLTF(gltf: GLTFData, options: MakeBodyOptions)
     {
         for(const collision of gltf.collisions)

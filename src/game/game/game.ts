@@ -5,6 +5,7 @@ import { ServerScene } from "../scenes/serverScene";
 import { EntityFactory } from "../entities/entityFactory";
 import { GLTFCollection } from "../../utils/gltf/gltfCollection";
 import { MemoryDetector } from "./memoryDetector";
+import { Weapons } from "../weapons/weapons";
 
 export class Game extends BaseObject
 {
@@ -13,6 +14,7 @@ export class Game extends BaseObject
     public entityFactory: EntityFactory;
     public ammoUtils: AmmoUtils;
     public gltfCollection = new GLTFCollection();
+    public weapons = new Weapons();
 
     constructor()
     {
@@ -25,6 +27,8 @@ export class Game extends BaseObject
 
     public init()
     {
+        this.weapons.init();
+
         this.serverScene.init();
         this.ammoUtils.physicsWorld = this.serverScene.physics.physicsWorld;
     }

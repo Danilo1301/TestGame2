@@ -42,6 +42,9 @@ export class Entity extends BaseObject
     public inputZ: number = 0;
 
     public get body() { return this.collision.body!; }
+
+    private _position = new Ammo.btVector3(0, 0, 0);
+    private _rotation = new Ammo.btQuaternion(0, 0, 0, 1);
     
     public get forward() {
         const rotation = Quaternion_Clone(this.getRotation());
@@ -117,6 +120,11 @@ export class Entity extends BaseObject
 
     public getPosition()
     {
+        if(!this.collision.body)
+        {
+            return this._position;
+        }
+
         const body = this.collision.body!;
         const transform = body.getWorldTransform();
         const position = transform.getOrigin();
@@ -126,6 +134,12 @@ export class Entity extends BaseObject
 
     public setPosition(x: number, y: number, z: number)
     {
+        if(!this.collision.body)
+        {
+            this._position.setValue(x, y, z);
+            return;
+        }
+
         const body = this.collision.body!;
 
         const origin = new Ammo.btVector3(x, y, z);
@@ -151,6 +165,11 @@ export class Entity extends BaseObject
 
     public getRotation()
     {
+        if(!this.collision.body)
+        {
+            return this._rotation;
+        }
+
         const body = this.collision.body!;
         const transform = body.getWorldTransform();
         const rotation = transform.getRotation();
@@ -160,6 +179,12 @@ export class Entity extends BaseObject
 
     public setRotation(x: number, y: number, z: number, w: number)
     {
+        if(!this.collision.body)
+        {
+            this._rotation.setValue(x, y, z, w);
+            return
+        }
+
         const body = this.collision.body!;
 
         const quat = new Ammo.btQuaternion(x, y, z, w)

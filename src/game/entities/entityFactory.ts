@@ -8,6 +8,8 @@ import { Ped } from "./ped";
 import { Vehicle } from "./vehicle";
 import { Wheel } from "./wheel";
 import { Bike } from "./bike";
+import { WeaponItem } from "./weaponItem";
+import { Weapon } from "../weapons/weapon";
 
 export class EntityFactory extends BaseObject {
     public game: Game;
@@ -18,6 +20,19 @@ export class EntityFactory extends BaseObject {
         super();
         
         this.game = game;
+    }
+
+    public spawnWeaponItem(weapon: Weapon)
+    {
+        const entity = new WeaponItem();
+        entity.displayName = "WeaponItem";
+        entity.model = "m4";
+
+        entity.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.2, 0.2, 0.2));
+
+        this.setupEntity(entity, {mass: 10});
+
+        return entity;
     }
 
     public spawnVehicle(x: number, y: number, z: number)
@@ -160,6 +175,12 @@ export class EntityFactory extends BaseObject {
         this.game.serverScene.physics.physicsWorld.addRigidBody(entity.collision.body!);
 
         entity.init();
+    }
+
+    public removeEntityCollision(entity: Entity)
+    {
+        this.game.serverScene.physics.physicsWorld.removeRigidBody(entity.collision.body!);
+        entity.collision.body = undefined;
     }
 
     public changeEntityId(entity: Entity, id: string)

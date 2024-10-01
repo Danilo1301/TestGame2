@@ -1,0 +1,76 @@
+public playSubAnimation(name: string)
+    {
+        const modelBaseClip = this._baseAnimName != undefined ? this.getAnimationClipByName(this._baseAnimName) : undefined;
+        const modelSubClip = this.getAnimationClipByName(name);
+
+        if(!modelSubClip)
+        {
+            throw "Animation " + name + " not found";
+        }
+
+        const baseClip = modelBaseClip ? this.cloneClip(modelBaseClip) : undefined;
+        const subClip = this.cloneClip(modelSubClip);
+
+        if(this._baseAction)
+        {
+            this.stopAnimation();
+        }
+
+        if(baseClip)
+        {
+            const toDelete: THREE.KeyframeTrack[] = [];
+
+            baseClip.tracks.forEach(track => {
+                if(track.name.includes("upper_arm_R") || track.name.includes("lower_arm_R"))
+                {
+                    toDelete.push(track);
+                }
+
+                if(track.name.includes("upper_arm_L") || track.name.includes("lower_arm_L"))
+                {
+                    toDelete.push(track);
+                }
+            });
+
+            console.log(baseClip.tracks.length + " tracks");
+            toDelete.forEach(track => {
+                baseClip.tracks.splice(baseClip.tracks.indexOf(track), 1);
+            });
+            console.log(baseClip.tracks.length + " tracks");
+            
+            THREE.AnimationUtils.makeClipAdditive(baseClip, 0, subClip);
+
+            const baseAction = this.playClip(baseClip);
+            this.playClip(subClip);
+
+            this._baseAction = baseAction        
+            this._baseAnimName = name;
+        }
+
+    }
+
+    public playAnimationLoop(name: string)
+    {
+        this.playAnimationLoopEx(name, LoopRepeat, Infinity);
+    }
+
+    public playAnimationLoopEx(name: string, loop: AnimationActionLoopStyles, repetitions: number)
+    {
+        const modelClip = this.getAnimationClipByName(name);
+
+        if(!modelClip) return;
+
+        if(this._baseAction)
+        {
+            this.stopAnimation();
+        }
+
+        const clip = this.cloneClip(modelClip);
+
+        console.log("play animation " + clip.name);
+
+        const baseAction = this.playClip(clip);
+
+        this._baseAction = baseAction        
+        this._baseAnimName = name;
+    }
