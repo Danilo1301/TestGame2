@@ -1,7 +1,6 @@
 import { ExtendedObject3D, Physics, ServerClock } from '@enable3d/ammo-on-nodejs'
-import { Debug } from '../../utils/debug/debug';
 import { Game } from '../game/game';
-import { isNode } from '../../utils/utils';
+import { Debug } from '../../shared/debug';
 
 export class ServerScene
 {
@@ -42,12 +41,21 @@ export class ServerScene
             depth: 40,
             collisionFlags: 2,
             mass: 0,
-            y: 0
+            y: -2
         })
-
         */
+        this.game.entityFactory.spawnGround(0, 0, 0, 50, 50);
+        //this.game.entityFactory.spawnEmptyEntity(0, 2, 0);
+        this.game.entityFactory.spawnBox(0, 5, 0);
+        //this.game.entityFactory.spawnPed(0, 5, 0);
+        //this.game.entityFactory.spawnPed(0, 5, 0);
 
-        this.game.entityFactory.spawnGround(100, 100);
+        // setInterval(() => {
+        //     if(box.position.y <= 1) return;
+        //     console.log(box.position.y)
+        // }, 10);
+
+        //this.game.entityFactory.spawnGround(100, 100);
         //
 
         //this.game.createBulding();

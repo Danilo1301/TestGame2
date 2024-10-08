@@ -1,4 +1,4 @@
-import { BaseObject } from "../../utils/baseObject";
+import { BaseObject } from "../../shared/baseObject";
 import { WeaponData } from "./weapon";
 
 export class Weapons extends BaseObject {

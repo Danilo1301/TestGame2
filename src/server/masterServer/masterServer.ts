@@ -1,10 +1,7 @@
-import { BaseObject } from '../../utils/baseObject';
-import { loadAmmo } from '../../utils/loadAmmo';
 import socketio from 'socket.io';
-import { Server } from '../server/server';
+
+import { BaseObject } from '../../shared/baseObject';
 import { ServerClock } from '@enable3d/ammo-on-nodejs';
-import { Client } from '../client/client';
-import { MemoryDetector } from '../../game/game/memoryDetector';
 
 interface MasterServerStartOptions {
     ammo: any
@@ -17,9 +14,6 @@ export class MasterServer extends BaseObject
     public static Instance: MasterServer;
 
     public options!: MasterServerStartOptions;
-    public memoryDetector = new MemoryDetector();
-
-    private _servers = new Map<string, Server>([]); 
 
     constructor() {
         super();
@@ -34,30 +28,11 @@ export class MasterServer extends BaseObject
 
         this.log("assetsPath: " + options.assetsPath)
 
-        this.log(`loading ammo...`);
-        await loadAmmo(options.ammo);
-        this.log(`ammo loaded!`);
+        this.startClock();
+    }
 
-        const io = options.io;
-
-        io.on('connection', socket => {
-            this.log("socket " + socket.id + " connected");
-
-            socket.on('disconnect', () => {
-                this.log("socket " + socket.id + " disconnected");
-                this.onSocketDisconnect(socket);
-            });
-            
-            this.onSocketConnect(socket);
-        });
-
-        const server = this.createServer();
-        server.assetsPath = this.options.assetsPath;
-        await server.loadModels();
-        server.game.init();
-        server.game.serverScene.create();
-        server.game.serverScene.createServerScene();
-
+    private startClock()
+    {
         const clock = new ServerClock(40);
 
         // for debugging you disable high accuracy
@@ -76,45 +51,14 @@ export class MasterServer extends BaseObject
 
     public preUpdate(delta: number)
     {
-        this.memoryDetector.beginDetect();
-
-        for(const server of this.getServers()) server.preUpdate(delta);
+        //console.log("pre epdate")
     }
 
     public update(delta: number)
     {
-        for(const server of this.getServers()) server.update(delta);
     }
     
     public postUpdate(delta: number)
     {
-        this.memoryDetector.finishDetect();
-
-        for(const server of this.getServers()) server.postUpdate(delta);
-    }
-
-    public createServer()
-    {
-        const server = new Server();
-        this._servers.set(server.id, server);
-        
-        return server;
-    }
-
-    public getServers()
-    {
-        return Array.from(this._servers.values());
-    }
-
-    private onSocketConnect(socket: socketio.Socket)
-    {
-        const client = new Client(socket);
-
-        client.onConnect();
-    }
-
-    private onSocketDisconnect(socket: socketio.Socket)
-    {
-
     }
 }

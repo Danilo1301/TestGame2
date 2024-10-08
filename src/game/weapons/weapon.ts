@@ -1,4 +1,4 @@
-import { BaseObject } from "../../utils/baseObject";
+import { BaseObject } from "../../shared/baseObject";
 
 export interface WeaponData {
     id: number

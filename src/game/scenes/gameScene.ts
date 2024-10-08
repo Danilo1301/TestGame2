@@ -1,18 +1,15 @@
-import { Gameface } from "../gameface/gameface";;
-import { Joystick } from "../../utils/ui/joystick";
-import { Camera } from "../camera/camera";
+import { Camera } from "../camera";
 import { ClientEntityManager } from "../entities/clientEntities/clientEntityManager";
-import { Input } from "../../utils/input/input";
-import { Ped } from "../entities/ped";
-import { IPacketData_EnterLeaveVehicle, PACKET_TYPE } from "../network/packet";
+import { Gameface } from "../gameface/gameface";import { Input } from "../input";
+;
 
 export class GameScene extends Phaser.Scene
 {
     public static Instance: GameScene;
 
-    public joystick: Joystick = new Joystick();
-    public camera: Camera = new Camera();
     public clientEntityManager = new ClientEntityManager(this);
+    public camera = new Camera();
+    //public joystick = new Joystick();
 
     constructor()
     {
@@ -23,20 +20,83 @@ export class GameScene extends Phaser.Scene
 
     public async create()
     {
-        this.joystick.create();
         this.camera.init();
+        //this.joystick.create();
     }
 
-    public update(time: number, delta: number)
+    public updateScene(delta: number)
     {
-        Gameface.Instance.preUpdate(delta);
-        Gameface.Instance.update(delta);
-        Gameface.Instance.postUpdate(delta);
+        this.updatePlayerInput();
     }
 
-    public updateCamera(delta: number)
+    private updatePlayerInput()
     {
-        const player = Gameface.Instance.player as Ped;
+        const player = Gameface.Instance.player;
+
+        if(!player) return;
+
+        //camera
+
+        const cameraDir = this.camera.getCameraQuaternion();
+        player.lookDir.setValue(cameraDir.x(), cameraDir.y(), cameraDir.z(), cameraDir.w());
+        Ammo.destroy(cameraDir);
+
+        //input
+
+        const rotationAxis = new Ammo.btVector3(0, 1, 0);    // Y-axis (change for other axes)
+        const angle = Math.PI;                               // 180 degrees in radians
+
+        // Set the rotation by 180 degrees around the Y-axis
+        const rotationQuat = new Ammo.btQuaternion(0, 0, 0, 1);
+        rotationQuat.setRotation(rotationAxis, angle);
+
+        // Multiply the original quaternion by the rotation quaternion
+        player.lookDir.op_mulq(rotationQuat);
+
+        Ammo.destroy(rotationAxis);
+        Ammo.destroy(rotationQuat);
+
+        player.inputX = 0;
+        player.inputY = 0;
+        player.inputZ = 0;
+
+        if(Input.getKey("W"))
+        {
+            player.inputZ = 1;
+        } else if(Input.getKey("S"))
+        {
+            player.inputZ = -1;
+        }
+
+        if(Input.getKey("A"))
+        {
+            player.inputX = -1;
+        } else if(Input.getKey("D"))
+        {
+            player.inputX = 1;
+        }
+
+        if(Input.getKey(" "))
+        {
+            player.inputY = 1;
+        }
+
+        //camera
+
+        if(Input.getKeyDown("V"))
+        {
+            if(this.camera.distance == 0)
+            {
+                this.camera.distance = 5;
+            } else {
+                this.camera.distance = 0;
+            }
+        }
+    }
+
+    public updateCamera()
+    {
+        const player = Gameface.Instance.player;
 
         // camera position
         if(player)
@@ -46,6 +106,7 @@ export class GameScene extends Phaser.Scene
             this.camera.position.setY(position.y());
             this.camera.position.setZ(position.z());
 
+            /*
             const vehicle = player.onVehicle;
             if(vehicle)
             {
@@ -54,106 +115,9 @@ export class GameScene extends Phaser.Scene
                 this.camera.position.setY(vehPosition.y());
                 this.camera.position.setZ(vehPosition.z());
             }
+            */
         }
 
         this.camera.update();
-    }
-
-    public updatePlayerInput(delta: number)
-    {
-        const player = Gameface.Instance.player as Ped;
-
-        // player movement
-        if(player)
-        {
-            const cameraDir = this.camera.getCameraQuaternion();
-            
-            player.lookDir.setValue(cameraDir.x(), cameraDir.y(), cameraDir.z(), cameraDir.w());
-
-            Ammo.destroy(cameraDir);
-
-            const rotationAxis = new Ammo.btVector3(0, 1, 0);    // Y-axis (change for other axes)
-            const angle = Math.PI;                               // 180 degrees in radians
-
-            // Set the rotation by 180 degrees around the Y-axis
-            const rotationQuat = new Ammo.btQuaternion(0, 0, 0, 1);
-            rotationQuat.setRotation(rotationAxis, angle);
-
-            // Multiply the original quaternion by the rotation quaternion
-            player.lookDir.op_mulq(rotationQuat);
-
-            Ammo.destroy(rotationAxis);
-            Ammo.destroy(rotationQuat);
-
-            player.inputX = 0;
-            player.inputY = 0;
-            player.inputZ = 0;
-
-            if(Input.getKey("W"))
-            {
-                player.inputZ = 1;
-            } else if(Input.getKey("S"))
-            {
-                player.inputZ = -1;
-            }
-
-            if(Input.getKey("A"))
-            {
-                player.inputX = -1;
-            } else if(Input.getKey("D"))
-            {
-                player.inputX = 1;
-            }
-
-            if(Input.getKey(" "))
-            {
-                player.inputY = 1;
-            }
-        }
-
-        // player enter car
-        if(player)
-        {
-            if(Input.getKeyDown("F"))
-            {
-                if(!player.onVehicle)
-                {
-                    const vehicle = player.getClosestVehicle();
-                
-                    if(vehicle)
-                    {
-                        console.log("enter vehicle")
-
-                        player.enterVehicle(vehicle);
-
-                        Gameface.Instance.network.send<IPacketData_EnterLeaveVehicle>(PACKET_TYPE.PACKET_ENTER_LEAVE_VEHICLE, {
-                            vehicleId: vehicle.id
-                        });
-                    } else {
-                        console.log("no vehicle found")
-                    }
-                } else {
-                    console.log("leave vehicle")
-
-                    Gameface.Instance.network.send<IPacketData_EnterLeaveVehicle>(PACKET_TYPE.PACKET_ENTER_LEAVE_VEHICLE, {
-                        vehicleId: player.onVehicle!.id
-                    });
-                    player.leaveVehicle();
-                }
-            }
-        }
-
-        // grau
-        if(player)
-        {
-            if(player.onVehicle)
-            {
-                player.onVehicle.darGrau = false;
-                if(Input.getKey("SHIFT"))
-                {
-                    player.onVehicle.darGrau = true;
-                }
-            }
-        }
     }
 }

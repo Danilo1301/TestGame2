@@ -3,7 +3,7 @@ import http from 'http';
 import socketio from 'socket.io';
 import path from 'path';
 
-import { Debug } from '../utils/debug/debug';
+import { Debug } from '../shared/debug';
 Debug.useColor = false;
 
 const app: express.Application = express();
@@ -25,22 +25,20 @@ io.attach(server, {
 });
 
 server.listen(port, "0.0.0.0", () => {
-  Debug.log("index", `Express web server started: http://localhost:${port}`);
+  console.log(`Express web server started: http://localhost:${port}`);
 });
 
 
-Debug.log("index", "Starting geckos...");
+console.log("Starting geckos...");
 
 import '@geckos.io/phaser-on-nodejs'
 
 const _global: any = global;
 _global['phaserOnNodeFPS'] = 5
 
-Debug.log("index", "Geckos started!");
+console.log("Geckos started!");
 
 import { MasterServer } from './masterServer/masterServer';
-
-Debug.log("index", "index");
 
 const assetsPath = path.join(__dirname, "..", "..", "public", "assets");
 

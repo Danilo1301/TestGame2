@@ -1,4 +1,3 @@
-import { Button } from "../../utils/ui/button";
 import { Gameface } from "../gameface/gameface";
 
 export class MainScene extends Phaser.Scene
@@ -33,16 +32,10 @@ export class MainScene extends Phaser.Scene
 
     public update(time: number, delta: number)
     {
-        this.fpsText.setText(`${this.game.loop.actualFps.toFixed(2)} FPS`);
-    }
+        //this.fpsText.setText(`${this.game.loop.actualFps.toFixed(2)} FPS`);
 
-    public createPlayButton()
-    {
-        const gameSize = Gameface.Instance.getGameSize();
-        const button = new Button(this, "Play", gameSize.x/2, gameSize.y/2, 200, 50, "button");
-        button.onClick = () => {  
-            button.destroy();
-            this.onStart?.();
-        };
+        Gameface.Instance.preUpdate(delta);
+        Gameface.Instance.update(delta);
+        Gameface.Instance.postUpdate(delta);
     }
 }

@@ -1,10 +1,8 @@
-import { Debug } from "../utils/debug/debug";
+import { Debug } from "../shared/debug";
 import { Gameface } from "./gameface/gameface";
 import { GameScene } from "./scenes/gameScene";
 
 Debug.log("index", "index");
-
-const _window: any = window;
 
 async function main()
 {
@@ -14,17 +12,11 @@ async function main()
     //await loadAmmo();
     
     const gameface = new Gameface();
-    
-    //tests
-    _window["gameface"] = gameface;
-    _window["GameScene"] = GameScene;
+
+    (window as any).gameface = gameface;
+    (window as any).GameScene = GameScene;
 
     await gameface.start();
-
-    Debug.log("index", "game started");
 }
 
 window.addEventListener('load', () => main());
-
-//tests
-_window["Debug"] = Debug;

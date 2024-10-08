@@ -1,6 +1,6 @@
 import THREE from "three";
-import { threeQuaternionToAmmo, threeVector3ToAmmo } from "../../utils/utils";
-import { GLTFData } from "../../utils/gltf/gltfData";
+import { Game } from "../game/game";
+import { threeQuaternionToAmmo, threeVector3ToAmmo } from "../../shared/utils";
 
 export class Triangle {
     public v0: Ammo.btVector3;
@@ -109,9 +109,9 @@ export class CollisionShape {
         {
             for(const jsonTriangle of json.triangles)
             {
-                const v0 = new Ammo.btVector3();
-                const v1 = new Ammo.btVector3();
-                const v2 = new Ammo.btVector3();
+                const v0 = new Ammo.btVector3(0, 0, 0);
+                const v1 = new Ammo.btVector3(0, 0, 0);
+                const v2 = new Ammo.btVector3(0, 0, 0);
                 const triangle = new Triangle(v0, v1, v2);
                 triangle.fromJSON(jsonTriangle);
                 this.triangles.push(triangle);
@@ -125,8 +125,8 @@ export interface MakeBodyOptions {
     position?: THREE.Vector3;
 }
 
-export class EntityCollision {
-
+export class EntityCollision
+{
     public body?: Ammo.btRigidBody;
     public compoundShape?: Ammo.btCompoundShape;
     public shapes: CollisionShape[] = [];
@@ -266,7 +266,7 @@ export class EntityCollision {
                 compoundShape.addChildShape(shapeTransform, collisionShape);
             }
         }
-    
+
         let position = new Ammo.btVector3(0, 0, 0);
         if(options.position != undefined) position = threeVector3ToAmmo(options.position);
 
@@ -290,6 +290,7 @@ export class EntityCollision {
         this.body = body;
     }
     
+    /*
     public createCollisionsFromGLTF(gltf: GLTFData, options: MakeBodyOptions)
     {
         for(const collision of gltf.collisions)
@@ -303,6 +304,7 @@ export class EntityCollision {
         //box.color = 0x00ff00;
         this.makeBody(options);
     }
+        */
 }
 
 export function convertMeshToTriangles(mesh: THREE.Mesh)

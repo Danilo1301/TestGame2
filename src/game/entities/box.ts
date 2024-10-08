@@ -1,14 +1,11 @@
-import { Entity, EntityData_JSON } from "./entity";
+import { Entity } from './entity';
+import THREE from 'three';
 
-export class Box extends Entity {
-    public init()
+export class Box extends Entity
+{
+    public initCollision()
     {
-        super.init()
-    }
-
-    public update(delta: number)
-    {
-        super.update(delta);
-
+        super.initCollision();
+        this.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 1, 1)); //remove later
     }
 }

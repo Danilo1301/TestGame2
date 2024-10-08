@@ -1,36 +1,38 @@
-import { ServerClock } from "@enable3d/ammo-on-nodejs";
-import { AmmoUtils } from "../../utils/ammo/ammoUtils";
-import { BaseObject } from "../../utils/baseObject";
-import { ServerScene } from "../scenes/serverScene";
+import { AmmoUtils } from "../../shared/ammo/ammoUtils";
+import { BaseObject } from "../../shared/baseObject";
 import { EntityFactory } from "../entities/entityFactory";
-import { GLTFCollection } from "../../utils/gltf/gltfCollection";
-import { MemoryDetector } from "./memoryDetector";
+import { ServerScene } from "../scenes/serverScene";
 import { Weapons } from "../weapons/weapons";
 
 export class Game extends BaseObject
 {
     public isServer: boolean = false;
-    public serverScene: ServerScene;
-    public entityFactory: EntityFactory;
-    public ammoUtils: AmmoUtils;
-    public gltfCollection = new GLTFCollection();
-    public weapons = new Weapons();
+
+    public get serverScene() { return this._serverScene; };
+    public get ammoUtils() { return this._ammoUtils; };
+    public get entityFactory() { return this._entityFactory; };
+    public get weapons() { return this._weapons; }
+
+    private _serverScene = new ServerScene(this);
+    private _ammoUtils = new AmmoUtils();
+    private _entityFactory = new EntityFactory(this);
+    private _weapons = new Weapons();
 
     constructor()
     {
         super()
-
-        this.serverScene = new ServerScene(this);
-        this.entityFactory = new EntityFactory(this);
-        this.ammoUtils = new AmmoUtils();
     }
 
     public init()
     {
         this.weapons.init();
-
         this.serverScene.init();
         this.ammoUtils.physicsWorld = this.serverScene.physics.physicsWorld;
+    }
+
+    public create()
+    {
+        this.serverScene.create();
     }
 
     public preUpdate(delta: number)
@@ -39,8 +41,6 @@ export class Game extends BaseObject
 
     public update(delta: number)
     {
-        //this.log("update game entities");
-
         for(const entity of this.entityFactory.entities.values()) entity.update(delta);
         
         this.serverScene.update(delta);

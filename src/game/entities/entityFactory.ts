@@ -1,13 +1,10 @@
 import THREE, { Vector3 } from "three";
-import { BaseObject } from "../../utils/baseObject";
+import { MakeBodyOptions } from "./entityCollision";
+import { BaseObject } from "../../shared/baseObject";
 import { Game } from "../game/game";
 import { Entity } from "./entity";
-import { MakeBodyOptions } from "./entityCollision";
 import { Box } from "./box";
 import { Ped } from "./ped";
-import { Vehicle } from "./vehicle";
-import { Wheel } from "./wheel";
-import { Bike } from "./bike";
 import { WeaponItem } from "./weaponItem";
 import { Weapon } from "../weapons/weapon";
 
@@ -18,177 +15,79 @@ export class EntityFactory extends BaseObject {
     constructor(game: Game)
     {
         super();
-        
         this.game = game;
     }
 
-    public spawnWeaponItem(weapon: Weapon)
+    public spawnEntity<T extends Entity>(e: typeof Entity)
     {
-        const entity = new WeaponItem();
-        entity.displayName = "WeaponItem";
-        entity.model = "m4";
+        const entity = new e();
+        entity.game = this.game;
 
-        entity.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.2, 0.2, 0.2));
-
-        this.setupEntity(entity, {mass: 10});
-
-        return entity;
+        this.entities.set(entity.id, entity);
+        
+        return entity as T;
     }
 
-    public spawnVehicle(x: number, y: number, z: number)
+    public setupEntity(entity: Entity, options: MakeBodyOptions)
     {
-        const entity = new Vehicle();
-        entity.displayName = "Vehicle";
+        entity.initCollision();
 
-        const chassisHeight = entity.chassisHeight;
-        const wheelHeight = 1.0;
-        const vehicleSize = {x: 1.8, y: chassisHeight, z: 4};
+        if(entity.collision.shapes.length > 0)
+        {
+            console.warn("wtf");
 
-        entity.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(vehicleSize.x, vehicleSize.y, vehicleSize.z));
-        entity.collision.addBox(new THREE.Vector3(1, 1, 0), new THREE.Vector3(1, 1, 1));
+            entity.collision.makeBody(options);
+            this.game.serverScene.physics.physicsWorld.addRigidBody(entity.collision.body!);
+        }
 
-        this.setupEntity(entity, {mass: 200, position: new THREE.Vector3(x, y, z)});
-
-        //entity.setPosition(0, chassisHeight/2 + wheelHeight/2, 0);
-
-        entity.setupVehicleBody(false);
-
-        //entity.setPosition(x, y, z);
-
-        return entity;
+        entity.init();
     }
 
-    public spawnBike(x: number, y: number, z: number)
+    public spawnGround(x: number, y: number, z: number, sx: number, sz: number)
     {
-        const entity = new Bike();
-        entity.displayName = "Bike";
+        const entity = this.spawnEntity(Entity);
+        
+        const box = entity.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(sx, 2, sz));
+        box.color = 0xffff00;
 
-        const chassisHeight = entity.chassisHeight;
-        const wheelHeight = 1.0;
-        const vehicleSize = {x: 1.8, y: chassisHeight, z: 4};
-
-        entity.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(vehicleSize.x, vehicleSize.y, vehicleSize.z));
-
-        this.setupEntity(entity, {mass: 200, position: new THREE.Vector3(x, y, z)});
-
-        //entity.setPosition(0, chassisHeight/2 + wheelHeight/2, 0);
-
-        entity.setupVehicleBody(true);
-
-        //entity.setPosition(x, y, z);
-
+        this.setupEntity(entity, {mass: 0});
+        entity.displayName = "ground";
+        entity.setPosition(x, y, z);
+        entity.setModel("ground");
         return entity;
     }
-
-    public spawnWheel(x: number, y: number, z: number, options: {radius: number, depth: number, mass: number})
-    {
-        const entity = new Wheel();
-        entity.displayName = "Wheel";
-        entity.model = "wheel2";
-
-        entity.collision.addSphere(new THREE.Vector3(0, 0, 0), options.radius);
-
-        this.setupEntity(entity, {mass: options?.mass, position: new THREE.Vector3(x,y, z)});
-
-        return entity;
-    }
-
+    
     public spawnPed(x: number, y: number, z: number)
     {
-        const entity = new Ped();
-        entity.displayName = "Ped";
-        entity.model = "ped";
-
-        const height = 1.5;
-        const calsuleRoundHeight = 0.2;
-
-        entity.collision.addCapsule(new THREE.Vector3(0, height/2 + calsuleRoundHeight, 0), 0.2, height);
-
+        const entity = this.spawnEntity<Ped>(Ped);
         this.setupEntity(entity, {mass: 20});
-
         entity.setPosition(x, y, z);
-
+        entity.setModel("ped");
         return entity;
     }
 
     public spawnBox(x: number, y: number, z: number)
     {
-        const entity = new Box();
-        entity.displayName = "Box";
-
-        entity.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 1, 1));
-
+        const entity = this.spawnEntity(Box);
         this.setupEntity(entity, {mass: 1});
-
         entity.setPosition(x, y, z);
-
         return entity;
     }
 
-    public spawnGround(sx: number, sz: number)
+    public spawnWeaponItem(x: number, y: number, z: number)
     {
-        const entity = new Entity();
-        entity.displayName = "Ground";
-        entity.model = "ground";
-
-        const box = entity.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(sx, 2, sz));
-        box.color = 0xffff00;
-
-        this.setupEntity(entity, {
-            mass: 0,
-            position: new THREE.Vector3(0, -1, 0)
-        });
-
+        const entity = this.spawnEntity(WeaponItem);
+        this.setupEntity(entity, {});
+        entity.setModel("m4");
+        entity.setPosition(x, y, z);
         return entity;
     }
 
-    public removeEntity(entity: Entity)
+    public spawnEmptyEntity(x: number, y: number, z: number)
     {
-        //possible memory leak
-        this.game.serverScene.physics.physicsWorld.removeRigidBody(entity.collision.body!);
-        
-        this.entities.delete(entity.id);
-
-        entity.collision.body = undefined;
-        entity.destroy();
-    }
-
-    private setupEntity(entity: Entity, options: MakeBodyOptions)
-    {
-        entity.game = this.game;
-
-        const modelName = entity.model;
-
-        if(modelName)
-        {
-            const gltf = this.game.gltfCollection.gltfs.get(modelName);
-
-            if(!gltf) throw "GLTF " + modelName + " was not found";
-
-            entity.collision.createCollisionsFromGLTF(gltf, options);
-        } else {
-            entity.collision.makeBody(options);
-        }
-
-        this.entities.set(entity.id, entity);
-
-        this.game.serverScene.physics.physicsWorld.addRigidBody(entity.collision.body!);
-
-        entity.init();
-    }
-
-    public removeEntityCollision(entity: Entity)
-    {
-        this.game.serverScene.physics.physicsWorld.removeRigidBody(entity.collision.body!);
-        entity.collision.body = undefined;
-    }
-
-    public changeEntityId(entity: Entity, id: string)
-    {
-        this.entities.delete(id);
-
-        entity.id = id;
-
-        this.entities.set(id, entity);
+        const entity = this.spawnEntity(Entity);
+        this.setupEntity(entity, {});
+        entity.setPosition(x, y, z);
+        return entity;
     }
 }

@@ -1,5 +1,5 @@
-import { BaseObject } from "../utils/baseObject";
-import { Debug } from "../utils/debug/debug";
+import { BaseObject } from "../shared/baseObject";
+import { Debug } from "../shared/debug";
 import { MasterServer } from "../server/masterServer/masterServer";
 import * as Phaser from "phaser"
 import THREE from "three";

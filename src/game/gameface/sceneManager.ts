@@ -1,4 +1,4 @@
-import { BaseObject } from "../../utils/baseObject";
+import { BaseObject } from "../../shared/baseObject";
 import { Gameface } from "./gameface";
 
 export class SceneManager extends BaseObject

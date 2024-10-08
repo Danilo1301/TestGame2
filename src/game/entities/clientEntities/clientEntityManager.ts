@@ -1,21 +1,26 @@
 import THREE from "three";
 import { Entity } from "../entity";
-import { GameScene } from "../../scenes/gameScene";
 import { Gameface } from "../../gameface/gameface";
 import { ClientEntity } from "./clientEntity";
-import { BaseObject } from "../../../utils/baseObject";
+import { BaseObject } from "../../../shared/baseObject";
+import { GameScene } from "../../scenes/gameScene";
 import { Ped } from "../ped";
 import { ClientPed } from "./clientPed";
+
 
 export class ClientEntityManager extends BaseObject {
     public gameScene: GameScene;
 
     public clientEntities = new Map<Entity, ClientEntity>();
 
+    public entitiesClassMap = new Map<typeof Entity, typeof ClientEntity>();
+
     constructor(gameScene: GameScene)
     {
         super();
         this.gameScene = gameScene;
+
+        this.entitiesClassMap.set(Ped, ClientPed);
     }
 
     public preUpdate(delta: number)
@@ -24,6 +29,31 @@ export class ClientEntityManager extends BaseObject {
         {
             clientEntity.preUpdate(delta);
         }
+    }
+
+    public createClientEntityByType(entity: Entity)
+    {
+        let clientEntity: ClientEntity | undefined;
+
+        console.log(entity, entity instanceof Ped)
+
+        for(const t of this.entitiesClassMap)
+        {
+            const ec = t[0];
+            const cc = t[1];
+
+            if(entity instanceof ec)
+            {
+                console.log("create ped client")
+
+                clientEntity = new cc(entity);
+                break;
+            }
+        }
+
+        if(!clientEntity) clientEntity = new ClientEntity(entity);
+
+        return clientEntity;
     }
 
     public update(delta: number)
@@ -36,14 +66,7 @@ export class ClientEntityManager extends BaseObject {
             {
                 this.log("create ClientEntity...");
 
-                let clientEntity: ClientEntity | undefined;
-                if(entity instanceof Ped)
-                {
-                    clientEntity = new ClientPed(entity);
-                } else {
-                    clientEntity = new ClientEntity(entity);
-                }
-
+                const clientEntity = this.createClientEntityByType(entity);
                 this.clientEntities.set(entity, clientEntity);
                 clientEntity.create();
             }
@@ -63,8 +86,8 @@ export class ClientEntityManager extends BaseObject {
         {
             this.log("destroying ClientEntity...");
 
-            const clientGameObject = this.clientEntities.get(entity)!;
-            clientGameObject.destroy();
+            const clientEntity = this.clientEntities.get(entity)!;
+            clientEntity.destroy();
             this.clientEntities.delete(entity);
         }
     }
