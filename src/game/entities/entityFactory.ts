@@ -32,6 +32,15 @@ export class EntityFactory extends BaseObject {
     {
         entity.initCollision();
 
+        if(entity.modelName != undefined)
+        {
+            const gltf = this.game.gltfCollection.gltfs.get(entity.modelName);
+
+            if(!gltf) throw "GLTF " + entity.modelName + " was not found";
+
+            entity.collision.createCollisionsFromGLTF(gltf);
+        }
+
         if(entity.collision.shapes.length > 0)
         {
             console.warn("wtf");
@@ -50,10 +59,10 @@ export class EntityFactory extends BaseObject {
         const box = entity.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(sx, 2, sz));
         box.color = 0xffff00;
 
-        this.setupEntity(entity, {mass: 0});
         entity.displayName = "ground";
-        entity.setPosition(x, y, z);
         entity.setModel("ground");
+        this.setupEntity(entity, {mass: 0});
+        entity.setPosition(x, y, z);
         return entity;
     }
     
@@ -69,8 +78,9 @@ export class EntityFactory extends BaseObject {
     public spawnBox(x: number, y: number, z: number)
     {
         const entity = this.spawnEntity(Box);
-        this.setupEntity(entity, {mass: 1});
+        this.setupEntity(entity, {mass: 100});
         entity.setPosition(x, y, z);
+        entity.body.setFriction(1);
         return entity;
     }
 

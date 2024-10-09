@@ -1,8 +1,10 @@
+import Phaser from "phaser";
 import { AmmoUtils } from "../../shared/ammo/ammoUtils";
 import { BaseObject } from "../../shared/baseObject";
 import { EntityFactory } from "../entities/entityFactory";
 import { ServerScene } from "../scenes/serverScene";
 import { Weapons } from "../weapons/weapons";
+import { GLTFCollection } from "../../shared/gltf/gltfCollection";
 
 export class Game extends BaseObject
 {
@@ -14,11 +16,13 @@ export class Game extends BaseObject
     public get ammoUtils() { return this._ammoUtils; };
     public get entityFactory() { return this._entityFactory; };
     public get weapons() { return this._weapons; }
+    public get gltfCollection() { return this._gltfCollection; }
 
     private _serverScene = new ServerScene(this);
     private _ammoUtils = new AmmoUtils();
     private _entityFactory = new EntityFactory(this);
     private _weapons = new Weapons();
+    private _gltfCollection = new GLTFCollection();
 
     constructor()
     {

@@ -60,9 +60,9 @@ export class Weapon extends BaseObject {
 
     public shootRay(from: Ammo.btVector3, direction: Ammo.btVector3)
     {
-        console.log(`shootRay`);
+        //console.log(`shootRay`);
         console.log(`from ${FormatVector3(from)}`);
-        console.log(`direction ${FormatVector3(direction)}`);
+        //console.log(`direction ${FormatVector3(direction)}`);
 
         
         const add = Vector3_Clone(direction);
@@ -73,10 +73,48 @@ export class Weapon extends BaseObject {
 
         console.log(`to ${FormatVector3(to)}`);
 
+        // ray
+
+        const rayCallback = new Ammo.ClosestRayResultCallback(from, to);
+    
+        const world = this.ped!.game.serverScene.physics.physicsWorld;
+
+        // Perform the ray test in the physics world
+        world.rayTest(from, to, rayCallback);
+
+        if(rayCallback.hasHit())
+        {
+            const hitBody = rayCallback.get_m_collisionObject();
+            const hitPoint = rayCallback.get_m_hitPointWorld();
+            const hitNormal = rayCallback.get_m_hitNormalWorld();
+
+            const r = Ammo.btRigidBody.prototype.upcast(hitBody)
+
+            const id = (r as any).uniqueId;
+
+            const entity = this.ped!.game.entityFactory.entities.get(id)!;
+
+            console.log(`hit ${entity.id}`)
+
+            const force = new Ammo.btVector3(hitNormal.x(), hitNormal.y(), hitNormal.z());
+            force.op_mul(-8000);
+
+            const zero = new Ammo.btVector3(0, 0, 0);
+
+            entity.body.activate();
+            entity.body.applyForce(force, zero);
+
+            Ammo.destroy(force);
+            Ammo.destroy(zero);
+        } else {
+            console.log("did not hit anything");
+        }
+
         this.ped!.game.events.emit("weapon_shot", this, ammoVector3ToThree(from), ammoVector3ToThree(to));
 
         Ammo.destroy(add);
         Ammo.destroy(to);
+        Ammo.destroy(rayCallback);
     }
 
     public shootRay2(from: Ammo.btVector3, to: Ammo.btVector3)

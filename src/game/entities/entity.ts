@@ -5,6 +5,26 @@ import { FormatVector3 } from '../../shared/ammo/vector';
 import { EntityCollision } from "./entityCollision";
 import { Quaternion_Clone, Quaternion_Forward, Quaternion_Right } from '../../shared/ammo/quaterion';
 
+export interface EntityData_JSON {}
+
+export enum EntityType {
+    UNDEFINED,
+    PED,
+    BOX,
+    VEHICLE,
+    BIKE
+}
+
+export interface Entity_JSON {
+    id: string
+    type: EntityType
+    position: number[]
+    rotation: number[]
+    velocity: number[]
+    input: number[]
+    data?: EntityData_JSON
+}
+
 export class Entity extends BaseObject
 {
     public id: string = uuidv4();

@@ -2,6 +2,7 @@ import THREE from "three";
 import { Game } from "../game/game";
 import { threeQuaternionToAmmo, threeVector3ToAmmo } from "../../shared/utils";
 import { Entity } from "./entity";
+import { GLTFData } from "../../shared/gltf/gltfData";
 
 export class Triangle {
     public v0: Ammo.btVector3;
@@ -298,21 +299,16 @@ export class EntityCollision
         (this.body as any).uniqueId = this.entity.id;
     }
     
-    /*
-    public createCollisionsFromGLTF(gltf: GLTFData, options: MakeBodyOptions)
+    
+    public createCollisionsFromGLTF(gltf: GLTFData)
     {
+        console.log("Creating collision for ", gltf);
+
         for(const collision of gltf.collisions)
         {
             this.shapes.push(collision);
         }
-
-        //console.log(this.shapes);
-
-        //const box = gameObject.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(10, 1, 10));
-        //box.color = 0x00ff00;
-        this.makeBody(options);
     }
-        */
 }
 
 export function convertMeshToTriangles(mesh: THREE.Mesh)

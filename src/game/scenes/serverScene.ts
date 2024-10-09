@@ -45,17 +45,6 @@ export class ServerScene
         })
         */
         this.game.entityFactory.spawnGround(0, 0, 0, 50, 50);
-        //this.game.entityFactory.spawnEmptyEntity(0, 2, 0);
-        const box = this.game.entityFactory.spawnBox(0, 5, 0);
-
-        const npc = this.game.entityFactory.spawnPed(0, 5, 0);
-        npc.equipWeapon(0);
-        npc.aiming = true;
-        
-        setInterval(() => {
-            npc.lookAt(box.getPosition());
-            npc.weapon!.shoot();
-        }, 1000);
 
         //this.game.entityFactory.spawnPed(0, 5, 0);
         //this.game.entityFactory.spawnPed(0, 5, 0);
@@ -75,9 +64,22 @@ export class ServerScene
         //const box2 = this.game.createBox();
         //this.box2 = box2;
 
-        //const box3 = this.game.createBox();
+        //const box3 = this.game.createBox(); 
+    }
 
+    public createLocalScene()
+    {
+        //this.game.entityFactory.spawnEmptyEntity(0, 2, 0);
+        const box = this.game.entityFactory.spawnBox(0, 5, 0);
+
+        const npc = this.game.entityFactory.spawnPed(0, 5, 0);
+        npc.equipWeapon(0);
+        npc.aiming = true;
         
+        setInterval(() => {
+            npc.lookAt(box.getPosition());
+            npc.weapon!.shoot();
+        }, 1000);
     }
 
     public createServerScene()

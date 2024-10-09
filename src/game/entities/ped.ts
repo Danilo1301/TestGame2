@@ -41,7 +41,7 @@ export class Ped extends Entity
         const DISABLE_DEACTIVATION = 4;
 
         body.setAngularFactor(new Ammo.btVector3(0, 0, 0))
-        body.setFriction(8.0);
+        body.setFriction(2.0);
         body.setActivationState(DISABLE_DEACTIVATION);
     }
 

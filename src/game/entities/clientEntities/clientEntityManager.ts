@@ -9,6 +9,7 @@ import { ClientPed } from "./clientPed";
 import { ClientWeapon } from "./clientWeapon";
 import { Weapon } from "../../weapons/weapon";
 import { WeaponItem } from "../weaponItem";
+import { ammoVector3ToThree } from "../../../shared/utils";
 
 
 export class ClientEntityManager extends BaseObject {
@@ -118,6 +119,18 @@ export class ClientEntityManager extends BaseObject {
 
     public onWeaponShot(weapon: Weapon, from: THREE.Vector3, to: THREE.Vector3)
     {
+        const cameraPosition = GameScene.Instance.camera.position;
+
+        const cameraPosition_t = ammoVector3ToThree(cameraPosition);
+        const distance = cameraPosition_t.distanceTo(from);
+
+        let vol = Math.max(10-distance, 0)/10;
+        if(vol <= 0) vol = 0.01;
+
+        var music = GameScene.Instance.sound.add('shot_m4');
+        music.setVolume(0.1 * vol);
+        music.play();
+
         for(const [entity, clientEntity] of this.clientEntities)
         {
             if(!(clientEntity instanceof ClientWeapon)) continue;

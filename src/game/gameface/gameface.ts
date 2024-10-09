@@ -11,6 +11,8 @@ import { GameScene } from "../scenes/gameScene";
 import { Ped } from "../entities/ped";
 import { Input } from "../input";
 import { Weapon } from "../weapons/weapon";
+import { Network } from "../network/network";
+import { IPacketData_Models, PACKET_TYPE } from "../network/packet";
 
 export class Gameface extends BaseObject
 {
@@ -20,14 +22,17 @@ export class Gameface extends BaseObject
     public get phaser() { return this._phaser!; }
     public get game() { return this._game!; }
     public get input() { return this._input; }
+    public get network() { return this._network; }
 
     public player?: Ped;
+    public playerId: string = "";
 
     private _sceneManager = new SceneManager(this);
     private _phaser?: Phaser.Game;
     private _memoryDetect = new MemoryDetect();
     private _game = new Game();
     private _input = new Input();
+    private _network = new Network();
     
     constructor()
     {
@@ -55,17 +60,31 @@ export class Gameface extends BaseObject
         this.sceneManager.startScene(GameScene);
 
         this.game.init();
-        this.game.create();
 
         this.game.events.on("weapon_shot", (weapon: Weapon, from: THREE.Vector3, to: THREE.Vector3) => {
             GameScene.Instance.clientEntityManager.onWeaponShot(weapon, from, to);
         });
 
-        const ped = this.game.entityFactory.spawnPed(0, 5, 0);
-        this.player = ped;
-
         Input.events.on("pointerup", () => {
             MainScene.Instance.input.mouse?.requestPointerLock();
+        });
+            
+        this.network.connect(async () => {
+            this.log("conectado");
+
+            this.network.send(PACKET_TYPE.PACKET_REQUEST_MODELS, {});
+
+            this.log("waiting for models");
+
+            const models = await this.network.waitForPacket<IPacketData_Models>(PACKET_TYPE.PACKET_MODELS);
+
+            Gameface.Instance.game.gltfCollection.fromPacketData(models);
+            
+            this.game.create();
+            this.game.serverScene.createLocalScene();
+            
+            const ped = this.game.entityFactory.spawnPed(0, 5, 0);
+            this.player = ped;
         });
     }
 

@@ -17,8 +17,7 @@ export class MemoryDetect extends BaseObject
 
         if(id > this._prevHighestId + 200)
         {
-            if(this._showMessages)
-                this.log(`Possible leak, id ${this._prevHighestId} -> ${id}`);
+            this.log(`Possible leak, id ${this._prevHighestId} -> ${id}`);
 
             this._prevHighestId = id;
         }
