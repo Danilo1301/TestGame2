@@ -46,7 +46,17 @@ export class ServerScene
         */
         this.game.entityFactory.spawnGround(0, 0, 0, 50, 50);
         //this.game.entityFactory.spawnEmptyEntity(0, 2, 0);
-        this.game.entityFactory.spawnBox(0, 5, 0);
+        const box = this.game.entityFactory.spawnBox(0, 5, 0);
+
+        const npc = this.game.entityFactory.spawnPed(0, 5, 0);
+        npc.equipWeapon(0);
+        npc.aiming = true;
+        
+        setInterval(() => {
+            npc.lookAt(box.getPosition());
+            npc.weapon!.shoot();
+        }, 1000);
+
         //this.game.entityFactory.spawnPed(0, 5, 0);
         //this.game.entityFactory.spawnPed(0, 5, 0);
 

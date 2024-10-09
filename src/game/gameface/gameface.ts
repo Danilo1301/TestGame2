@@ -10,6 +10,7 @@ import { Game } from "../game/game";
 import { GameScene } from "../scenes/gameScene";
 import { Ped } from "../entities/ped";
 import { Input } from "../input";
+import { Weapon } from "../weapons/weapon";
 
 export class Gameface extends BaseObject
 {
@@ -55,6 +56,10 @@ export class Gameface extends BaseObject
 
         this.game.init();
         this.game.create();
+
+        this.game.events.on("weapon_shot", (weapon: Weapon, from: THREE.Vector3, to: THREE.Vector3) => {
+            GameScene.Instance.clientEntityManager.onWeaponShot(weapon, from, to);
+        });
 
         const ped = this.game.entityFactory.spawnPed(0, 5, 0);
         this.player = ped;

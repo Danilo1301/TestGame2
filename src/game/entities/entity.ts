@@ -10,7 +10,7 @@ export class Entity extends BaseObject
     public id: string = uuidv4();
     public game!: Game;
     public destroyed: boolean = false;
-    public collision: EntityCollision = new EntityCollision();
+    public collision: EntityCollision = new EntityCollision(this);
     public modelName?: string;
     public displayName: string = "entity";
 

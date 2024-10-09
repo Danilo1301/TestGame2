@@ -1,5 +1,5 @@
-import { Quaternion_Clone, Quaternion_ToEuler } from '../../shared/ammo/quaterion';
-import { FormatVector3, getTurnDirection, rotateVectorAroundY, Vector3_CrossVectors } from '../../shared/ammo/vector';
+import { Quaternion_BetweenTwoVectors, Quaternion_Clone, Quaternion_Forward, Quaternion_ToEuler, quaternionFromVectors } from '../../shared/ammo/quaterion';
+import { FormatVector3, getTurnDirection, rotateVectorAroundY, Vector3_Clone, Vector3_CrossVectors } from '../../shared/ammo/vector';
 import { ammoVector3ToThree, threeVector3ToAmmo } from '../../shared/utils';
 import { Weapon } from '../weapons/weapon';
 import { Entity } from './entity';
@@ -7,12 +7,18 @@ import THREE from 'three';
 
 export class Ped extends Entity
 {
+    public cameraPosition = new Ammo.btVector3(0, 1, 0);
     public lookDir = new Ammo.btQuaternion(0, 0, 0, 1);
     public inputX: number = 0;
     public inputY: number = 0;
     public inputZ: number = 0;
 
+    public mouse1: boolean = false;
+    public aiming: boolean = false;
+
     public targetDirection = new Ammo.btVector3(0, 0, 1);
+
+    public controlledByPlayer: boolean = false;
 
     public weapon?: Weapon;
 
@@ -43,8 +49,29 @@ export class Ped extends Entity
     {
         super.update(delta);
         
+        const position = this.getPosition();
+
+        if(!this.controlledByPlayer)
+            this.cameraPosition.setValue(position.x(), position.y() + 0.8, position.z())
+
         this.updateInputRotation(delta);
         this.updateMovement(delta);
+        this.updateWeapon();
+    }
+
+    private updateWeapon()
+    {
+        const weapon = this.weapon;
+
+        if(!weapon) return;
+
+        if(this.mouse1)
+        {
+            if(weapon.canShoot())
+            {
+                weapon.shoot();
+            }
+        }
     }
 
     private updateInputRotation(delta: number)
@@ -56,6 +83,16 @@ export class Ped extends Entity
             this.targetDirection.setValue(inputDir.x, 0, inputDir.z);
         }
 
+        if(this.aiming)
+        {
+            const lookDir = this.lookDir;
+            const lookForward = Quaternion_Forward(lookDir);
+
+            this.targetDirection.setValue(lookForward.x(), 0, lookForward.z());
+
+            Ammo.destroy(lookForward);
+        }
+        
         const forward = this.forward;
 
         const currentDirection = ammoVector3ToThree(forward);
@@ -75,10 +112,13 @@ export class Ped extends Entity
         
         let rotateSpeed = 0.18;
         let rotateAngle = 0;
-        if(dir == "left") rotateAngle = -rotateSpeed;
-        if(dir == "right") rotateAngle = rotateSpeed;
 
-        if(angle < 0.1) rotateAngle = 0;
+        const dirSignal = dir == "left" ? -1 : 1;
+
+        rotateAngle = rotateSpeed * dirSignal;
+        if(rotateSpeed > angle) rotateAngle = angle * dirSignal;
+    
+        if(angle < 0.01) rotateAngle = 0;    
 
         const newDirection = rotateVectorAroundY(currentDirection, rotateAngle);
         newDirection.normalize();
@@ -117,13 +157,29 @@ export class Ped extends Entity
     {
         const body = this.body;
         
+        const movementDir = new Ammo.btVector3(0, 0, 0);
+
         const forward = this.forward;
         const currentVelocity = body.getLinearVelocity();
 
+        movementDir.setY(currentVelocity.y());
+
+        if(!this.aiming)
+        {
+            movementDir.setX(forward.x())
+            movementDir.setZ(forward.z())
+        } else {
+
+            const inputDir = this.getInputDir();
+
+            movementDir.setX(inputDir.x);
+            movementDir.setZ(inputDir.z);
+        }
+
         const velocity = new Ammo.btVector3(
-            forward.x() * 0.2 * delta,
-            currentVelocity.y(),
-            forward.z() * 0.2 * delta
+            movementDir.x() * 0.2 * delta,
+            movementDir.y(),
+            movementDir.z() * 0.2 * delta
         );
 
         Ammo.destroy(forward);
@@ -147,6 +203,18 @@ export class Ped extends Entity
             Ammo.destroy(pos_rel);
         }
 
+        Ammo.destroy(movementDir);
+    }
+
+    public lookAt(targetPosition: Ammo.btVector3)
+    {
+        this.cameraPosition;
+
+        const quat = Quaternion_BetweenTwoVectors(this.cameraPosition, targetPosition);
+
+        this.lookDir.setValue(quat.x(), quat.y(), quat.z(), quat.w());
+
+        Ammo.destroy(quat);
     }
 
     public equipWeapon(id: number)
@@ -162,6 +230,7 @@ export class Ped extends Entity
         if(!weaponData) throw "Weapon ID " + id + " not found";
 
         const weapon = new Weapon(weaponData);
+        weapon.ped = this;
 
         this.weapon = weapon;
     }

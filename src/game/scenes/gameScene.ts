@@ -1,3 +1,4 @@
+import { Quaternion_Right, Quaternion_Up } from "../../shared/ammo/quaterion";
 import { Camera } from "../camera";
 import { ClientEntityManager } from "../entities/clientEntities/clientEntityManager";
 import { Gameface } from "../gameface/gameface";import { Input } from "../input";
@@ -18,10 +19,21 @@ export class GameScene extends Phaser.Scene
         GameScene.Instance = this;
     }
 
+    public preload()
+    {
+        this.load.setPath("/assets/");
+        this.load.image("crosshair_shotgun", "crosshair/shotgun.png");
+    }
+
     public async create()
     {
         this.camera.init();
         //this.joystick.create();
+
+        const gameSize = Gameface.Instance.getGameSize();
+
+        const crosshair = this.add.image(gameSize.x/2, gameSize.y/2, "crosshair_shotgun");
+        crosshair.setOrigin(0.5);
     }
 
     public updateScene(delta: number)
@@ -41,20 +53,30 @@ export class GameScene extends Phaser.Scene
         player.lookDir.setValue(cameraDir.x(), cameraDir.y(), cameraDir.z(), cameraDir.w());
         Ammo.destroy(cameraDir);
 
+        const cameraPosition = this.camera.position;
+        player.controlledByPlayer = true;
+        player.cameraPosition.setValue(cameraPosition.x(), cameraPosition.y(), cameraPosition.z());
+
+
+        function magicallyRotateAQuaternion180Degrees(quat: Ammo.btQuaternion)
+        {
+            const rotationAxis = new Ammo.btVector3(0, 1, 0);    // Y-axis (change for other axes)
+            const angle = Math.PI;                               // 180 degrees in radians
+
+            // Set the rotation by 180 degrees around the Y-axis
+            const rotationQuat = new Ammo.btQuaternion(0, 0, 0, 1);
+            rotationQuat.setRotation(rotationAxis, angle);
+
+            // Multiply the original quaternion by the rotation quaternion
+            quat.op_mulq(rotationQuat);
+
+            Ammo.destroy(rotationAxis);
+            Ammo.destroy(rotationQuat);
+        }
+
+        magicallyRotateAQuaternion180Degrees(player.lookDir);
+
         //input
-
-        const rotationAxis = new Ammo.btVector3(0, 1, 0);    // Y-axis (change for other axes)
-        const angle = Math.PI;                               // 180 degrees in radians
-
-        // Set the rotation by 180 degrees around the Y-axis
-        const rotationQuat = new Ammo.btQuaternion(0, 0, 0, 1);
-        rotationQuat.setRotation(rotationAxis, angle);
-
-        // Multiply the original quaternion by the rotation quaternion
-        player.lookDir.op_mulq(rotationQuat);
-
-        Ammo.destroy(rotationAxis);
-        Ammo.destroy(rotationQuat);
 
         player.inputX = 0;
         player.inputY = 0;
@@ -81,6 +103,9 @@ export class GameScene extends Phaser.Scene
             player.inputY = 1;
         }
 
+        //aim
+        player.mouse1 = Input.isMouseDown();
+        player.aiming = Input.isMouse2Down() && player.weapon != undefined;
         //camera
 
         if(Input.getKeyDown("V"))
@@ -102,9 +127,36 @@ export class GameScene extends Phaser.Scene
         if(player)
         {
             const position = player.getPosition();
-            this.camera.position.setX(position.x());
-            this.camera.position.setY(position.y());
-            this.camera.position.setZ(position.z());
+
+            const camPosition = new Ammo.btVector3(position.x(), position.y(), position.z())
+
+            if(player.aiming)
+            {
+                const quat = this.camera.getCameraQuaternion();
+
+                const right = Quaternion_Right(quat);
+                right.op_mul(0.5);
+
+                const up = Quaternion_Up(quat);
+                up.op_mul(0.8);
+
+                camPosition.op_add(right);
+                camPosition.op_add(up);
+
+                Ammo.destroy(right);
+                Ammo.destroy(up);
+                Ammo.destroy(quat);
+
+                this.camera.distance = 3;
+            } else {
+                this.camera.distance = 5;
+            }
+
+            this.camera.position.setX(camPosition.x());
+            this.camera.position.setY(camPosition.y());
+            this.camera.position.setZ(camPosition.z());
+
+            Ammo.destroy(camPosition);
 
             /*
             const vehicle = player.onVehicle;

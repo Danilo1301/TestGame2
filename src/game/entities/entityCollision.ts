@@ -1,6 +1,7 @@
 import THREE from "three";
 import { Game } from "../game/game";
 import { threeQuaternionToAmmo, threeVector3ToAmmo } from "../../shared/utils";
+import { Entity } from "./entity";
 
 export class Triangle {
     public v0: Ammo.btVector3;
@@ -127,10 +128,16 @@ export interface MakeBodyOptions {
 
 export class EntityCollision
 {
+    public entity: Entity;
     public body?: Ammo.btRigidBody;
     public compoundShape?: Ammo.btCompoundShape;
     public shapes: CollisionShape[] = [];
     public needToUpdateBody: boolean = false;
+
+    constructor(entity: Entity)
+    {
+        this.entity = entity;
+    }
 
     public getShapeByName(name: string)
     {
@@ -288,6 +295,7 @@ export class EntityCollision
         const body = new Ammo.btRigidBody(bodyInfo);
 
         this.body = body;
+        (this.body as any).uniqueId = this.entity.id;
     }
     
     /*

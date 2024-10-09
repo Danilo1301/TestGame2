@@ -8,6 +8,8 @@ export class Game extends BaseObject
 {
     public isServer: boolean = false;
 
+    public events = new Phaser.Events.EventEmitter();
+
     public get serverScene() { return this._serverScene; };
     public get ammoUtils() { return this._ammoUtils; };
     public get entityFactory() { return this._entityFactory; };

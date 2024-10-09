@@ -213,6 +213,7 @@ export class AnimationManager
             anim.action.time = anim.action.getClip().duration;
             anim.action.play();
             anim.action.paused = true;
+            anim.stopAtEnd = false;
         } else {
             let fadeTime = 300;
             

@@ -63,24 +63,39 @@ export class ClientPed extends ClientEntity
         if(!this.animationManager.isPlayingAnim(animName))
             this.animationManager.playAnim(animName, true);
 
-        if(this.entity == Gameface.Instance.player)
+        //weapon
+
+        let currentWeaponId = -1;
+        const weapon = this.ped.weapon;
+
+        if(weapon)
         {
-            const ped = this.ped;
+            currentWeaponId = weapon.weaponData.id;
+        }
 
-            const weapon = ped.weapon;
+        if(currentWeaponId != this._prevEquipedWeapon)
+        {
+            this._prevEquipedWeapon = currentWeaponId;
 
-            let currentWeaponId = -1;
+            this.animationManager.playAnimOneTime("equip_m4", false);
+
 
             if(weapon)
             {
-                currentWeaponId = weapon.weaponData.id;
+                this._weaponItem = this.ped.game.entityFactory.spawnWeaponItem(weapon);
             }
+        }
 
-            if(currentWeaponId != this._prevEquipedWeapon)
+        if(this.ped.aiming)
+        {
+            if(!this.animationManager.isPlayingAnim("aim_m4"))
             {
-                this._prevEquipedWeapon = currentWeaponId;
-
-                this.animationManager.playAnimOneTime("equip_m4", false);
+                this.animationManager.playAnimAndHold("aim_m4", false);
+            }
+        } else {
+            if(this.animationManager.isPlayingAnim("aim_m4"))
+            {
+                this.animationManager.stopAnim(false);
             }
         }
     }
@@ -119,11 +134,8 @@ export class ClientPed extends ClientEntity
             if(ped.weapon)
             {
                 ped.equipWeapon(-1);
-                this._weaponItem = undefined;
-
             } else {
                 ped.equipWeapon(1);
-                this._weaponItem = ped.game.entityFactory.spawnWeaponItem(0, 5, 0);
             }
         }
 
@@ -168,9 +180,7 @@ export class ClientPed extends ClientEntity
 
     private drawLookDirLine()
     {
-        const body = this.entity.collision.body!;
-        const transform = body.getWorldTransform();
-        const position = transform.getOrigin();
+        const position = this.ped.cameraPosition;
 
         const lookDir = this.ped.lookDir;
 

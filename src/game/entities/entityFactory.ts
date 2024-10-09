@@ -74,12 +74,14 @@ export class EntityFactory extends BaseObject {
         return entity;
     }
 
-    public spawnWeaponItem(x: number, y: number, z: number)
+    public spawnWeaponItem(weapon: Weapon)
     {
-        const entity = this.spawnEntity(WeaponItem);
+        const entity = this.spawnEntity<WeaponItem>(WeaponItem);
         this.setupEntity(entity, {});
+        entity.displayName = "weaponItem";
+        entity.weapon = weapon;
         entity.setModel("m4");
-        entity.setPosition(x, y, z);
+        entity.setPosition(0, 0, 0);
         return entity;
     }
 

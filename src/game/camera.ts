@@ -82,4 +82,11 @@ export class Camera extends BaseObject
         const quat = new Ammo.btQuaternion(camQuat.x, camQuat.y, camQuat.z, camQuat.w);
         return quat;
     }
+
+    public getCameraPosition()
+    {
+        const camQuat = this.threeCamera.position;
+        const quat = new Ammo.btVector3(camQuat.x, camQuat.y, camQuat.z);
+        return quat;
+    }
 }

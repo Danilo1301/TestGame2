@@ -5,6 +5,12 @@ export function FormatVector3(vec: Ammo.btVector3)
   return `${vec.x()}, ${vec.y()}, ${vec.z()}`;
 }
 
+export function Vector3_Clone(q: Ammo.btVector3)
+{
+    const clone = new Ammo.btVector3(q.x(), q.y(), q.z());
+    return clone;
+}
+
 export function Vector3_MoveAlongAngle(vector: Ammo.btVector3, angle: number, distance: number)
 {
     // Create a new vector for direction calculation

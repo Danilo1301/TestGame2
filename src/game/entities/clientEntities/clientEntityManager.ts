@@ -6,6 +6,9 @@ import { BaseObject } from "../../../shared/baseObject";
 import { GameScene } from "../../scenes/gameScene";
 import { Ped } from "../ped";
 import { ClientPed } from "./clientPed";
+import { ClientWeapon } from "./clientWeapon";
+import { Weapon } from "../../weapons/weapon";
+import { WeaponItem } from "../weaponItem";
 
 
 export class ClientEntityManager extends BaseObject {
@@ -21,6 +24,7 @@ export class ClientEntityManager extends BaseObject {
         this.gameScene = gameScene;
 
         this.entitiesClassMap.set(Ped, ClientPed);
+        this.entitiesClassMap.set(WeaponItem, ClientWeapon);
     }
 
     public preUpdate(delta: number)
@@ -97,6 +101,32 @@ export class ClientEntityManager extends BaseObject {
         for(const clientEntity of this.clientEntities.values())
         {
             clientEntity.postUpdate(delta);
+        }
+    }
+
+    public onPlayerShot(weapon: Weapon)
+    {
+        for(const [entity, clientEntity] of this.clientEntities)
+        {
+            if(!(clientEntity instanceof ClientWeapon)) continue;
+
+            if(clientEntity.weaponItem.weapon != weapon) continue;
+
+            clientEntity.onShoot();
+        }
+    }
+
+    public onWeaponShot(weapon: Weapon, from: THREE.Vector3, to: THREE.Vector3)
+    {
+        for(const [entity, clientEntity] of this.clientEntities)
+        {
+            if(!(clientEntity instanceof ClientWeapon)) continue;
+
+            const clientWeapon = clientEntity;
+
+            if(clientWeapon.weaponItem.weapon != weapon) continue;
+
+            clientWeapon.addTracer(from, to);
         }
     }
 }

@@ -16,6 +16,7 @@ export class Input extends BaseObject
     private _keysJustDown: string[] = [];
     private _keysJustUp: string[] = [];
     private _mouseDown: boolean = false;
+    private _mouse2Down: boolean = false;
 
     public get sceneInput() { return this.scene.input; }
 
@@ -124,18 +125,24 @@ export class Input extends BaseObject
     {
         Input.events.emit('pointerdown', pointer);
 
-        if(this._mouseDown) return;
-
-        this._mouseDown = true;
+        if(pointer.button == 2)
+        {
+            this._mouse2Down = true;
+        } else {
+            this._mouseDown = true;
+        }
     }
 
     private onPointerUp(pointer: PointerEvent)
     {
         Input.events.emit('pointerup', pointer);
 
-        if(!this._mouseDown) return;
-
-        this._mouseDown = false;
+        if(pointer.button == 2)
+        {
+            this._mouse2Down = false;
+        } else {
+            this._mouseDown = false;
+        }
     }
 
     public static getKey(key: string)
@@ -154,6 +161,16 @@ export class Input extends BaseObject
     public static getKeyUp(key: string)
     {
         return Input.Instance._keysJustUp.includes(key);
+    }
+
+    public static isMouseDown()
+    {
+        return Input.Instance._mouseDown;
+    }
+
+    public static isMouse2Down()
+    {
+        return Input.Instance._mouse2Down;
     }
 
     public static isPointInsideRect(pos: Phaser.Math.Vector2, rectPos: Phaser.Math.Vector2, rectSize: Phaser.Math.Vector2)

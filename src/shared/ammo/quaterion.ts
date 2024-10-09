@@ -1,4 +1,5 @@
 import THREE from "three";
+import { Vector3_Clone, Vector3_CrossVectors } from "./vector";
 
 export function FormatQuaternion(q: Ammo.btQuaternion)
 {
@@ -57,6 +58,47 @@ export function Quaternion_Clone(q: Ammo.btQuaternion)
 {
     const clone = new Ammo.btQuaternion(q.x(), q.y(), q.z(), q.w());
     return clone;
+}
+
+export function Quaternion_BetweenTwoVectors(from: Ammo.btVector3, to: Ammo.btVector3)
+{
+    // Step 1: Calculate the direction vector
+    const direction = Vector3_Clone(to);
+    direction.op_sub(from); // target - current
+    direction.normalize();  // Normalize the direction vector
+
+    // Step 2: Define the object's forward vector (default is along z-axis in local space)
+    const forward = new Ammo.btVector3(0, 0, 1);
+
+    // Step 3: Calculate the quaternion that rotates 'forward' to 'direction'
+    const quat = quaternionFromVectors(forward, direction);
+
+    Ammo.destroy(forward);
+    Ammo.destroy(direction);
+
+    return quat;
+}
+
+export function quaternionFromVectors(vFrom: Ammo.btVector3, vTo: Ammo.btVector3) {
+    // Normalize the vectors
+    vFrom.normalize();
+    vTo.normalize();
+
+    // Step 1: Calculate the rotation axis (cross product of the two vectors)
+    const cross = Vector3_CrossVectors(vFrom, vTo);
+
+    // Step 2: Calculate the angle between the two vectors
+    const dot = vFrom.dot(vTo);
+    const angle = Math.acos(dot); // Returns the angle in radians
+
+    // Step 3: Create quaternion from axis and angle
+    const quat = new Ammo.btQuaternion(0, 0, 0, 1);
+    quat.setRotation(cross, angle);
+
+    // Clean up temporary vectors
+    Ammo.destroy(cross);
+
+    return quat;
 }
 
 export function Quaternion_Difference(q1: Ammo.btQuaternion, q2: Ammo.btQuaternion) {
