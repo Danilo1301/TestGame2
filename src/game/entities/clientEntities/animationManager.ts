@@ -1,14 +1,21 @@
 import THREE, { LoopOnce, LoopRepeat } from "three";
 import { ClientEntity } from "./clientEntity";
+import { BaseObject } from "../../../shared/baseObject";
 
 interface AnimData {
     name: string
     action: THREE.AnimationAction
     repetitions: number
     stopAtEnd: boolean
+    role: AnimRole
 }
 
-export class AnimationManager
+enum AnimRole {
+    ANIM_MAIN,
+    ANIM_SUB
+}
+
+export class AnimationManager extends BaseObject
 {
     public clientEntity: ClientEntity;
 
@@ -17,6 +24,7 @@ export class AnimationManager
 
     constructor(clientEntity: ClientEntity)
     {
+        super();
         this.clientEntity = clientEntity;
     }
 
@@ -33,122 +41,97 @@ export class AnimationManager
         }
     }
 
-    public playAnimOneTime(name: string, isMainAnim: boolean)
+    public playAnimationLoop(name: string)
     {
-        return this.playAnimEx(name, isMainAnim, 1, 0);
+        this.playAnimationEx(AnimRole.ANIM_MAIN, name, Infinity);
     }
 
-    public playAnim(name: string, isMainAnim: boolean)
-    {
-        return this.playAnimEx(name, isMainAnim, Infinity, 0);
-    }
-
-    public playAnimAndHold(name: string, isMainAnim: boolean)
-    {
-        const anim = this.playAnimOneTime(name, isMainAnim);
-        anim.stopAtEnd = true;
-    }
-
-    public playAnimEx(name: string, isMainAnim: boolean, repetitions: number, startTime: number)
+    public playAnimationEx(role: AnimRole, name: string, repetitions: number)
     {
         const modelClip = this.getAnimationClipByName(name);
 
         if(!modelClip)
         {
-            throw `Could not find anim ${name}`;
-        }
-
-        const clip = this.cloneClip(modelClip);
-
-        const anim: AnimData = {
-            name: name,
-            action: this.makeClip(clip, repetitions),
-            repetitions: repetitions,
-            stopAtEnd: false
+            throw `Could not find animation '${name}'`;
         }
 
         this.watchActions();
 
-        const arr = isMainAnim ? this.anims : this.subAnims;
+        const clip = this.cloneClip(modelClip);
 
-        arr.push(anim);
+        const action = this.makeClip(clip, repetitions);
+        action.play();
 
-        if(arr.length == 3)
-        {
-            const prevAnim = arr[0];
-            prevAnim.action.stop();
-            arr.splice(0, 1);
-        }
-            
-        if(arr.length == 1)
-        {
-            anim.action.time = startTime;
-            anim.action.play();
+        const animsArr = role == AnimRole.ANIM_MAIN ? this.anims : this.subAnims;
+
+        const anim: AnimData = {
+            name: name,
+            action: action,
+            repetitions: repetitions,
+            stopAtEnd: false,
+            role: role
         }
 
-        if(arr.length >= 2)
+        animsArr.push(anim);
+
+        if(animsArr.length >= 2)
         {
-            const prevAnim = arr[arr.length-2];
-            const duration = 0.2;
+            const fadeDuuration = 0.2;
 
-            prevAnim.action.fadeOut(duration);
+            const prevAnim = animsArr[0];
+            const prevAction = prevAnim.action;
 
-            anim.action
-                .reset()
-                .setEffectiveTimeScale( 1 )
-                .setEffectiveWeight( 1 )
-                .fadeIn( duration )
-                .play();
-
+            prevAction.fadeOut(fadeDuuration);
             setTimeout(() => {
-                if(arr.indexOf(prevAnim) != -1)
-                {
-                    prevAnim.action.stop();
-                    arr.splice(0, 1);
-                }
-            }, duration * 1000);
+                prevAction.stop();
+            }, fadeDuuration * 1000);
+            anim.action.fadeIn(fadeDuuration);
+
+            anim.action.play();
+
+            animsArr.splice(0, 1);
         }
 
         if(this.anims.length > 0 && this.subAnims.length > 0)
         {
+            console.log("make subclip additive")
+
             const baseAnim = this.anims[this.anims.length-1];
 
-            const prevTime = baseAnim.action.time;
-
+            const baseTime = baseAnim.action.time;
             baseAnim.action.stop();
 
             const baseModelClip = this.getAnimationClipByName(baseAnim.name)!;
             const baseClip = this.cloneClip(baseModelClip);
+
             const subClip = this.subAnims[this.subAnims.length-1].action.getClip();
 
-            const toDelete: THREE.KeyframeTrack[] = [];
+            this.deleteTracksFromClip(baseClip, [
+                "upper_arm_L",
+                "upper_arm_R",
+                "lower_arm_L",
+                "lower_arm_R",
+                "hand_L",
+                "hand_R",
+                "item_L",
+                "item_R"
+            ]);
 
-            baseClip.tracks.forEach(track => {
-                if(track.name.includes("upper_arm_R") || track.name.includes("lower_arm_R")) toDelete.push(track);
-                if(track.name.includes("upper_arm_L") || track.name.includes("lower_arm_L")) toDelete.push(track);
-                if(track.name.includes("hand_L") || track.name.includes("hand_R")) toDelete.push(track);
-            });
-
-            //console.log(baseClip.tracks.length + " tracks");
-            toDelete.forEach(track => {
-                baseClip.tracks.splice(baseClip.tracks.indexOf(track), 1);
-            });
-            //console.log(baseClip.tracks.length + " tracks");
-            
             THREE.AnimationUtils.makeClipAdditive(baseClip, 0, subClip);
 
             const baseAction = this.makeClip(baseClip, baseAnim.repetitions);
             baseAnim.action = baseAction;
 
-            baseAction.time = prevTime;
-            baseAction.play();
+            baseAnim.action.time = baseTime;
+            baseAnim.action.play();
         }
+
+        console.log(role == AnimRole.ANIM_MAIN ? "MAIN" : "SUB", animsArr);
 
         return anim;
     }
 
-    private _hasSetupEvents = false;
-
+    private _hasSetupEvents: boolean = false;
     private watchActions()
     {
         if(this._hasSetupEvents) return;
@@ -161,90 +144,155 @@ export class AnimationManager
         mixer.addEventListener('finished', function (event) {
             const action = event.action;
             
-            console.log('Animação terminou');
+            self.log('an animation finished');
 
-            let finishedAnim: AnimData | undefined;
-            let isMainAnim = false;
+            let anim: AnimData | undefined;
+            let role = AnimRole.ANIM_MAIN;
 
-            for(const anim of self.anims)
+            for(const a of self.anims)
             {
-                if(anim.action == action)
+                if(a.action == action)
                 {
-                    finishedAnim = anim;
-                    isMainAnim = true;
+                    anim = a;
                     break;
                 }
             }
 
-            for(const anim of self.subAnims)
+            for(const a of self.subAnims)
             {
-                if(anim.action == action)
+                if(a.action == action)
                 {
-                    finishedAnim = anim;
+                    anim = a;
+                    role = AnimRole.ANIM_SUB
                     break;
                 }
             }
 
-            if(!finishedAnim) throw "An animation finished and its not in anims list";
+            if(!anim) throw "An animation finished and its not in anims list";
 
-            self.stopAnim(isMainAnim);
+            self.log('an animation called ' + anim.name + ' finished');
+
+            const stopImidiately = anim.stopAtEnd == true;
+
+            self.stopAnimationEx(role, stopImidiately);
         });
     }
 
-    public stopAnim(mainAnim: boolean)
+    private deleteTracksFromClip(clip: THREE.AnimationClip, bones: string[])
     {
-        const arr = mainAnim ? this.anims : this.subAnims;
+        const toDelete: THREE.KeyframeTrack[] = [];
+
+        clip.tracks.forEach(track => {
+
+            for(const bone of bones)
+            {
+                if(track.name.includes(bone))
+                {
+                    toDelete.push(track);
+                    return;
+                }
+            }
+        });
+
+        //console.log(baseClip.tracks.length + " tracks");
+        toDelete.forEach(track => {
+            clip.tracks.splice(clip.tracks.indexOf(track), 1);
+        });
         
-        if(arr.length == 0)
+        this.log(`${toDelete.length} tracks deleted`);
+    }
+
+    public playSubAnimationLoop(name: string)
+    {
+        this.playAnimationEx(AnimRole.ANIM_SUB, name, Infinity);
+    }
+
+    public playSubAnimationAndStop(name: string)
+    {
+        const anim = this.playAnimationEx(AnimRole.ANIM_SUB, name, 1);
+        anim.stopAtEnd = true;
+    }
+
+    public stopMainAnimation(stopImidiately: boolean = false)
+    {
+        this.stopAnimationEx(AnimRole.ANIM_MAIN, stopImidiately);
+    }
+
+    public stopSubAnimation(stopImidiately: boolean = false)
+    {
+        this.stopAnimationEx(AnimRole.ANIM_SUB, stopImidiately);
+    }
+
+    public stopAnimationEx(role: AnimRole, stopImidiately: boolean)
+    {
+        const fadeDuration = 0.2;
+
+        const animsArr = role == AnimRole.ANIM_MAIN ? this.anims : this.subAnims;
+
+        let stopAtEnd = false;
+
+        for(const anim of animsArr)
         {
-            console.warn("no animation to stop");
+            this.log(`stopped anim ${anim.name} ${stopImidiately ? "IMEDIATLY" : "AND FADEOUT"}`);
+            
+            if(anim.stopAtEnd)
+            {
+                stopAtEnd = true;
+
+                console.log("start again and go to end")
+
+                anim.action.reset();
+                anim.action.time = anim.action.getClip().duration;
+                //anim.action.fadeIn(0);
+                anim.action.paused = true;
+                anim.action.play();
+                anim.stopAtEnd = false;
+
+                continue;
+            }
+
+            if(stopImidiately)
+            {
+                anim.action.stop();
+            } else {
+                anim.action.fadeOut(fadeDuration);
+
+                setTimeout(() => {
+                    anim.action.stop();
+                }, fadeDuration * 1000);
+            }
+        }
+
+        if(stopAtEnd)
+        {
+            console.log("anim is stopping at end")
             return;
         }
 
-        const anim = arr[arr.length-1];
+        animsArr.splice(0, animsArr.length);
 
-        console.log(arr, anim.name, "stopped");
-
-        if(anim.stopAtEnd)
+        if(role == AnimRole.ANIM_SUB && this.anims.length > 0)
         {
-            console.log("start again")
+            console.log(`resetting main anim`);
 
-            anim.action.reset();
-            anim.action.time = anim.action.getClip().duration;
-            anim.action.play();
-            anim.action.paused = true;
-            anim.stopAtEnd = false;
-        } else {
-            let fadeTime = 300;
-            
-            anim.action.fadeOut(fadeTime / 1000);
+            const baseAnim = this.anims[0];
+            const baseTime = baseAnim.action.time;
+            const prevAction = baseAnim.action;
+            prevAction.fadeOut(0.3);
             setTimeout(() => {
-                anim.action.stop();
-            }, fadeTime);
-            arr.splice(arr.indexOf(anim));
+                prevAction.stop();
+            }, 300);
+
+            const baseModelClip = this.getAnimationClipByName(baseAnim.name)!;
+            const baseClip = this.cloneClip(baseModelClip);
+
+            const baseAction = this.makeClip(baseClip, baseAnim.repetitions);
+            baseAnim.action = baseAction;
+
+            baseAnim.action.time = baseTime;
+            baseAnim.action.fadeIn(0.3);
+            baseAnim.action.play();
         }
-
-        if(this.subAnims.length == 0 && this.anims.length > 0)
-        {
-            const mainAnim = this.anims[this.anims.length-1];
-            const prevTime = mainAnim.action.time;
-
-            mainAnim.action.fadeOut(0.1);
-
-            this.stopAnim(true);
-            this.playAnimEx(mainAnim.name, true, mainAnim.repetitions, prevTime);
-        }
-    }
-    
-    public stopImediatly(mainAnim: boolean)
-    {
-        const arr = mainAnim ? this.anims : this.subAnims;
-
-        for(const anim of arr)
-        {
-            anim.action.stop();
-        }
-        arr.splice(0, arr.length);
     }
 
     public cloneClip(clip: THREE.AnimationClip)

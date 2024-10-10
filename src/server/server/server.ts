@@ -25,7 +25,6 @@ export class Server extends BaseObject
     private _name: string = "Server";
     private _game: Game;
 
-    private _entitiesInformation = new Map<typeof Entity, EntityType>();
     private _lastSentData: number = performance.now();
 
     constructor()
@@ -33,9 +32,6 @@ export class Server extends BaseObject
         super();
         this._game = new Game();
         this._game.isServer = true;
-
-        this._entitiesInformation.set(Ped, EntityType.PED);
-        this._entitiesInformation.set(Box, EntityType.BOX);
     }
 
     public preUpdate(delta: number)
@@ -64,7 +60,46 @@ export class Server extends BaseObject
         {
             this._lastSentData = now;
 
-            this.log("sending data")
+            //this.log("sending data");
+
+            this.sendData();
+        }
+    }
+
+    public sendData()
+    {
+        const data: IPacketData_Entities = {
+            entities: []
+        }
+
+        for(const entity of this.game.entityFactory.entities.values())
+        {
+            let canSend = false;
+            let entityType: EntityType = EntityType.UNDEFINED;
+
+            for(const pair of this.game.entitiesInformation)
+            {
+                if(entity instanceof pair[0])
+                {
+                    canSend = true;
+                    entityType = pair[1];
+                }
+            }
+
+            //console.log(entity.displayName, canSend)
+
+            if(canSend)
+            {
+                const json = entity.toJSON();
+                json.type = entityType;
+                
+                data.entities.push(json);
+            }
+        }
+
+        for(const client of this.clients)
+        {
+            client.send(PACKET_TYPE.PACKET_ENTITIES, data);
         }
     }
 

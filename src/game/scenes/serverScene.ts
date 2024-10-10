@@ -14,8 +14,6 @@ export class ServerScene
 
     public testRigidBody?: Ammo.btRigidBody;
 
-    private _lastUpdated: number = performance.now();
-
     constructor(game: Game)
     {
         this.game = game;
@@ -65,11 +63,44 @@ export class ServerScene
         //this.box2 = box2;
 
         //const box3 = this.game.createBox(); 
+
+        //this.game.entityFactory.spawnEmptyEntity(0, 2, 0);
+        
+        const box = this.game.entityFactory.spawnBox(0, 5, 0);
+        box.setPosition(10, 2, 0);
+
+        let pos = 0;
+
+        setInterval(() => {
+            if(pos == 0)
+            {
+                pos = 1;
+                box.setPosition(10, 2, 0);
+            } else {
+                pos = 0;
+                box.setPosition(-10, 2, 0);
+            }
+        }, 4000);
+
+        const npc = this.game.entityFactory.spawnPed(0, 5, 0);
+        npc.inputZ = 1;        
+
+        setInterval(() => {
+            npc.lookAt(box.getPosition());
+        }, 20);
+
+        const box2 = this.game.entityFactory.spawnBox(0, 2, 0);
+        setTimeout(() => {
+            this.game.entityFactory.removeEntity(box2);
+        }, 2000);
     }
 
     public createLocalScene()
     {
-        //this.game.entityFactory.spawnEmptyEntity(0, 2, 0);
+    }
+
+    public createServerScene()
+    {
         const box = this.game.entityFactory.spawnBox(0, 5, 0);
 
         const npc = this.game.entityFactory.spawnPed(0, 5, 0);
@@ -80,10 +111,7 @@ export class ServerScene
             npc.lookAt(box.getPosition());
             npc.weapon!.shoot();
         }, 1000);
-    }
 
-    public createServerScene()
-    {
         //this.game.entityFactory.spawnBox(0.2, 6, 0);
         //this.game.entityFactory.spawnBox(0.3, 7, 0);
         //this.game.entityFactory.spawnBox(0.4, 8, 0);
@@ -97,17 +125,12 @@ export class ServerScene
 
     public update(delta: number)
     {
-        const now = performance.now();
-        const timeDiff = now - this._lastUpdated;
-        this._lastUpdated = now;
 
-        //console.log(timeDiff)
-        
         if(!this.physics) return;
 
         //Debug.log("ServerScene", "update physics");
 
-        this.physics.update(timeDiff)
+        this.physics.update(delta)
 
         /*
         if(isNode())

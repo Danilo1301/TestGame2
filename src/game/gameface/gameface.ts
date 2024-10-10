@@ -83,8 +83,8 @@ export class Gameface extends BaseObject
             this.game.create();
             this.game.serverScene.createLocalScene();
             
-            const ped = this.game.entityFactory.spawnPed(0, 5, 0);
-            this.player = ped;
+            //const ped = this.game.entityFactory.spawnPed(0, 5, 0);
+            //this.player = ped;
         });
     }
 
@@ -110,7 +110,7 @@ export class Gameface extends BaseObject
 
         gameScene?.updateScene(delta);
         this.game.update(delta);
-        //this.network.update(delta);
+        this.network.update(delta);
         gameScene?.clientEntityManager.update(delta);
     }
 

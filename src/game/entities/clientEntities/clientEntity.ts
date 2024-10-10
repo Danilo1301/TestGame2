@@ -9,6 +9,7 @@ import { gltfModels } from "../../../shared/constants/assets";
 import { ThreeModel, ThreeModelManager } from "../../threeModelManager";
 import { Quaternion_Forward } from "../../../shared/ammo/quaterion";
 import { AnimationManager } from "./animationManager";
+import { Input } from "../../input";
 
 export class ClientEntity extends BaseObject {
     public entity: Entity;
@@ -167,10 +168,45 @@ export class ClientEntity extends BaseObject {
     {
         this.updateThreeGroup(delta);
         this.drawForwardLine();
-
+        //this.updateSpineBone();
+        
         if(this.gltfModel)
         {
             this.gltfModel.mixer?.update(delta / 1000);
+        }
+    }
+
+    private updateSpineBone()
+    {
+        const object = this.gltfModel?.object;
+
+        if(!object) return;
+
+        const skeletonobj = object.getObjectByProperty('type', 'SkinnedMesh') as THREE.SkinnedMesh | undefined;
+
+        if(!skeletonobj) return;
+
+        const skeleton = skeletonobj.skeleton;
+
+        for(const bone of skeleton.bones)
+        {
+            const boneName = "bone_" + bone.name;
+
+            if(bone.name.includes("spine"))
+            {
+                if(!(window as any)["_prevQuat"])
+                {
+                    const prevQuat = bone.quaternion.clone();
+                    (window as any)["_prevQuat"] = prevQuat;
+                }
+        
+                if(Input.getKey("H"))
+                {
+                    this.setBoneFacingDirection(bone, new THREE.Vector3(0, 1, 1))
+                } else {
+                    bone.quaternion.copy((window as any)["_prevQuat"]);
+                }
+            }
         }
     }
 
@@ -220,6 +256,7 @@ export class ClientEntity extends BaseObject {
 
     public destroy()
     {
+        this.threeGroup?.clear();
     }
 
     private drawForwardLine()
@@ -262,5 +299,34 @@ export class ClientEntity extends BaseObject {
         }
 
         return undefined;
+    }
+
+    public setBoneFacingDirection(bone: THREE.Bone, targetDirection: THREE.Vector3)
+    {
+        // Create a quaternion that represents the desired direction
+        const targetQuaternion = new THREE.Quaternion();
+        // You can use lookAt or setFromUnitVectors to create a quaternion
+        targetQuaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), targetDirection.clone().normalize());
+    
+        // Get the bone's world quaternion
+        const boneWorldQuaternion = new THREE.Quaternion();
+        bone.getWorldQuaternion(boneWorldQuaternion);
+    
+        // Get the parent's world quaternion (if any)
+        const parentWorldQuaternion = new THREE.Quaternion();
+        if (bone.parent) {
+            bone.parent.getWorldQuaternion(parentWorldQuaternion);
+        } else {
+            parentWorldQuaternion.set(0, 0, 0, 1); // No parent, default identity quaternion
+        }
+    
+        // Inverse the parent's world quaternion
+        const parentInverseQuaternion = parentWorldQuaternion.conjugate();
+    
+        // Convert the target quaternion to the bone's local space
+        const localTargetQuaternion = parentInverseQuaternion.multiply(targetQuaternion);
+    
+        // Set the bone's local quaternion to face the target direction
+        bone.quaternion.copy(localTargetQuaternion);
     }
 }

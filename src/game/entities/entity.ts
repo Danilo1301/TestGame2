@@ -4,6 +4,7 @@ import { Game } from "../game/game";
 import { FormatVector3 } from '../../shared/ammo/vector';
 import { EntityCollision } from "./entityCollision";
 import { Quaternion_Clone, Quaternion_Forward, Quaternion_Right } from '../../shared/ammo/quaterion';
+import { EntitySync } from './entitySync';
 
 export interface EntityData_JSON {}
 
@@ -31,8 +32,13 @@ export class Entity extends BaseObject
     public game!: Game;
     public destroyed: boolean = false;
     public collision: EntityCollision = new EntityCollision(this);
+    public sync = new EntitySync(this);
     public modelName?: string;
     public displayName: string = "entity";
+
+    public inputX: number = 0;
+    public inputY: number = 0;
+    public inputZ: number = 0;
 
     public get body() { return this.collision.body!; }
     
@@ -71,6 +77,8 @@ export class Entity extends BaseObject
     public update(delta: number)
     {
         //this.log(`${FormatVector3(this.getPosition())}`);
+
+        this.sync.update(delta);
     }
 
     public getPosition()
@@ -144,5 +152,34 @@ export class Entity extends BaseObject
         //body.getMotionState().setWorldTransform(transform); //DOESNT WORK WTF
 
         Ammo.destroy(quat);
+    }
+
+    public destroy()
+    {
+        if(this.destroyed) return;
+
+        this.destroyed = true;
+
+        
+    }
+
+    public toJSON()
+    {
+        const body = this.collision.body!;
+        const transform = body.getWorldTransform();
+        const position = transform.getOrigin();
+        const rotation = transform.getRotation();
+        const velocity = body.getLinearVelocity();
+
+        const json: Entity_JSON = {
+            id: this.id,
+            type: EntityType.UNDEFINED,
+            position: [position.x(), position.y(), position.z()],
+            rotation: [rotation.x(), rotation.y(), rotation.z(), rotation.w()],
+            velocity: [velocity.x(), velocity.y(), velocity.z()],
+            input: [this.inputX, this.inputY, this.inputZ]
+        }
+        
+        return json;
     }
 }

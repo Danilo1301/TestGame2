@@ -129,7 +129,7 @@ export class GameScene extends Phaser.Scene
         {
             const position = player.getPosition();
 
-            const camPosition = new Ammo.btVector3(position.x(), position.y(), position.z())
+            const camPosition = new Ammo.btVector3(position.x(), position.y() + 1, position.z())
 
             if(player.aiming)
             {

@@ -2,17 +2,18 @@ import { Quaternion_BetweenTwoVectors, Quaternion_Clone, Quaternion_Forward, Qua
 import { FormatVector3, getTurnDirection, rotateVectorAroundY, Vector3_Clone, Vector3_CrossVectors } from '../../shared/ammo/vector';
 import { ammoVector3ToThree, threeVector3ToAmmo } from '../../shared/utils';
 import { Weapon } from '../weapons/weapon';
-import { Entity } from './entity';
+import { Entity, EntityData_JSON } from './entity';
 import THREE from 'three';
+
+export interface PedData_JSON extends EntityData_JSON {
+    lookDir: number[]
+}
 
 export class Ped extends Entity
 {
     public cameraPosition = new Ammo.btVector3(0, 1, 0);
     public lookDir = new Ammo.btQuaternion(0, 0, 0, 1);
-    public inputX: number = 0;
-    public inputY: number = 0;
-    public inputZ: number = 0;
-
+    
     public mouse1: boolean = false;
     public aiming: boolean = false;
 
@@ -29,7 +30,7 @@ export class Ped extends Entity
         const height = 1.5;
         const calsuleRoundHeight = 0.2;
 
-        this.collision.addCapsule(new THREE.Vector3(0, 0, 0), 0.2, height);
+        this.collision.addCapsule(new THREE.Vector3(0, height/2 + calsuleRoundHeight, 0), 0.2, height);
     }
 
     public init()
@@ -177,9 +178,9 @@ export class Ped extends Entity
         }
 
         const velocity = new Ammo.btVector3(
-            movementDir.x() * 0.2 * delta,
+            movementDir.x() * 5,
             movementDir.y(),
-            movementDir.z() * 0.2 * delta
+            movementDir.z() * 5
         );
 
         Ammo.destroy(forward);
@@ -260,5 +261,17 @@ export class Ped extends Entity
         if(movementDir.length() > 0) movementDir.normalize();
 
         return movementDir;
+    }
+
+    public toJSON()
+    {
+        const data: PedData_JSON = {
+            lookDir: [this.lookDir.x(), this.lookDir.y(), this.lookDir.z(), this.lookDir.w()]
+        }
+        
+        const json = super.toJSON();
+        json.data = data;
+
+        return json;
     }
 }

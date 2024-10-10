@@ -4,6 +4,7 @@ import { ServerClock } from '@enable3d/ammo-on-nodejs';
 import { Client } from "../client/client";
 import { Server } from "../server/server";
 import { loadAmmo } from "../../shared/ammo/loadAmmo";
+import { MemoryDetect } from "../../shared/memoryDetect";
 
 interface MasterServerStartOptions {
     ammo: any
@@ -16,6 +17,7 @@ export class MasterServer extends BaseObject
     public static Instance: MasterServer;
 
     public options!: MasterServerStartOptions;
+    public memoryDetector = new MemoryDetect();
 
     private _servers = new Map<string, Server>([]); 
 
@@ -81,6 +83,8 @@ export class MasterServer extends BaseObject
         return Array.from(this._servers.values());
     }
 
+    private _lastUpdated: number = performance.now();
+
     private startClock()
     {
         const clock = new ServerClock(40);
@@ -89,9 +93,15 @@ export class MasterServer extends BaseObject
         // high accuracy uses much more cpu power
         if (process.env.NODE_ENV !== 'production') clock.disableHighAccuracy()
 
+            
         clock.onTick(delta => {
-
             delta *= 1000;
+
+            //delta = 16; //why
+
+            const now = performance.now();
+            const timeDiff = now - this._lastUpdated;
+            this._lastUpdated = now;
 
             this.preUpdate(delta);
             this.update(delta);
@@ -101,14 +111,20 @@ export class MasterServer extends BaseObject
 
     public preUpdate(delta: number)
     {
-        //console.log("pre epdate")
+        this.memoryDetector.preUpdate();
+
+        for(const server of this.getServers()) server.preUpdate(delta);
     }
 
     public update(delta: number)
     {
+        for(const server of this.getServers()) server.update(delta);
     }
     
     public postUpdate(delta: number)
     {
+        for(const server of this.getServers()) server.postUpdate(delta);
+
+        this.memoryDetector.postUpdate();
     }
 }

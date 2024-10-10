@@ -52,15 +52,35 @@ export class EntityFactory extends BaseObject {
         entity.init();
     }
 
+    public removeEntity(entity: Entity)
+    {
+        //possible memory leak
+        this.game.serverScene.physics.physicsWorld.removeRigidBody(entity.collision.body!);
+        entity.collision.body = undefined;
+        
+        entity.destroy();
+
+        this.entities.delete(entity.id);
+    }
+
+    public changeEntityId(entity: Entity, id: string)
+    {
+        this.entities.delete(entity.id);
+
+        entity.id = id;
+
+        this.entities.set(id, entity);
+    }
+
     public spawnGround(x: number, y: number, z: number, sx: number, sz: number)
     {
         const entity = this.spawnEntity(Entity);
+        entity.displayName = "ground";
+        entity.setModel("ground");
         
         const box = entity.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(sx, 2, sz));
         box.color = 0xffff00;
 
-        entity.displayName = "ground";
-        entity.setModel("ground");
         this.setupEntity(entity, {mass: 0});
         entity.setPosition(x, y, z);
         return entity;
@@ -69,15 +89,20 @@ export class EntityFactory extends BaseObject {
     public spawnPed(x: number, y: number, z: number)
     {
         const entity = this.spawnEntity<Ped>(Ped);
+        entity.displayName = "ped";
+        entity.setModel("ped");
+
         this.setupEntity(entity, {mass: 20});
         entity.setPosition(x, y, z);
-        entity.setModel("ped");
         return entity;
     }
 
     public spawnBox(x: number, y: number, z: number)
     {
         const entity = this.spawnEntity(Box);
+        entity.displayName = "box";
+        entity.setModel("wheel");
+
         this.setupEntity(entity, {mass: 100});
         entity.setPosition(x, y, z);
         entity.body.setFriction(1);
@@ -87,10 +112,11 @@ export class EntityFactory extends BaseObject {
     public spawnWeaponItem(weapon: Weapon)
     {
         const entity = this.spawnEntity<WeaponItem>(WeaponItem);
-        this.setupEntity(entity, {});
         entity.displayName = "weaponItem";
         entity.weapon = weapon;
         entity.setModel("m4");
+
+        this.setupEntity(entity, {});
         entity.setPosition(0, 0, 0);
         return entity;
     }
@@ -98,6 +124,8 @@ export class EntityFactory extends BaseObject {
     public spawnEmptyEntity(x: number, y: number, z: number)
     {
         const entity = this.spawnEntity(Entity);
+        entity.displayName = "empty";
+
         this.setupEntity(entity, {});
         entity.setPosition(x, y, z);
         return entity;

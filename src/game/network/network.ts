@@ -150,6 +150,24 @@ export class Network extends BaseObject
 
         if(!player) return;
 
-        console.log("send player data");
+        // const vehicle = player.onVehicle;
+
+        // if(vehicle)
+        // {
+        //     const json = vehicle.toJSON();
+        //     json.type = EntityType.VEHICLE;
+
+        //     this.send<IPacketData_ClientData>(PACKET_TYPE.PACKET_CLIENT_DATA, {
+        //         player: json
+        //     });
+        //     return;
+        // } 
+
+        const json = player.toJSON();
+        json.type = EntityType.PED;
+
+        this.send<IPacketData_ClientData>(PACKET_TYPE.PACKET_CLIENT_DATA, {
+            player: json
+        });
     }
 }

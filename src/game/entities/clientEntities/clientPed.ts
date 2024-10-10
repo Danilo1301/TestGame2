@@ -22,7 +22,7 @@ export class ClientPed extends ClientEntity
         const height = 1.5;
         const calsuleRoundHeight = 0.2;
 
-        this.modelOffset.setY(-height/2 - calsuleRoundHeight);
+        //this.modelOffset.setY(-height/2 - calsuleRoundHeight);
     }
 
     public _mainAnimI = 0;
@@ -31,6 +31,8 @@ export class ClientPed extends ClientEntity
     public update(delta: number)
     {
         super.update(delta);
+
+        //this.updateHeadBone();
 
         this.drawLookDirLine();
         this.drawInputDirLine();
@@ -41,6 +43,33 @@ export class ClientPed extends ClientEntity
 
         //this.updateStupid();
 
+    }
+
+    private updateHeadBone()
+    {
+        const object = this.gltfModel?.object;
+
+        if(!object) return;
+
+        const skeletonobj = object.getObjectByProperty('type', 'SkinnedMesh') as THREE.SkinnedMesh | undefined;
+
+        if(!skeletonobj) return;
+
+        const skeleton = skeletonobj.skeleton;
+
+        for(const bone of skeleton.bones)
+        {
+            if(bone.name.includes("head"))
+            {
+                const lookDir = this.ped.lookDir;
+
+                const forward = Quaternion_Forward(lookDir);
+
+                this.setBoneFacingDirection(bone, new THREE.Vector3(forward.x(), forward.y(), forward.z()))
+
+                Ammo.destroy(forward);
+            }
+        }
     }
 
     private updateWalkAnimations()
@@ -61,7 +90,7 @@ export class ClientPed extends ClientEntity
         }
 
         if(!this.animationManager.isPlayingAnim(animName))
-            this.animationManager.playAnim(animName, true);
+            this.animationManager.playAnimationLoop(animName);
 
         //weapon
 
@@ -77,9 +106,6 @@ export class ClientPed extends ClientEntity
         {
             this._prevEquipedWeapon = currentWeaponId;
 
-            this.animationManager.playAnimOneTime("equip_m4", false);
-
-
             if(weapon)
             {
                 this._weaponItem = this.ped.game.entityFactory.spawnWeaponItem(weapon);
@@ -90,12 +116,12 @@ export class ClientPed extends ClientEntity
         {
             if(!this.animationManager.isPlayingAnim("aim_m4"))
             {
-                this.animationManager.playAnimAndHold("aim_m4", false);
+                this.animationManager.playSubAnimationAndStop("aim_m4");
             }
         } else {
             if(this.animationManager.isPlayingAnim("aim_m4"))
             {
-                this.animationManager.stopAnim(false);
+                this.animationManager.stopSubAnimation();
             }
         }
     }
@@ -106,7 +132,7 @@ export class ClientPed extends ClientEntity
 
         const weaponItem = this._weaponItem;
 
-        const bone = this.getBone("Item_R");
+        const bone = this.getBone("item_R");
 
         if(!bone) return;
         
@@ -148,32 +174,45 @@ export class ClientPed extends ClientEntity
             ped.game.entityFactory.spawnEmptyEntity(0, 5, 0);
         }
 
-        if(Input.getKeyDown("G"))
+        if(Input.getKeyDown("Z"))
+        {
+            this._mainAnimI++;
+
+            if(this._mainAnimI == 1)
+            {
+                this.animationManager.playAnimationLoop("walk");
+            }
+            if(this._mainAnimI == 2)
+            {
+                this.animationManager.playAnimationLoop("idle");
+            }
+            if(this._mainAnimI == 3)
+            {
+                this._mainAnimI = 0;
+                this.animationManager.stopMainAnimation();
+            }
+        }
+
+        if(Input.getKeyDown("X"))
         {
             this._subAnimI++;
 
             if(this._subAnimI == 1)
             {
-                this.animationManager.playAnimOneTime("action1", false);
+                this.animationManager.playSubAnimationAndStop("aim_m4");
             }
             if(this._subAnimI == 2)
             {
-                this.animationManager.playAnimOneTime("equip_m4", false);
+                this.animationManager.playSubAnimationLoop("equip_m4");
             }
             if(this._subAnimI == 3)
             {
-                this.animationManager.playAnimAndHold("aim_m4", false);
+                this.animationManager.playSubAnimationLoop("aim_m4");
             }
             if(this._subAnimI == 4)
             {
-                this.animationManager.stopImediatly(false);
-                this.animationManager.playAnim("m4_shoot", false);
-            }
-            if(this._subAnimI == 5)
-            {
                 this._subAnimI = 0;
-
-                this.animationManager.stopAnim(false);
+                this.animationManager.stopSubAnimation();
             }
         }
     }

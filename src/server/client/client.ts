@@ -1,8 +1,11 @@
 import socketio, { Socket } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import { BaseObject } from "../../shared/baseObject"
-import { IPacket, IPacketData, IPacketData_Models, PACKET_TYPE } from "../../game/network/packet";
+import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_JoinedServer, IPacketData_Models, PACKET_TYPE } from "../../game/network/packet";
 import { MasterServer } from '../masterServer/masterServer';
+import { Server } from '../server/server';
+import { Ped, PedData_JSON } from '../../game/entities/ped';
+import { EntityType } from '../../game/entities/entity';
 
 export class Client extends BaseObject
 {
@@ -14,8 +17,8 @@ export class Client extends BaseObject
     private _socket: socketio.Socket;
     //private _user?: User;
 
-    //private _server?: Server;
-    //private _player?: Ped;
+    private _server?: Server;
+    private _player?: Ped;
 
     constructor(socket: socketio.Socket)
     {
@@ -40,12 +43,12 @@ export class Client extends BaseObject
         }
         this.socket.emit('p', packet);
 
-        this.log(`sent packet '${packet.type}'`);
+        //this.log(`sent packet '${packet.type}'`);
     }
 
     public onReceivePacket(packet: IPacket)
     {
-        this.log(`reiceved packet '${packet.type}'`);
+        //this.log(`reiceved packet '${packet.type}'`);
 
         if(packet.type == PACKET_TYPE.PACKET_REQUEST_MODELS)
         {
@@ -62,10 +65,82 @@ export class Client extends BaseObject
 
             this.send(PACKET_TYPE.PACKET_MODELS, data);
         }
+        
+        if(packet.type == PACKET_TYPE.PACKET_CLIENT_DATA)
+        {
+            const player = this._player;
+
+            const data = packet.data as IPacketData_ClientData;
+
+            const position = data.player.position;
+            const rotation = data.player.rotation;
+            const input = data.player.input;
+
+            if(player)
+            {
+                if(data.player.type == EntityType.PED)
+                {
+                    player.setPosition(position[0], position[1], position[2]);
+                    player.setRotation(rotation[0], rotation[1], rotation[2], rotation[3]);
+                    
+                    player.inputX = input[0];
+                    player.inputY = input[1];
+                    player.inputZ = input[2];
+
+                    const pedData = data.player.data as PedData_JSON;
+                    
+                    player.lookDir.setValue(pedData.lookDir[0], pedData.lookDir[1], pedData.lookDir[2], pedData.lookDir[3]);
+                
+                }
+                
+                // const vehicle = player.onVehicle;
+
+                // if(vehicle)
+                // {
+                //     if(data.player.type == EntityType.VEHICLE)
+                //     {
+                //         //const vehicleData = data.player.data as Entity_JSON;
+    
+                //         console.log(data.player);
+
+                //         const position = data.player.position;
+                //         const rotation = data.player.rotation;
+                //         const input = data.player.input;
+        
+                //         player.inputX = input[0];
+                //         player.inputY = input[1];
+                //         player.inputZ = input[2];
+                        
+                //         vehicle.setVehiclePosition(position[0], position[1], position[2]);
+                //         vehicle.setVehicleRotation(rotation[0], rotation[1], rotation[2], rotation[3]);
+                //     }
+                // }
+            }
+        }
+
     }
 
     public onConnect()
     {
         this.log(`on connect`);
+
+        const server = MasterServer.Instance.getServers()[0];
+        this.joinServer(server);
+    }
+
+    public joinServer(server: Server)
+    {
+        this.log("joining server " + server.id);
+
+        this._server = server;
+        this._server.clients.push(this);
+
+        const player = server.game.entityFactory.spawnPed(0, 5, 0);
+        this._player = player;
+
+        this.send<IPacketData_JoinedServer>(PACKET_TYPE.PACKET_JOINED_SERVER, {
+            playerId: player.id,
+            serverId: server.id
+        });
     }
 }

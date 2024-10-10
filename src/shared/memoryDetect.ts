@@ -22,7 +22,7 @@ export class MemoryDetect extends BaseObject
             this._prevHighestId = id;
         }
 
-        if(window)
+        if((window as any).performance.memory != undefined)
         {
             const s = (window as any).performance.memory.usedJSHeapSize;
             const memoryDiff = s - this._prevHighestMemory;
@@ -57,6 +57,7 @@ export class MemoryDetect extends BaseObject
                 }
 
                 const w = window as any;
+                
                 const perc = w.performance.memory.usedJSHeapSize / w.performance.memory.jsHeapSizeLimit * 100;
                 //this.log(perc.toFixed(4) + "%");
             }
