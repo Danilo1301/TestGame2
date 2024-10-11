@@ -1,9 +1,10 @@
+import { Vector3_GetDirectionBetweenVectors } from "../../shared/ammo/vector";
 import { BaseObject } from "../../shared/baseObject";
 import { Entity, EntityType } from "../entities/entity";
 import { eSyncType } from "../entities/entitySync";
 import { Ped, PedData_JSON } from "../entities/ped";
 import { Gameface } from "../gameface/gameface";
-import { IPacket, IPacketData_Entities, IPacketData_WeaponShot, PACKET_TYPE } from "./packet";
+import { IPacket, IPacketData_Entities, IPacketData_Health, IPacketData_WeaponShot, PACKET_TYPE } from "./packet";
 
 export class SyncHelper extends BaseObject {
 
@@ -27,9 +28,25 @@ export class SyncHelper extends BaseObject {
             {
                 const hitPos = new Ammo.btVector3(data.hit[0], data.hit[1], data.hit[2]);
 
-                ped.weapon?.shootEx(ped.cameraPosition, hitPos, false);
+                const dir = Vector3_GetDirectionBetweenVectors(ped.cameraPosition, hitPos);
+
+                ped.weapon?.shootDirectionEx(ped.cameraPosition, dir, false);
 
                 Ammo.destroy(hitPos);
+                Ammo.destroy(dir);
+            }
+        }
+
+        if(packet.type == PACKET_TYPE.PACKET_HEALTH)
+        {
+            const data = packet.data as IPacketData_Health;
+
+            const game = Gameface.Instance.game;
+            const entity = game.entityFactory.entities.get(data.entityId);
+
+            if(entity)
+            {
+                entity.health = data.health;
             }
         }
     }
@@ -93,7 +110,10 @@ export class SyncHelper extends BaseObject {
             if(entity.id == Gameface.Instance.playerId)
             {
 
-                if(!Gameface.Instance.player) Gameface.Instance.player = entity as Ped;
+                if(!Gameface.Instance.player) {
+                    Gameface.Instance.player = entity as Ped;
+                    Gameface.Instance.player.equipWeapon(0);
+                }
                 entity.sync.syncType = eSyncType.SYNC_RECONCILIATE;
             }
 

@@ -13,6 +13,7 @@ import { Input } from "../input";
 import { Weapon } from "../weapons/weapon";
 import { Network } from "../network/network";
 import { IPacketData_Models, IPacketData_WeaponShot, PACKET_TYPE } from "../network/packet";
+import { Entity } from "../entities/entity";
 
 export class Gameface extends BaseObject
 {
@@ -61,20 +62,21 @@ export class Gameface extends BaseObject
 
         this.game.init();
 
-        this.game.events.on("weapon_shot", (weapon: Weapon, from: THREE.Vector3, to: THREE.Vector3) => {
+        this.game.events.on("weapon_shot", (weapon: Weapon, from: THREE.Vector3, to: THREE.Vector3, entity: Entity | undefined) => {
             GameScene.Instance.clientEntityManager.onWeaponShot(weapon, from, to);
 
             const ped = weapon!.ped!;
+
+            console.log(entity);
 
             if(ped == this.player)
             {
                 this.network.send<IPacketData_WeaponShot>(PACKET_TYPE.PACKET_WEAPON_SHOT, {
                     hit: [to.x, to.y, to.z],
-                    byPed: this.player.id
+                    byPed: this.player.id,
+                    hitEntity: entity?.id
                 });
             }
-
-            
         });
 
         Input.events.on("pointerup", () => {

@@ -32,7 +32,7 @@ export class MainScene extends Phaser.Scene
 
     public update(time: number, delta: number)
     {
-        //this.fpsText.setText(`${this.game.loop.actualFps.toFixed(2)} FPS`);
+        this.fpsText.setText(`${this.game.loop.actualFps.toFixed(2)} FPS`);
 
         Gameface.Instance.preUpdate(delta);
         Gameface.Instance.update(delta);

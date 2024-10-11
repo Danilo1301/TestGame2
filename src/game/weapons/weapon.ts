@@ -1,3 +1,4 @@
+import { dir } from "console";
 import { Quaternion_Forward } from "../../shared/ammo/quaterion";
 import { FormatVector3, Vector3_Clone } from "../../shared/ammo/vector";
 import { BaseObject } from "../../shared/baseObject";
@@ -61,13 +62,18 @@ export class Weapon extends BaseObject {
 
     public shootDirection(from: Ammo.btVector3, direction: Ammo.btVector3)
     {
+        this.shootDirectionEx(from, direction, true);
+    }
+
+    public shootDirectionEx(from: Ammo.btVector3, direction: Ammo.btVector3, dealDamage: boolean)
+    {
         const add = Vector3_Clone(direction);
         add.op_mul(20);
         
         const to = Vector3_Clone(from);
         to.op_add(add);
         
-        this.shootEx(from, to, true);
+        this.shootEx(from, to, dealDamage);
 
         Ammo.destroy(to);
         Ammo.destroy(add);
@@ -76,6 +82,7 @@ export class Weapon extends BaseObject {
     public shootEx(from: Ammo.btVector3, to: Ammo.btVector3, dealDamage: boolean)
     {
         let bulletHitPosition = ammoVector3ToThree(to);
+        let entityHit: Entity | undefined;
         
         // ray
 
@@ -106,16 +113,17 @@ export class Weapon extends BaseObject {
                 const id = (r as any).uniqueId;
 
                 const entity = this.ped!.game.entityFactory.entities.get(id)!;
+                entityHit = entity;
 
                 console.log(`weapon hit ${entity.id}`)
 
-                if(entity.game.isServer)
-                {
-                    this.processWeaponDamage(entity);
-                }
-
                 if(dealDamage)
                 {
+                    if(entity.game.isServer)
+                    {
+                        this.processWeaponDamage(entity);
+                    }
+
                     const force = new Ammo.btVector3(hitNormal.x(), hitNormal.y(), hitNormal.z());
                     force.op_mul(-8000);
 
@@ -134,7 +142,7 @@ export class Weapon extends BaseObject {
             console.log("weapon did not hit anything");
         }
 
-        this.ped!.game.events.emit("weapon_shot", this, ammoVector3ToThree(from), bulletHitPosition);
+        this.ped!.game.events.emit("weapon_shot", this, ammoVector3ToThree(from), bulletHitPosition, entityHit);
 
         Ammo.destroy(rayCallback);
     }

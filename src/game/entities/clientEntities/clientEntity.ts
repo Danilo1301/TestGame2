@@ -2,6 +2,7 @@ import THREE, { AnimationActionLoopStyles, BufferGeometry, LoopOnce, LoopRepeat 
 import { Entity } from "../entity";
 import { BaseObject } from "../../../shared/baseObject";
 import { WorldText } from "../../worldText";
+import { HealthBar } from "../../healthBar";
 import { ThreeScene } from "../../scenes/threeScene";
 import { CollisionShapeType } from "../entityCollision";
 import { ammoQuaternionToThree } from "../../../shared/utils";
@@ -15,6 +16,7 @@ export class ClientEntity extends BaseObject {
     public entity: Entity;
 
     public worldText = new WorldText("ENTITY");
+    public healthBar = new HealthBar();
     
     public threeGroup?: THREE.Group;
     public gltfModel?: ThreeModel;
@@ -169,7 +171,7 @@ export class ClientEntity extends BaseObject {
         this.updateThreeGroup(delta);
         this.drawForwardLine();
         //this.updateSpineBone();
-        
+
         if(this.gltfModel)
         {
             this.gltfModel.mixer?.update(delta / 1000);
@@ -251,6 +253,10 @@ export class ClientEntity extends BaseObject {
         this.worldText.setTitle(this.entity.displayName);
         this.worldText.set3DPosition(new THREE.Vector3(position.x(), position.y(), position.z()));
         this.worldText.update();
+
+        this.healthBar.health = this.entity.health;
+        this.healthBar.set3DPosition(new THREE.Vector3(position.x(), position.y(), position.z()));
+        this.healthBar.update();
         //this.log("update 3d text");
     }
 

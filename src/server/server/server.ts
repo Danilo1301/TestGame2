@@ -5,7 +5,7 @@ import { Loaders } from '@enable3d/ammo-on-nodejs';
 import path from 'path';
 import { Entity, Entity_JSON, EntityType } from '../../game/entities/entity';
 import { Ped } from '../../game/entities/ped';
-import { IPacket, IPacketData, IPacketData_Entities, IPacketData_WeaponShot, PACKET_TYPE } from '../../game/network/packet';
+import { IPacket, IPacketData, IPacketData_Entities, IPacketData_Health, IPacketData_WeaponShot, PACKET_TYPE } from '../../game/network/packet';
 import { Box } from '../../game/entities/box';
 import { BaseObject } from '../../shared/baseObject';
 import { gameSettings } from "../../shared/constants/gameSettings";
@@ -84,6 +84,14 @@ export class Server extends BaseObject
 
             this.broadcastEntities();
         }
+    }
+
+    public broadcastEntityHealth(entity: Entity)
+    {
+        this.sendToAll<IPacketData_Health>(PACKET_TYPE.PACKET_HEALTH, {
+            entityId: entity.id,
+            health: entity.health
+        });
     }
 
     public broadcastEntities()

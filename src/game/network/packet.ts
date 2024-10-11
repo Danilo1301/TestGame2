@@ -9,7 +9,8 @@ export enum PACKET_TYPE {
     PACKET_ENTITIES,
     PACKET_CLIENT_DATA,
     PACKET_ENTER_LEAVE_VEHICLE,
-    PACKET_WEAPON_SHOT
+    PACKET_WEAPON_SHOT,
+    PACKET_HEALTH
 }
 
 export interface IPacketData {
@@ -45,4 +46,10 @@ export interface IPacketData_ClientData {
 export interface IPacketData_WeaponShot {
     hit: number[]
     byPed: string
+    hitEntity?: string
+}
+
+export interface IPacketData_Health {
+    entityId: string
+    health: number
 }

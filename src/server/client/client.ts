@@ -150,11 +150,27 @@ export class Client extends BaseObject
 
             if(ped)
             {
-                const hitPos = new Ammo.btVector3(data.hit[0], data.hit[1], data.hit[2]);
+                const weapon = ped.weapon;
 
-                ped.weapon?.shootEx(ped.cameraPosition, hitPos, false);
+                if(weapon)
+                {
+                    const hitPos = new Ammo.btVector3(data.hit[0], data.hit[1], data.hit[2]);
 
-                Ammo.destroy(hitPos);
+                    weapon.shootEx(ped.cameraPosition, hitPos, false);
+
+                    if(data.hitEntity != undefined)
+                    {
+                        const entityHit = ped.game.entityFactory.entities.get(data.hitEntity)
+
+                        if(entityHit)
+                        {
+                            weapon.processWeaponDamage(entityHit);
+                            this._server?.broadcastEntityHealth(entityHit);
+                        }
+                    }
+
+                    Ammo.destroy(hitPos);
+                }
             }
         }
     }
