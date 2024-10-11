@@ -12,7 +12,7 @@ import { Ped } from "../entities/ped";
 import { Input } from "../input";
 import { Weapon } from "../weapons/weapon";
 import { Network } from "../network/network";
-import { IPacketData_Models, PACKET_TYPE } from "../network/packet";
+import { IPacketData_Models, IPacketData_WeaponShot, PACKET_TYPE } from "../network/packet";
 
 export class Gameface extends BaseObject
 {
@@ -63,6 +63,18 @@ export class Gameface extends BaseObject
 
         this.game.events.on("weapon_shot", (weapon: Weapon, from: THREE.Vector3, to: THREE.Vector3) => {
             GameScene.Instance.clientEntityManager.onWeaponShot(weapon, from, to);
+
+            const ped = weapon!.ped!;
+
+            if(ped == this.player)
+            {
+                this.network.send<IPacketData_WeaponShot>(PACKET_TYPE.PACKET_WEAPON_SHOT, {
+                    hit: [to.x, to.y, to.z],
+                    byPed: this.player.id
+                });
+            }
+
+            
         });
 
         Input.events.on("pointerup", () => {
@@ -82,6 +94,8 @@ export class Gameface extends BaseObject
             
             this.game.create();
             this.game.serverScene.createLocalScene();
+
+            this.network.send(PACKET_TYPE.PACKET_CLIENT_READY, {});
             
             //const ped = this.game.entityFactory.spawnPed(0, 5, 0);
             //this.player = ped;

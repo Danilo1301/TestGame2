@@ -170,3 +170,17 @@ export function vectorToQuaternion(direction: Ammo.btVector3): Ammo.btQuaternion
 
   return resultQuat;
 }
+
+export function Vector3_GetDirectionBetweenVectors(v1: Ammo.btVector3, v2: Ammo.btVector3) {
+  // Subtract v1 from v2 to get the direction vector
+  const direction = new Ammo.btVector3(
+      v2.x() - v1.x(),
+      v2.y() - v1.y(),
+      v2.z() - v1.z()
+  );
+
+  // Normalize the direction vector to make it a unit vector (length of 1)
+  direction.normalize();
+
+  return direction; // This is the direction vector
+}

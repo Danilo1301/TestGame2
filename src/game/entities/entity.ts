@@ -6,7 +6,14 @@ import { EntityCollision } from "./entityCollision";
 import { Quaternion_Clone, Quaternion_Forward, Quaternion_Right } from '../../shared/ammo/quaterion';
 import { EntitySync } from './entitySync';
 
-export interface EntityData_JSON {}
+export interface EntityData_JSON {
+}
+
+export interface EntityFullData_JSON {
+    type: EntityType
+    nickname: string
+    nicknameColor: number
+}
 
 export enum EntityType {
     UNDEFINED,
@@ -18,12 +25,12 @@ export enum EntityType {
 
 export interface Entity_JSON {
     id: string
-    type: EntityType
     position: number[]
     rotation: number[]
     velocity: number[]
     input: number[]
     data?: EntityData_JSON
+    fullData?: EntityFullData_JSON
 }
 
 export class Entity extends BaseObject
@@ -39,6 +46,8 @@ export class Entity extends BaseObject
     public inputX: number = 0;
     public inputY: number = 0;
     public inputZ: number = 0;
+
+    public health: number = 100.0;
 
     public get body() { return this.collision.body!; }
     
@@ -154,13 +163,19 @@ export class Entity extends BaseObject
         Ammo.destroy(quat);
     }
 
+    public setId(id: string)
+    {
+        this.id = id;
+        this.collision.setBodyId(id);
+    }
+
     public destroy()
     {
         if(this.destroyed) return;
 
         this.destroyed = true;
 
-        
+
     }
 
     public toJSON()
@@ -173,13 +188,25 @@ export class Entity extends BaseObject
 
         const json: Entity_JSON = {
             id: this.id,
-            type: EntityType.UNDEFINED,
             position: [position.x(), position.y(), position.z()],
             rotation: [rotation.x(), rotation.y(), rotation.z(), rotation.w()],
             velocity: [velocity.x(), velocity.y(), velocity.z()],
             input: [this.inputX, this.inputY, this.inputZ]
         }
         
+        return json;
+    }
+
+    public toFullJSON()
+    {
+        const json = this.toJSON();
+
+        json.fullData = {
+            type: EntityType.UNDEFINED,
+            nickname: "Nickname",
+            nicknameColor: 0xffffff
+        };
+
         return json;
     }
 }

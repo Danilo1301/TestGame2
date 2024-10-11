@@ -66,6 +66,8 @@ export class ServerScene
 
         //this.game.entityFactory.spawnEmptyEntity(0, 2, 0);
         
+        return;
+
         const box = this.game.entityFactory.spawnBox(0, 5, 0);
         box.setPosition(10, 2, 0);
 

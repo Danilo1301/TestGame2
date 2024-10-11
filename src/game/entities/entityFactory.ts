@@ -67,7 +67,7 @@ export class EntityFactory extends BaseObject {
     {
         this.entities.delete(entity.id);
 
-        entity.id = id;
+        entity.setId(id);
 
         this.entities.set(id, entity);
     }

@@ -10,6 +10,7 @@ import { ClientWeapon } from "./clientWeapon";
 import { Weapon } from "../../weapons/weapon";
 import { WeaponItem } from "../weaponItem";
 import { ammoVector3ToThree } from "../../../shared/utils";
+import { THREEVector3_GetDirectionBetweenVectors, THREEVector_GetDistanceFromDirection } from "../../../shared/three/vector";
 
 
 export class ClientEntityManager extends BaseObject {
@@ -131,6 +132,9 @@ export class ClientEntityManager extends BaseObject {
         music.setVolume(0.1 * vol);
         music.play();
 
+        
+
+    
         for(const [entity, clientEntity] of this.clientEntities)
         {
             if(!(clientEntity instanceof ClientWeapon)) continue;
@@ -140,6 +144,12 @@ export class ClientEntityManager extends BaseObject {
             if(clientWeapon.weaponItem.weapon != weapon) continue;
 
             clientWeapon.addTracer(from, to);
+
+            const weaponPosition = ammoVector3ToThree(clientWeapon.weaponItem.getPosition()); 
+
+            //const dir = THREEVector3_GetDirectionBetweenVectors(weaponPosition, to);
+            clientWeapon.shoot(weaponPosition, to);
+
         }
     }
 }

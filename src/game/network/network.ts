@@ -1,10 +1,11 @@
 import { io, Socket } from "socket.io-client";
-import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_Entities, IPacketData_JoinedServer, PACKET_TYPE } from "./packet";
+import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_Entities, IPacketData_JoinedServer, IPacketData_WeaponShot, PACKET_TYPE } from "./packet";
 import { SyncHelper } from "./syncHelper";
 import { Gameface } from "../gameface/gameface";
 import { EntityType } from "../entities/entity";
 import { BaseObject } from "../../shared/baseObject";
 import { gameSettings } from "../../shared/constants/gameSettings";
+import { Ped } from "../entities/ped";
 
 class PacketListener {
     public functions = new Map<PACKET_TYPE, Function[]>();
@@ -96,13 +97,8 @@ export class Network extends BaseObject
 
             console.log(data);
         }
-            
-        if(packet.type == PACKET_TYPE.PACKET_ENTITIES)
-        {
-            const data = packet.data as IPacketData_Entities;
-
-            SyncHelper.onReceiveEntitiesPacket(data);
-        }
+        
+        SyncHelper.onReceivePacket(packet);
     }
 
     public waitForPacket<T>(type: PACKET_TYPE)
@@ -164,10 +160,10 @@ export class Network extends BaseObject
         // } 
 
         const json = player.toJSON();
-        json.type = EntityType.PED;
 
         this.send<IPacketData_ClientData>(PACKET_TYPE.PACKET_CLIENT_DATA, {
-            player: json
+            entity: json,
+            type: EntityType.PED
         });
     }
 }

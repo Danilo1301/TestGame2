@@ -2,6 +2,7 @@ import { Quaternion_Right, Quaternion_Up } from "../../shared/ammo/quaterion";
 import { Camera } from "../camera";
 import { ClientEntityManager } from "../entities/clientEntities/clientEntityManager";
 import { Gameface } from "../gameface/gameface";import { Input } from "../input";
+import { PACKET_TYPE } from "../network/packet";
 ;
 
 export class GameScene extends Phaser.Scene
@@ -106,7 +107,14 @@ export class GameScene extends Phaser.Scene
 
         //aim
         player.mouse1 = Input.isMouseDown();
-        player.aiming = Input.isMouse2Down() && player.weapon != undefined;
+
+        const aiming = Input.isMouse2Down() && player.weapon != undefined;
+
+        if(player.aiming != aiming)
+        {
+            player.aiming = aiming;
+        }
+
         //camera
 
         if(Input.getKeyDown("V"))
@@ -148,9 +156,9 @@ export class GameScene extends Phaser.Scene
                 Ammo.destroy(up);
                 Ammo.destroy(quat);
 
-                this.camera.distance = 3;
+                this.camera.distance = 2;
             } else {
-                this.camera.distance = 5;
+                this.camera.distance = 3;
             }
 
             this.camera.position.setX(camPosition.x());

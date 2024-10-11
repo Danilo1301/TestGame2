@@ -1,4 +1,5 @@
 import { Quaternion_Forward } from "../../../shared/ammo/quaterion";
+import { THREEVector_GetDistanceFromDirection } from "../../../shared/three/vector";
 import { ammoVector3ToThree, threeVector3ToAmmo } from "../../../shared/utils";
 import { GameScene } from "../../scenes/gameScene";
 import { ThreeScene } from "../../scenes/threeScene";
@@ -46,6 +47,16 @@ export class ClientWeapon extends ClientEntity
             end: to,
             lifetime: 2000,
             color: 0xff0000
+        });
+    }
+
+    public shoot(from: THREE.Vector3, to: THREE.Vector3)
+    {
+        this.tracers.push({
+            start: from,
+            end: to,
+            lifetime: 2000,
+            color: 0xffff00
         });
     }
 

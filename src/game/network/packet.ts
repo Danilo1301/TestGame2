@@ -1,13 +1,15 @@
 import { GLTFData_JSON } from "../../shared/gltf/gltfData"
-import { Entity_JSON } from "../entities/entity"
+import { Entity_JSON, EntityType } from "../entities/entity"
 
 export enum PACKET_TYPE {
     PACKET_REQUEST_MODELS,
+    PACKET_CLIENT_READY,
     PACKET_MODELS,
     PACKET_JOINED_SERVER,
     PACKET_ENTITIES,
     PACKET_CLIENT_DATA,
-    PACKET_ENTER_LEAVE_VEHICLE
+    PACKET_ENTER_LEAVE_VEHICLE,
+    PACKET_WEAPON_SHOT
 }
 
 export interface IPacketData {
@@ -36,5 +38,11 @@ export interface IPacketData_Entities {
 }
 
 export interface IPacketData_ClientData {
-    player: Entity_JSON
+    entity: Entity_JSON
+    type: EntityType
+}
+
+export interface IPacketData_WeaponShot {
+    hit: number[]
+    byPed: string
 }

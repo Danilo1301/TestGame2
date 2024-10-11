@@ -7,10 +7,14 @@ import THREE from 'three';
 
 export interface PedData_JSON extends EntityData_JSON {
     lookDir: number[]
+    aiming: boolean
+    weapon: number
 }
 
 export class Ped extends Entity
 {
+    public cameraAimHeight = new Ammo.btVector3(0, 2.3, 0);
+
     public cameraPosition = new Ammo.btVector3(0, 1, 0);
     public lookDir = new Ammo.btQuaternion(0, 0, 0, 1);
     
@@ -53,7 +57,13 @@ export class Ped extends Entity
         const position = this.getPosition();
 
         if(!this.controlledByPlayer)
-            this.cameraPosition.setValue(position.x(), position.y() + 0.8, position.z())
+        {
+            this.cameraPosition.setValue(
+                position.x() + this.cameraAimHeight.x(),
+                position.y() + this.cameraAimHeight.y(),
+                position.z() + this.cameraAimHeight.z()
+            )
+        }
 
         this.updateInputRotation(delta);
         this.updateMovement(delta);
@@ -266,7 +276,9 @@ export class Ped extends Entity
     public toJSON()
     {
         const data: PedData_JSON = {
-            lookDir: [this.lookDir.x(), this.lookDir.y(), this.lookDir.z(), this.lookDir.w()]
+            lookDir: [this.lookDir.x(), this.lookDir.y(), this.lookDir.z(), this.lookDir.w()],
+            aiming: this.aiming,
+            weapon: this.weapon ? this.weapon.weaponData.id : -1
         }
         
         const json = super.toJSON();

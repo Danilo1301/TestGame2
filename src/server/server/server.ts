@@ -3,14 +3,15 @@ import { Game } from '../../game/game/game';
 import { Client } from '../client/client';
 import { Loaders } from '@enable3d/ammo-on-nodejs';
 import path from 'path';
-import { Entity, EntityType } from '../../game/entities/entity';
+import { Entity, Entity_JSON, EntityType } from '../../game/entities/entity';
 import { Ped } from '../../game/entities/ped';
-import { IPacketData_Entities, PACKET_TYPE } from '../../game/network/packet';
+import { IPacket, IPacketData, IPacketData_Entities, IPacketData_WeaponShot, PACKET_TYPE } from '../../game/network/packet';
 import { Box } from '../../game/entities/box';
 import { BaseObject } from '../../shared/baseObject';
 import { gameSettings } from "../../shared/constants/gameSettings";
 import { gltfModels } from "../../shared/constants/assets";
 import { GLTFData } from '../../shared/gltf/gltfData';
+import { Weapon } from '../../game/weapons/weapon';
 
 export class Server extends BaseObject
 {
@@ -32,6 +33,15 @@ export class Server extends BaseObject
         super();
         this._game = new Game();
         this._game.isServer = true;
+
+        this.game.events.on("weapon_shot", (weapon: Weapon, from: THREE.Vector3, to: THREE.Vector3) => {
+            console.log("broadcast this shit")
+
+            this.sendToAll<IPacketData_WeaponShot>(PACKET_TYPE.PACKET_WEAPON_SHOT, {
+                hit: [to.x, to.y, to.z],
+                byPed: weapon!.ped!.id
+            });
+        });
     }
 
     public preUpdate(delta: number)
@@ -52,6 +62,16 @@ export class Server extends BaseObject
 
     }
 
+    public sendToAll<T extends IPacketData>(packetType: PACKET_TYPE, data: T)
+    {
+        for(const client of this.clients)
+        {
+            if(!client.isReady) continue;
+
+            client.send(packetType, data);
+        }
+    }
+
     private processSendData()
     {
         const now = performance.now();
@@ -62,46 +82,68 @@ export class Server extends BaseObject
 
             //this.log("sending data");
 
-            this.sendData();
+            this.broadcastEntities();
         }
     }
 
-    public sendData()
+    public broadcastEntities()
     {
-        const data: IPacketData_Entities = {
-            entities: []
-        }
-
-        for(const entity of this.game.entityFactory.entities.values())
+        for(const client of this.clients)
         {
-            let canSend = false;
-            let entityType: EntityType = EntityType.UNDEFINED;
+            if(!client.isReady) continue;
 
-            for(const pair of this.game.entitiesInformation)
+            const packetData: IPacketData_Entities = {
+                entities: []
+            }
+
+            for(const [_id, entity] of this.game.entityFactory.entities)
             {
-                if(entity instanceof pair[0])
+                let sendFullData = !client.entitiesCreated.includes(entity.id);
+
+                const json = this.getEntityJson(entity, sendFullData);
+
+                if(json)
                 {
-                    canSend = true;
-                    entityType = pair[1];
+                    if(sendFullData)
+                    {
+                        console.log(`sending entity full data of: ${entity.displayName} (${json.fullData?.type})`);
+                    }
+
+                    client.entitiesCreated.push(entity.id);
+
+                    packetData.entities.push(json);
                 }
             }
 
-            //console.log(entity.displayName, canSend)
+            client.send(PACKET_TYPE.PACKET_ENTITIES, packetData);
+        }
+    }
 
-            if(canSend)
+    public getEntityJson(entity: Entity, getFullData: boolean)
+    {
+        let canSend = false;
+        let entityType: EntityType = EntityType.UNDEFINED;
+
+        for(const pair of this.game.entitiesInformation)
+        {
+            if(entity instanceof pair[0])
             {
-                const json = entity.toJSON();
-                json.type = entityType;
-                
-                data.entities.push(json);
+                canSend = true;
+                entityType = pair[1];
             }
         }
 
-        for(const client of this.clients)
+        if(!canSend) return undefined;
+
+        const data = getFullData ? entity.toFullJSON() : entity.toJSON();
+
+        if(data.fullData)
         {
-            client.send(PACKET_TYPE.PACKET_ENTITIES, data);
+            data.fullData.type = entityType;
         }
-    }
+                
+        return data;
+    }    
 
     public async loadModels()
     {

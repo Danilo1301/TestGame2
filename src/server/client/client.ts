@@ -1,7 +1,7 @@
 import socketio, { Socket } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import { BaseObject } from "../../shared/baseObject"
-import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_JoinedServer, IPacketData_Models, PACKET_TYPE } from "../../game/network/packet";
+import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_JoinedServer, IPacketData_Models, IPacketData_WeaponShot, PACKET_TYPE } from "../../game/network/packet";
 import { MasterServer } from '../masterServer/masterServer';
 import { Server } from '../server/server';
 import { Ped, PedData_JSON } from '../../game/entities/ped';
@@ -19,6 +19,9 @@ export class Client extends BaseObject
 
     private _server?: Server;
     private _player?: Ped;
+
+    public entitiesCreated: string[] = [];
+    public isReady: boolean = false;
 
     constructor(socket: socketio.Socket)
     {
@@ -65,20 +68,32 @@ export class Client extends BaseObject
 
             this.send(PACKET_TYPE.PACKET_MODELS, data);
         }
+
+        if(packet.type == PACKET_TYPE.PACKET_CLIENT_READY)
+        {
+            this.isReady = true;
+
+            const server = this._server!;
+
+            server.broadcastEntities();
+        }
         
         if(packet.type == PACKET_TYPE.PACKET_CLIENT_DATA)
         {
             const player = this._player;
 
             const data = packet.data as IPacketData_ClientData;
+            const entityType = data.type;
 
-            const position = data.player.position;
-            const rotation = data.player.rotation;
-            const input = data.player.input;
+            const entityData = data.entity;
+
+            const position = entityData.position;
+            const rotation = entityData.rotation;
+            const input = entityData.input;
 
             if(player)
             {
-                if(data.player.type == EntityType.PED)
+                if(entityType == EntityType.PED)
                 {
                     player.setPosition(position[0], position[1], position[2]);
                     player.setRotation(rotation[0], rotation[1], rotation[2], rotation[3]);
@@ -87,10 +102,18 @@ export class Client extends BaseObject
                     player.inputY = input[1];
                     player.inputZ = input[2];
 
-                    const pedData = data.player.data as PedData_JSON;
+                    const pedData = entityData.data as PedData_JSON;
                     
                     player.lookDir.setValue(pedData.lookDir[0], pedData.lookDir[1], pedData.lookDir[2], pedData.lookDir[3]);
-                
+                    player.aiming = pedData.aiming;
+
+                    let currentWeaponId = -1;
+                    if(player.weapon) currentWeaponId = player.weapon.weaponData.id;
+
+                    if(currentWeaponId != pedData.weapon)
+                    {
+                        player.equipWeapon(pedData.weapon);
+                    }
                 }
                 
                 // const vehicle = player.onVehicle;
@@ -118,6 +141,22 @@ export class Client extends BaseObject
             }
         }
 
+        if(packet.type == PACKET_TYPE.PACKET_WEAPON_SHOT)
+        {
+            console.log(packet);
+            
+            const data = packet.data as IPacketData_WeaponShot;
+            const ped = this._player;
+
+            if(ped)
+            {
+                const hitPos = new Ammo.btVector3(data.hit[0], data.hit[1], data.hit[2]);
+
+                ped.weapon?.shootEx(ped.cameraPosition, hitPos, false);
+
+                Ammo.destroy(hitPos);
+            }
+        }
     }
 
     public onConnect()
@@ -126,6 +165,14 @@ export class Client extends BaseObject
 
         const server = MasterServer.Instance.getServers()[0];
         this.joinServer(server);
+    }
+
+    public onDisconnect()
+    {
+        this.log(`on disconnect`);
+
+        const server = MasterServer.Instance.getServers()[0];
+        this.leaveServer();
     }
 
     public joinServer(server: Server)
@@ -142,5 +189,20 @@ export class Client extends BaseObject
             playerId: player.id,
             serverId: server.id
         });
+    }
+
+    public leaveServer()
+    {
+        if(this._server)
+        {
+            const server = this._server;
+
+            server.clients.splice(server.clients.indexOf(this), 1);
+
+            if(this._player)
+                server.game.entityFactory.removeEntity(this._player);
+
+            this._server = undefined;
+        }
     }
 }

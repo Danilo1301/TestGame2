@@ -20,6 +20,7 @@ export class MasterServer extends BaseObject
     public memoryDetector = new MemoryDetect();
 
     private _servers = new Map<string, Server>([]); 
+    private _clients = new Map<socketio.Socket, Client>([]); 
 
     constructor() {
         super();
@@ -63,12 +64,18 @@ export class MasterServer extends BaseObject
 
         const client = new Client(socket);
         client.onConnect();
+
+        this._clients.set(socket, client);
     }
 
     private onSocketDisconnect(socket: socketio.Socket)
     {
         this.log("socket " + socket.id + " disconnected");
+
+        const client = this._clients.get(socket)!;
+        client.onDisconnect();
     }
+
 
     public createServer()
     {

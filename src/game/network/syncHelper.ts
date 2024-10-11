@@ -3,57 +3,96 @@ import { Entity, EntityType } from "../entities/entity";
 import { eSyncType } from "../entities/entitySync";
 import { Ped, PedData_JSON } from "../entities/ped";
 import { Gameface } from "../gameface/gameface";
-import { IPacketData_Entities } from "./packet";
+import { IPacket, IPacketData_Entities, IPacketData_WeaponShot, PACKET_TYPE } from "./packet";
 
 export class SyncHelper extends BaseObject {
+
+    public static onReceivePacket(packet: IPacket)
+    {
+        if(packet.type == PACKET_TYPE.PACKET_ENTITIES)
+        {
+            const data = packet.data as IPacketData_Entities;
+
+            SyncHelper.onReceiveEntitiesPacket(data);
+        }
+    
+        if(packet.type == PACKET_TYPE.PACKET_WEAPON_SHOT)
+        {
+            const data = packet.data as IPacketData_WeaponShot;
+
+            const game = Gameface.Instance.game;
+            const ped = game.entityFactory.entities.get(data.byPed) as Ped;
+
+            if(ped && ped != Gameface.Instance.player)
+            {
+                const hitPos = new Ammo.btVector3(data.hit[0], data.hit[1], data.hit[2]);
+
+                ped.weapon?.shootEx(ped.cameraPosition, hitPos, false);
+
+                Ammo.destroy(hitPos);
+            }
+        }
+    }
 
     public static onReceiveEntitiesPacket(data: IPacketData_Entities)
     {
         const game = Gameface.Instance.game;
 
-        //console.log(data)
+        console.log(`SyncHelper: got packet`)
+        console.log(data)
 
         for(const entityJson of data.entities)
         {
             let entity: Entity | undefined = undefined;
-
             let justCreated = false;
 
-            if(!game.entityFactory.entities.has(entityJson.id))
+            if(entityJson.fullData)
             {
-                justCreated = true;
+                //console.log("received full data for entity " + entityJson.id);
 
-                switch(entityJson.type)
+                if(!game.entityFactory.entities.has(entityJson.id))
                 {
-                    case EntityType.PED:
-                        entity = game.entityFactory.spawnPed(0, 0, 0);
-                        break;
-                    case EntityType.BOX:
-                        entity = game.entityFactory.spawnBox(0, 0, 0);
-                        break;
-                    case EntityType.VEHICLE:
-                        //entity = game.entityFactory.spawnVehicle(0, 0, 0);
-                        break;
-                    case EntityType.BIKE:
-                        //entity = game.entityFactory.spawnBike(0, 0, 0);
-                        break;
-                    default:
-                        break;
-                }
+                    switch(entityJson.fullData.type)
+                    {
+                        case EntityType.PED:
+                            entity = game.entityFactory.spawnPed(0, 0, 0);
+                            break;
+                        case EntityType.BOX:
+                            entity = game.entityFactory.spawnBox(0, 0, 0);
+                            break;
+                        case EntityType.VEHICLE:
+                            //entity = game.entityFactory.spawnVehicle(0, 0, 0);
+                            break;
+                        case EntityType.BIKE:
+                            //entity = game.entityFactory.spawnBike(0, 0, 0);
+                            break;
+                        default:
+                            break;
+                    }
 
-                if(entity)
+                    if(!entity)
+                    {
+                        throw "SyncHelper: entity type " + entityJson.fullData.type + " was not created";
+                    }
+
                     game.entityFactory.changeEntityId(entity, entityJson.id);
+
+                    justCreated = true;
+                }
             }
 
+            
             if(!entity) entity = game.entityFactory.entities.get(entityJson.id);
 
             if(!entity)
             {
-                throw "SyncHelper: entity type " + entityJson.type + " was not created";
+                throw "SyncHelper: could not find entity" + entityJson.id;
             }
+            
 
             if(entity.id == Gameface.Instance.playerId)
             {
+
                 if(!Gameface.Instance.player) Gameface.Instance.player = entity as Ped;
                 entity.sync.syncType = eSyncType.SYNC_RECONCILIATE;
             }
@@ -89,6 +128,15 @@ export class SyncHelper extends BaseObject {
                     const pedData = entityJson.data as PedData_JSON;
     
                     ped.lookDir.setValue(pedData.lookDir[0], pedData.lookDir[1], pedData.lookDir[2], pedData.lookDir[3]);
+                    ped.aiming = pedData.aiming;
+
+                    let currentWeaponId = -1;
+                    if(ped.weapon) currentWeaponId = ped.weapon.weaponData.id;
+
+                    if(currentWeaponId != pedData.weapon)
+                    {
+                        ped.equipWeapon(pedData.weapon);
+                    }
                 }
             }
         }

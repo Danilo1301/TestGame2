@@ -296,9 +296,13 @@ export class EntityCollision
         const body = new Ammo.btRigidBody(bodyInfo);
 
         this.body = body;
-        (this.body as any).uniqueId = this.entity.id;
+        this.setBodyId(this.entity.id);
     }
     
+    public setBodyId(id: string)
+    {
+        (this.body as any).uniqueId = id;
+    }
     
     public createCollisionsFromGLTF(gltf: GLTFData)
     {

@@ -2,6 +2,7 @@ import { Quaternion_Forward } from "../../shared/ammo/quaterion";
 import { FormatVector3, Vector3_Clone } from "../../shared/ammo/vector";
 import { BaseObject } from "../../shared/baseObject";
 import { ammoVector3ToThree } from "../../shared/utils";
+import { Entity } from "../entities/entity";
 import { Ped } from "../entities/ped";
 import { Game } from "../game/game";
 
@@ -49,30 +50,33 @@ export class Weapon extends BaseObject {
 
         this._lastTimeShot = now;
 
-        console.log("shoot");
+        //console.log("shoot");
 
         const dir = Quaternion_Forward(this.ped!.lookDir);
 
-        this.shootRay(this.ped!.cameraPosition, dir);
+        this.shootDirection(this.ped!.cameraPosition, dir);
 
         Ammo.destroy(dir);
     }
 
-    public shootRay(from: Ammo.btVector3, direction: Ammo.btVector3)
+    public shootDirection(from: Ammo.btVector3, direction: Ammo.btVector3)
     {
-        //console.log(`shootRay`);
-        console.log(`from ${FormatVector3(from)}`);
-        //console.log(`direction ${FormatVector3(direction)}`);
-
-        
         const add = Vector3_Clone(direction);
         add.op_mul(20);
         
         const to = Vector3_Clone(from);
         to.op_add(add);
+        
+        this.shootEx(from, to, true);
 
-        console.log(`to ${FormatVector3(to)}`);
+        Ammo.destroy(to);
+        Ammo.destroy(add);
+    }
 
+    public shootEx(from: Ammo.btVector3, to: Ammo.btVector3, dealDamage: boolean)
+    {
+        let bulletHitPosition = ammoVector3ToThree(to);
+        
         // ray
 
         const rayCallback = new Ammo.ClosestRayResultCallback(from, to);
@@ -88,76 +92,61 @@ export class Weapon extends BaseObject {
             const hitPoint = rayCallback.get_m_hitPointWorld();
             const hitNormal = rayCallback.get_m_hitNormalWorld();
 
+            bulletHitPosition = ammoVector3ToThree(hitPoint);
+
+            //console.log(`\nweapon hit`);
+            //console.log(`body: `, hitBody);
+
             const r = Ammo.btRigidBody.prototype.upcast(hitBody)
 
-            const id = (r as any).uniqueId;
+            //console.log(`rigidBody: `, r);
 
-            const entity = this.ped!.game.entityFactory.entities.get(id)!;
+            if(r)
+            {
+                const id = (r as any).uniqueId;
 
-            console.log(`hit ${entity.id}`)
+                const entity = this.ped!.game.entityFactory.entities.get(id)!;
 
-            const force = new Ammo.btVector3(hitNormal.x(), hitNormal.y(), hitNormal.z());
-            force.op_mul(-8000);
+                console.log(`weapon hit ${entity.id}`)
 
-            const zero = new Ammo.btVector3(0, 0, 0);
+                if(entity.game.isServer)
+                {
+                    this.processWeaponDamage(entity);
+                }
 
-            entity.body.activate();
-            entity.body.applyForce(force, zero);
+                if(dealDamage)
+                {
+                    const force = new Ammo.btVector3(hitNormal.x(), hitNormal.y(), hitNormal.z());
+                    force.op_mul(-8000);
 
-            Ammo.destroy(force);
-            Ammo.destroy(zero);
+                    const zero = new Ammo.btVector3(0, 0, 0);
+
+                    entity.body.activate();
+                    entity.body.applyForce(force, zero);
+
+                    Ammo.destroy(force);
+                    Ammo.destroy(zero);
+                }
+            } else {
+                console.log("weapon hit an entity with unknown body")
+            }
         } else {
-            console.log("did not hit anything");
+            console.log("weapon did not hit anything");
         }
 
-        this.ped!.game.events.emit("weapon_shot", this, ammoVector3ToThree(from), ammoVector3ToThree(to));
+        this.ped!.game.events.emit("weapon_shot", this, ammoVector3ToThree(from), bulletHitPosition);
 
-        Ammo.destroy(add);
-        Ammo.destroy(to);
         Ammo.destroy(rayCallback);
     }
 
-    public shootRay2(from: Ammo.btVector3, to: Ammo.btVector3)
+    public processWeaponDamage(entity: Entity)
     {
-        const rayCallback = new Ammo.ClosestRayResultCallback(from, to);
-    
-        const world = this.ped!.game.serverScene.physics.physicsWorld;
+        entity.health -= 22;
 
-        // Perform the ray test in the physics world
-        world.rayTest(from, to, rayCallback);
-
-        if(rayCallback.hasHit())
+        if(entity.health <= 0)
         {
-            const hitBody = rayCallback.get_m_collisionObject();
-            const hitPoint = rayCallback.get_m_hitPointWorld();
-            const hitNormal = rayCallback.get_m_hitNormalWorld();
-
-            const r = Ammo.btRigidBody.prototype.upcast(hitBody)
-
-            const id = (r as any).uniqueId;
-
-            const entity = this.ped!.game.entityFactory.entities.get(id)!;
-
-            console.log(`hit ${entity.displayName}`)
-
-            const force = new Ammo.btVector3(hitNormal.x(), hitNormal.y(), hitNormal.z());
-            force.op_mul(-100);
-
-            const zero = new Ammo.btVector3(0, 0, 0);
-
-            entity.body.activate();
-            entity.body.applyForce(force, zero);
-
-            Ammo.destroy(force);
-            Ammo.destroy(zero);
-
-            this.ped!.game.events.emit("weapon_shot_tracer", this, ammoVector3ToThree(to));
+            entity.setPosition(0, 3, 0);
+            entity.health = 100;
         }
-
-
-        // Clean up
-        //Ammo.destroy(rayCallback);
-
-        return rayCallback;
     }
 }
