@@ -188,7 +188,7 @@ export class Ped extends Entity
 
         movementDir.setY(currentVelocity.y());
 
-        const speed = 0.2;
+        const speed = 1;
 
         const velocity = new Ammo.btVector3(
             movementDir.x() * 5 * speed,

@@ -6,6 +6,7 @@ import { ThreeScene } from "./scenes/threeScene";
 import THREE from "three";
 import { ammoQuaternionToThree, getIsMobile } from "../shared/utils";
 import { THREEQuaternion_Rotate } from "../shared/three/quaternion";
+import { Joystick } from "./joystick";
 
 export class Camera extends BaseObject
 {
@@ -19,13 +20,17 @@ export class Camera extends BaseObject
 
     public init()
     {
-        Input.events.on('pointermove', (pointer: any, movementX: number, movementY: number) => {
+        Input.events.on('pointermove', (pointerId: number, movementX: number, movementY: number) => {
 
             if(!getIsMobile())
             {
                 if(!Gameface.Instance.isPointerLocked()) return;
             }
 
+            if(Joystick.getIsMoving())
+            {
+                if(pointerId == Joystick.getPointerId()) return;
+            }
 
             const sentitivity = 0.4;
 

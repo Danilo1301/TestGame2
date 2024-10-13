@@ -68,6 +68,10 @@ export class Gameface extends BaseObject
         loadScene.addImage("test3", "test1.png");
         loadScene.addImage("test4", "test1.png");
         loadScene.addImage("crosshair_shotgun", "crosshair/shotgun.png");
+
+        loadScene.addImage("widget_aim", "widgets/widget_aim.png");
+        loadScene.addImage("widget_shoot", "widgets/widget_shoot.png");
+
         loadScene.addAudio("shot_m4", "weapons/m4/shot.wav");
 
         //this.load.image("crosshair_shotgun", "crosshair/shotgun.png");
@@ -136,21 +140,22 @@ export class Gameface extends BaseObject
             this.game.create();
             this.game.serverScene.createLocalScene();
 
-            //this.network.send(PACKET_TYPE.PACKET_CLIENT_READY, {});
+            this.network.send(PACKET_TYPE.PACKET_CLIENT_READY, {});
             
-            const ped = this.game.entityFactory.spawnPed(0, 5, 0);
-            this.player = ped;
+            // const ped = this.game.entityFactory.spawnPed(0, 5, 0);
+            // this.player = ped;
+            // this.player.equipWeapon(0);
 
-            const box = this.game.entityFactory.spawnBox(5, 5, 0);
+            // const box = this.game.entityFactory.spawnBox(5, 5, 0);
 
-            const npc = this.game.entityFactory.spawnPed(0, 5, 0);
-            npc.inputZ = 0.01;   
+            // const npc = this.game.entityFactory.spawnPed(0, 5, 0);
+            // npc.inputZ = 0.01;   
             
-            (window as any)["npc"] = npc;
+            // (window as any)["npc"] = npc;
 
-            setInterval(() => {
-                npc.lookAtEntity(box);
-            }, 500);
+            // setInterval(() => {
+            //     npc.lookAtEntity(box);
+            // }, 500);
         });
     }
 

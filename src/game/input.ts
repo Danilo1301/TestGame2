@@ -3,7 +3,7 @@ import { BaseObject } from '../shared/baseObject';
 import { Debug } from '../shared/debug';
 import { getIsMobile } from '../shared/utils';
 
-class Pointer {
+export class Pointer {
 
     public input: Phaser.Input.InputPlugin;
     public id: number;
@@ -179,9 +179,8 @@ export class Input extends BaseObject
 
             if(!getIsMobile())
             {
-                Input.events.emit('pointermove', this._pointers.get(1), pointer.movementX, pointer.movementY);
+                Input.events.emit('pointermove', pointer, pointer.movementX, pointer.movementY);
             }
-
         });
     }
 
@@ -221,6 +220,11 @@ export class Input extends BaseObject
         Input.events.emit('keyup', key);
     }
 
+    public getPointer(id: number)
+    {
+        return this._pointers.get(id);
+    }
+
     private onPointerDown(pointer: PointerEvent)
     {
         console.log(`pointer down`);
@@ -230,6 +234,7 @@ export class Input extends BaseObject
             if(pointer.isActive() && !pointer.wasActive)
             {
                 pointer.onDown();
+                Input.previousPointerThatWentDown = pointer.id;
             }
 
             console.log(pointer.id, pointer.isActive());
@@ -254,6 +259,7 @@ export class Input extends BaseObject
             if(!pointer.isActive() && pointer.wasActive)
             {
                 pointer.onUp();
+                Input.previousPointerThatWentUp = pointer.id;
             }
             console.log(pointer.id, pointer.isActive());
         }
@@ -284,9 +290,9 @@ export class Input extends BaseObject
 
             if(diff.length() > 0)
             {
-                console.log(`[pointer ${pointer.id}] moved ${diff.x.toFixed(1)}, ${diff.y.toFixed(2)}`);
+                //console.log(`[pointer ${pointer.id}] moved ${diff.x.toFixed(1)}, ${diff.y.toFixed(2)}`);
 
-                Input.events.emit('pointermove', pointer, diff.x, diff.y);
+                Input.events.emit('pointermove', pointer.id, diff.x, diff.y);
             }
 
             pointer.updatePosition();

@@ -3,7 +3,9 @@ import { Camera } from "../camera";
 import { ClientEntityManager } from "../entities/clientEntities/clientEntityManager";
 import { Gameface } from "../gameface/gameface";import { Input } from "../input";
 import { PACKET_TYPE } from "../network/packet";
-;
+import { Joystick } from "../joystick";
+import { Widgets } from "../widgets/widgets";
+import { getIsMobile } from "../../shared/utils";
 
 export class GameScene extends Phaser.Scene
 {
@@ -11,7 +13,9 @@ export class GameScene extends Phaser.Scene
 
     public clientEntityManager = new ClientEntityManager(this);
     public camera = new Camera();
-    //public joystick = new Joystick();
+    public joystick = new Joystick();
+
+    private _prevMouse2Down: boolean = false;
 
     constructor()
     {
@@ -22,8 +26,10 @@ export class GameScene extends Phaser.Scene
 
     public async create()
     {
+        Widgets.init();
+
         this.camera.init();
-        //this.joystick.create();
+        this.joystick.create();
 
         const gameSize = Gameface.Instance.getGameSize();
 
@@ -33,12 +39,15 @@ export class GameScene extends Phaser.Scene
 
     public updateScene(delta: number)
     {
+        Widgets.update();
         this.updatePlayerInput();
     }
 
     private updatePlayerInput()
     {
         const player = Gameface.Instance.player;
+
+        this.joystick.update();
 
         if(!player) return;
 
@@ -51,7 +60,6 @@ export class GameScene extends Phaser.Scene
         const cameraPosition = this.camera.position;
         player.controlledByPlayer = true;
         player.cameraPosition.setValue(cameraPosition.x(), cameraPosition.y(), cameraPosition.z());
-
 
         function magicallyRotateAQuaternion180Degrees(quat: Ammo.btQuaternion)
         {
@@ -98,14 +106,25 @@ export class GameScene extends Phaser.Scene
             player.inputY = 1;
         }
 
-        //aim
-        player.mouse1 = Input.isMouseDown();
-
-        const aiming = Input.isMouse2Down() && player.weapon != undefined;
-
-        if(player.aiming != aiming)
+        if(this.joystick.isMoving)
         {
-            player.aiming = aiming;
+            player.inputZ = this.joystick.inputForward;
+            player.inputX = this.joystick.inputRight;
+        }
+
+        //aim
+
+        if(!getIsMobile())
+        {
+            player.mouse1 = Input.isMouseDown();
+        }
+
+        const mouse2Down = Input.isMouse2Down();
+        if(this._prevMouse2Down != mouse2Down)
+        {
+            this._prevMouse2Down = mouse2Down;   
+
+            player.aiming = mouse2Down;
         }
 
         //camera
