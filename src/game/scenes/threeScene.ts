@@ -2,10 +2,44 @@ import THREE from 'three';
 import { ExtendedObject3D, Scene3D } from '@enable3d/phaser-extension';
 import { Gameface } from '../gameface/gameface';
 
-interface LineData {
-    line: THREE.Line
-    geometry: THREE.BufferGeometry
-    material: THREE.LineBasicMaterial
+export class THREELine {
+    public line: THREE.Line;
+    public geometry: THREE.BufferGeometry;
+    public material: THREE.LineBasicMaterial;
+
+    constructor(from: THREE.Vector3, to: THREE.Vector3, color: number)
+    {
+        const points: any[] = [];
+        points.push(from); // Starting point
+        points.push(to);  // Ending point
+
+        this.geometry = new THREE.BufferGeometry().setFromPoints(points);
+
+        // Create a material for the line
+        this.material = new THREE.LineBasicMaterial({ color: color });
+
+        // Create the line using the geometry and material
+        this.line = new THREE.Line(this.geometry, this.material);
+
+        ThreeScene.Instance.third.add.existing(this.line);
+    }
+
+    public setPosition(from: THREE.Vector3, to: THREE.Vector3)
+    {
+        const points: any[] = [];
+        points.push(from); // Starting point
+        points.push(to);  // Ending point
+
+        this.geometry.setFromPoints(points);
+    }
+
+    public destroy()
+    {
+        ThreeScene.Instance.third.scene.remove(this.line);
+
+        this.material.dispose();
+        this.geometry.dispose();
+    }
 }
 
 export class ThreeScene extends Scene3D
@@ -78,43 +112,23 @@ export class ThreeScene extends Scene3D
         return screenPosition;
     }
 
-    public lines: LineData[] = [];
+    public lines: THREELine[] = [];
 
-    public drawLine(position: THREE.Vector3, end: THREE.Vector3, color: number)
+    public createLine(from: THREE.Vector3, to: THREE.Vector3, color: number)
     {
-        const points: any[] = [];
-        points.push(position); // Starting point
-        points.push(end);  // Ending point
+        const line = new THREELine(from, to, color);
 
-        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        this.lines.push(line);
 
-        // Create a material for the line
-        const material = new THREE.LineBasicMaterial({ color: color });
-
-        // Create the line using the geometry and material
-        const line = new THREE.Line(geometry, material);
-
-        const lineData: LineData = {
-            line: line,
-            geometry: geometry,
-            material: material
-        }
-
-        this.lines.push(lineData);
-
-        this.third.add.existing(line);
+        return line
     }
 
-    public clearDebugObjects()
+    public removeLine(line: THREELine)
     {
-        for(const lineData of this.lines)
-        {
-            this.third.scene.remove(lineData.line);
+        const index = this.lines.indexOf(line);
 
-            lineData.geometry.dispose();
-            lineData.material.dispose();
-        }
+        this.lines.splice(index, 1);
 
-        this.lines = [];
+        line.destroy();
     }
 }

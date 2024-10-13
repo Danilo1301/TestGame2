@@ -3,7 +3,7 @@ import { Entity } from "../entity";
 import { BaseObject } from "../../../shared/baseObject";
 import { WorldText } from "../../worldText";
 import { HealthBar } from "../../healthBar";
-import { ThreeScene } from "../../scenes/threeScene";
+import { THREELine, ThreeScene } from "../../scenes/threeScene";
 import { CollisionShapeType } from "../entityCollision";
 import { ammoQuaternionToThree } from "../../../shared/utils";
 import { gltfModels } from "../../../shared/constants/assets";
@@ -23,6 +23,8 @@ export class ClientEntity extends BaseObject {
     public modelOffset = new Ammo.btVector3(0, 0, 0);
 
     public animationManager = new AnimationManager(this);
+
+    private _forwardLine?: THREELine;
 
     constructor(entity: Entity)
     {
@@ -170,12 +172,33 @@ export class ClientEntity extends BaseObject {
     {
         this.updateThreeGroup(delta);
         this.drawForwardLine();
-        //this.updateSpineBone();
+        // //this.updateSpineBone();
 
         if(this.gltfModel)
         {
-            this.gltfModel.mixer?.update(delta / 1000);
+             this.gltfModel.mixer?.update(delta / 1000);
         }
+    }
+
+    private updateThreeGroup(delta: number)
+    {
+        if(!this.threeGroup) return;
+
+        const position = this.entity.getPosition();
+        const rotation = this.entity.getRotation();
+
+        this.threeGroup.position.set(
+            position.x(),
+            position.y(),
+            position.z()
+        );
+        this.threeGroup.setRotationFromQuaternion(ammoQuaternionToThree(rotation));
+
+        this.gltfModel?.object.position.set(
+            this.modelOffset.x(),
+            this.modelOffset.y(),
+            this.modelOffset.z()
+        );
     }
 
     private updateSpineBone()
@@ -217,35 +240,6 @@ export class ClientEntity extends BaseObject {
         
     }
 
-    private updateThreeGroup(delta: number)
-    {
-        if(!this.threeGroup) return;
-
-        const position = this.entity.getPosition();
-
-        //const body = this.entity.collision.body!;
-        //const transform = body.getWorldTransform();
-        //const position = transform.getOrigin();
-        //const rotation = transform.getRotation();
-
-        const rotation = this.entity.getRotation();
-
-        this.threeGroup.position.set(
-            position.x(),
-            position.y(),
-            position.z()
-        );
-        this.threeGroup.setRotationFromQuaternion(ammoQuaternionToThree(rotation));
-        
-        //this.threeGroup.setRotationFromEuler(new THREE.Euler(20, 0, 0));
-
-        this.gltfModel?.object.position.set(
-            this.modelOffset.x(),
-            this.modelOffset.y(),
-            this.modelOffset.z()
-        );
-    }
-
     private update3DText()
     {
         const position = this.entity.getPosition();
@@ -270,9 +264,6 @@ export class ClientEntity extends BaseObject {
         const position = this.entity.getPosition();
         const rotation = this.entity.getRotation();
 
-        //const cameraPosition = GameScene.Instance.camera.position;
-        //const distanceFromGameObject = Vector3_DistanceTo(position, cameraPosition);
-
         const forward = Quaternion_Forward(rotation);
 
         const start = new THREE.Vector3(position.x(), position.y(), position.z());
@@ -282,7 +273,12 @@ export class ClientEntity extends BaseObject {
         end.y += forward.y();
         end.z += forward.z();
 
-        ThreeScene.Instance.drawLine(start, end, 0x0000ff);
+        if(!this._forwardLine)
+        {
+            this._forwardLine = ThreeScene.Instance.createLine(start, end, 0x0000ff);
+        } else {
+            this._forwardLine.setPosition(start, end);
+        }
 
         Ammo.destroy(forward);
     }

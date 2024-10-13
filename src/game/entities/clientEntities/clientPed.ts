@@ -2,7 +2,7 @@ import { Ped } from "../ped";
 import { ClientEntity } from "./clientEntity";
 import { Quaternion_Forward } from "../../../shared/ammo/quaterion";
 import THREE from "three";
-import { ThreeScene } from "../../scenes/threeScene";
+import { THREELine, ThreeScene } from "../../scenes/threeScene";
 import { threeVector3ToAmmo } from "../../../shared/utils";
 import { Input } from "../../input";
 import { Gameface } from "../../gameface/gameface";
@@ -14,6 +14,9 @@ export class ClientPed extends ClientEntity
 
     private _prevEquipedWeapon: number = -1;
     private _weaponItem?: WeaponItem;
+
+    private _lookDirLine?: THREELine;
+    private _inputDirLine?: THREELine;
 
     public create()
     {
@@ -219,20 +222,26 @@ export class ClientPed extends ClientEntity
 
     private drawLookDirLine()
     {
+        const pedPosition = this.ped.getPosition();
         const position = this.ped.cameraPosition;
 
         const lookDir = this.ped.lookDir;
 
         const forward = Quaternion_Forward(lookDir);
 
-        const start = new THREE.Vector3(position.x(), position.y(), position.z());
+        const start = new THREE.Vector3(0, 0, 0);
 
         const end = start.clone();
         end.x += forward.x();
         end.y += forward.y();
         end.z += forward.z();
 
-        ThreeScene.Instance.drawLine(start, end, 0xffff00);
+        if(!this._lookDirLine)
+        {
+            this._lookDirLine = ThreeScene.Instance.createLine(start, end, 0xffff00);
+        }
+        this._lookDirLine.setPosition(start, end);
+        this._lookDirLine.line.position.set(pedPosition.x(), pedPosition.y() + this.ped.cameraAimHeight.y(), pedPosition.z());
 
         Ammo.destroy(forward);
     }
@@ -243,13 +252,18 @@ export class ClientPed extends ClientEntity
         const position = this.ped.getPosition();
         
         const vec = inputDir;
-        const start = new THREE.Vector3(position.x(), position.y(), position.z());
+        const start = new THREE.Vector3(0, 0, 0);
 
         const end = start.clone();
         end.x += vec.x;
         end.y += vec.y;
         end.z += vec.z;
 
-        ThreeScene.Instance.drawLine(start, end, 0xffff00);
+        if(!this._inputDirLine)
+        {
+            this._inputDirLine = ThreeScene.Instance.createLine(start, end, 0xffff00);
+        }
+        this._inputDirLine.setPosition(start, end);
+        this._inputDirLine.line.position.set(position.x(), position.y() + 0.1, position.z());
     }
 }

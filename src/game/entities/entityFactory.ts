@@ -36,7 +36,7 @@ export class EntityFactory extends BaseObject {
         {
             const gltf = this.game.gltfCollection.gltfs.get(entity.modelName);
 
-            if(!gltf) throw "GLTF " + entity.modelName + " was not found";
+            if(!gltf) throw "EntityFactory: GLTF " + entity.modelName + " was not found";
 
             entity.collision.createCollisionsFromGLTF(gltf);
         }

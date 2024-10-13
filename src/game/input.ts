@@ -1,12 +1,90 @@
 import Phaser from 'phaser';
 import { BaseObject } from '../shared/baseObject';
 import { Debug } from '../shared/debug';
+import { getIsMobile } from '../shared/utils';
+
+class Pointer {
+
+    public input: Phaser.Input.InputPlugin;
+    public id: number;
+    public wasActive: boolean = false;
+    public position = new Phaser.Math.Vector2(0, 0);
+
+    constructor(input: Phaser.Input.InputPlugin, id: number)
+    {
+        this.input = input;
+        this.id = id;
+    }
+
+    public getPointer()
+    {
+        let pointer: Phaser.Input.Pointer | undefined;
+
+        if(this.id == 1)
+        {
+            if(getIsMobile())
+            {
+                pointer = this.input.pointer1;
+            } else {
+                pointer = this.input.activePointer;
+            }
+        }   
+        if(this.id == 2) pointer = this.input.pointer2;
+        if(this.id == 3) pointer = this.input.pointer3;
+
+        if(!pointer) throw `Pointer ${this.id} didnt detect its pointer`;
+
+        return pointer;
+    }
+
+    public isActive()
+    {
+        const pointer = this.getPointer();
+        return pointer.isDown;
+    }
+
+    public getPointerPosition()
+    {
+        const pointer = this.getPointer();
+        return new Phaser.Math.Vector2(pointer.x, pointer.y);
+    }
+
+    public onDown()
+    {
+        this.wasActive = true;
+
+        this.updatePosition();
+
+        const position = this.position;
+        
+        console.log(`[pointer ${this.id}] is down at ${position.x}, ${position.y}`);
+    }
+
+    public onUp()
+    {
+        this.wasActive = false;
+
+        this.updatePosition();
+
+        const position = this.position;
+
+        console.log(`[pointer ${this.id}] is up at ${position.x}, ${position.y}`);
+    }
+
+    public updatePosition()
+    {
+        const position = this.getPointerPosition();
+        this.position.set(position.x, position.y);
+    }
+}
 
 export class Input extends BaseObject
 {
     public static Instance: Input;
     public static events = new Phaser.Events.EventEmitter();
     public static mousePosition = new Phaser.Math.Vector2();
+    public static previousPointerThatWentUp = 0;
+    public static previousPointerThatWentDown = 0;
 
     public get scene() { return this._scene!; }
 
@@ -17,6 +95,8 @@ export class Input extends BaseObject
     private _keysJustUp: string[] = [];
     private _mouseDown: boolean = false;
     private _mouse2Down: boolean = false;
+
+    private _pointers = new Map<number, Pointer>();
 
     public get sceneInput() { return this.scene.input; }
 
@@ -34,6 +114,10 @@ export class Input extends BaseObject
         const input = scene.input;
         const keyboard = input.keyboard;
         
+        this._pointers.set(1, new Pointer(input, 1));
+        this._pointers.set(2, new Pointer(input, 2));
+        this._pointers.set(3, new Pointer(input, 3));
+
         if(!keyboard)
         {
             throw "Keyboard is null!";
@@ -70,18 +154,34 @@ export class Input extends BaseObject
 
         input.on('pointermove', (pointer: PointerEvent) => {
 
-            //console.log(pointer.movementX)
-            //console.log(pointer.movementY)
+            //console.log(`pointermove`);
+
+            /*
+            const input = this.scene.input;
+
+            let pointer1 = input.activePointer.isDown ? input.activePointer : undefined;
+            if(input.pointer1?.isDown) pointer1 = input.pointer1;
+
+
+            console.log("1: ", pointer1?.x, pointer1?.y);
+            console.log("2: ", input.pointer2?.x, input.pointer2?.y);
+            console.log("3: ", input.pointer3?.x, input.pointer3?.y);
+            */
 
             //const oldPosition = Input.mousePosition.clone();
 
-            this.updateMousePosition(pointer)
+            this.updateMousePosition(pointer);
+            this.checkPointerMove();
 
             //const newPosition = Input.mousePosition.clone();
 
             //const movement = newPosition.subtract(oldPosition);
 
-            Input.events.emit('pointermove', pointer, pointer.movementX, pointer.movementY);
+            if(!getIsMobile())
+            {
+                Input.events.emit('pointermove', this._pointers.get(1), pointer.movementX, pointer.movementY);
+            }
+
         });
     }
 
@@ -123,7 +223,17 @@ export class Input extends BaseObject
 
     private onPointerDown(pointer: PointerEvent)
     {
-        Input.events.emit('pointerdown', pointer);
+        console.log(`pointer down`);
+
+        for(const pointer of this._pointers.values())
+        {
+            if(pointer.isActive() && !pointer.wasActive)
+            {
+                pointer.onDown();
+            }
+
+            console.log(pointer.id, pointer.isActive());
+        }
 
         if(pointer.button == 2)
         {
@@ -131,17 +241,55 @@ export class Input extends BaseObject
         } else {
             this._mouseDown = true;
         }
+
+        Input.events.emit('pointerdown', pointer, Input.previousPointerThatWentDown);
     }
 
     private onPointerUp(pointer: PointerEvent)
     {
-        Input.events.emit('pointerup', pointer);
+        console.log(`pointer up`);
+       
+        for(const pointer of this._pointers.values())
+        {
+            if(!pointer.isActive() && pointer.wasActive)
+            {
+                pointer.onUp();
+            }
+            console.log(pointer.id, pointer.isActive());
+        }
 
         if(pointer.button == 2)
         {
             this._mouse2Down = false;
         } else {
             this._mouseDown = false;
+        }
+
+        Input.events.emit('pointerup', pointer, Input.previousPointerThatWentUp);
+    }
+
+    public checkPointerMove()
+    {
+        for(const pointer of this._pointers.values())
+        {
+            if(!pointer.isActive()) continue;
+
+            const prevPos = pointer.position;
+            const newPos = pointer.getPointerPosition();
+            const diff = newPos.subtract(prevPos);
+
+            //console.log(`was: `, prevPos);
+            //console.log(`is: `, newPos);
+            //console.log(`diff: `, diff);
+
+            if(diff.length() > 0)
+            {
+                console.log(`[pointer ${pointer.id}] moved ${diff.x.toFixed(1)}, ${diff.y.toFixed(2)}`);
+
+                Input.events.emit('pointermove', pointer, diff.x, diff.y);
+            }
+
+            pointer.updatePosition();
         }
     }
 

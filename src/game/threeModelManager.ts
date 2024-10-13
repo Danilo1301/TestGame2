@@ -61,7 +61,7 @@ export class ThreeModelManager {
 
         if(!gltf)
         {
-            throw "GLTF " + id + " was not found!";
+            throw "ThreeModelManager: GLTF " + id + " was not found!";
         }
 
         //const object = hasLoaded ? gltf.scene.clone() : gltf.scene

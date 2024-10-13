@@ -1,4 +1,4 @@
-import { Quaternion_BetweenTwoVectors, Quaternion_Clone, Quaternion_Forward, Quaternion_ToEuler, quaternionFromVectors } from '../../shared/ammo/quaterion';
+import { Quaternion_BetweenTwoVectors, Quaternion_Clone, Quaternion_Forward, Quaternion_Right, Quaternion_ToEuler, quaternionFromVectors } from '../../shared/ammo/quaterion';
 import { FormatVector3, getTurnDirection, rotateVectorAroundY, Vector3_Clone, Vector3_CrossVectors } from '../../shared/ammo/vector';
 import { ammoVector3ToThree, threeVector3ToAmmo } from '../../shared/utils';
 import { Weapon } from '../weapons/weapon';
@@ -92,6 +92,7 @@ export class Ped extends Entity
         if(inputDir.length() > 0)
         {
             this.targetDirection.setValue(inputDir.x, 0, inputDir.z);
+            this.targetDirection.normalize();
         }
 
         if(this.aiming)
@@ -173,8 +174,6 @@ export class Ped extends Entity
         const forward = this.forward;
         const currentVelocity = body.getLinearVelocity();
 
-        movementDir.setY(currentVelocity.y());
-
         if(!this.aiming)
         {
             movementDir.setX(forward.x())
@@ -187,16 +186,23 @@ export class Ped extends Entity
             movementDir.setZ(inputDir.z);
         }
 
+        movementDir.setY(currentVelocity.y());
+
+        const speed = 0.2;
+
         const velocity = new Ammo.btVector3(
-            movementDir.x() * 5,
+            movementDir.x() * 5 * speed,
             movementDir.y(),
-            movementDir.z() * 5
+            movementDir.z() * 5 * speed
         );
+
+        //console.log(FormatVector3(velocity))
 
         Ammo.destroy(forward);
 
         const inputDir = this.getInputDir();
-        if(inputDir.x != 0 && inputDir.z != 0)
+
+        if(inputDir.x != 0 || inputDir.z != 0)
         {
             body.setLinearVelocity(velocity);
         }
@@ -217,15 +223,22 @@ export class Ped extends Entity
         Ammo.destroy(movementDir);
     }
 
-    public lookAt(targetPosition: Ammo.btVector3)
+    public lookAt(x: number, y: number, z: number)
     {
-        this.cameraPosition;
-
-        const quat = Quaternion_BetweenTwoVectors(this.cameraPosition, targetPosition);
+        const target = new Ammo.btVector3(x, y, z);
+        const quat = Quaternion_BetweenTwoVectors(this.cameraPosition, target);
+        quat.normalize();
 
         this.lookDir.setValue(quat.x(), quat.y(), quat.z(), quat.w());
 
         Ammo.destroy(quat);
+        Ammo.destroy(target);
+    }
+
+    public lookAtEntity(entity: Entity)
+    {
+        const position = entity.getPosition();
+        this.lookAt(position.x(), position.y(), position.z());
     }
 
     public equipWeapon(id: number)
@@ -249,28 +262,48 @@ export class Ped extends Entity
     public getInputDir()
     {
         const quat = this.lookDir;
-        const euler = Quaternion_ToEuler(quat);
-        const pitch = euler.y();
-        Ammo.destroy(euler);
+        const lookForward = Quaternion_Forward(quat);
+        const lookRight = Quaternion_Right(quat);
+
+        //const euler = Quaternion_ToEuler(quat);
+
+        //Ammo.destroy(euler);
 
         let inputForward = this.inputZ;
         let inputUp = this.inputY;
         let inputRight = this.inputX;
         
-        const movementDir = new THREE.Vector3(
-            Math.sin(pitch) * inputForward,
+        // const movementDir = new THREE.Vector3(
+        //     Math.sin(pitch) * inputForward,
+        //     0,
+        //     Math.cos(pitch) * inputForward
+        // );
+
+        const dir = new THREE.Vector3(
             0,
-            Math.cos(pitch) * inputForward
+            0,
+            0
         );
 
-        movementDir.x += -Math.cos(pitch) * inputRight;
-        movementDir.z += Math.sin(pitch) * inputRight;
+        dir.x += lookForward.x() * inputForward;
+        dir.z += lookForward.z() * inputForward;
 
-        movementDir.y += inputUp;
+        dir.x += -lookRight.x() * inputRight
+        dir.z += -lookRight.z() * inputRight
 
-        if(movementDir.length() > 0) movementDir.normalize();
+        //movementDir.x += -Math.cos(pitch) * inputRight;
+        //movementDir.z += Math.sin(pitch) * inputRight;
 
-        return movementDir;
+        dir.y += inputUp;
+        
+        //if(movementDir.length() > 0) movementDir.normalize();
+        
+        Ammo.destroy(lookForward);
+        Ammo.destroy(lookRight);
+
+        dir.normalize();
+
+        return dir;
     }
 
     public toJSON()

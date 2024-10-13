@@ -36,28 +36,22 @@ export class ClientWeapon extends ClientEntity
                 continue;
             }
             
-            ThreeScene.Instance.drawLine(tracer.start, tracer.end, tracer.color);
+            //ThreeScene.Instance.drawLine(tracer.start, tracer.end, tracer.color);
         }
     }
 
-    public addTracer(from: THREE.Vector3, to: THREE.Vector3)
+    public addTracer(from: THREE.Vector3, to: THREE.Vector3, color: number)
     {   
-        this.tracers.push({
-            start: from,
-            end: to,
-            lifetime: 2000,
-            color: 0xff0000
-        });
+        const line = ThreeScene.Instance.createLine(from, to, color);
+
+        setTimeout(() => {
+            ThreeScene.Instance.removeLine(line);
+        }, 2000);
     }
 
     public shoot(from: THREE.Vector3, to: THREE.Vector3)
     {
-        this.tracers.push({
-            start: from,
-            end: to,
-            lifetime: 2000,
-            color: 0xffff00
-        });
+        this.addTracer(from, to, 0xffff00);
     }
 
     public onShoot()

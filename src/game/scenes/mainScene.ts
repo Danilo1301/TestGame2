@@ -26,14 +26,21 @@ export class MainScene extends Phaser.Scene
         this.layerHud = this.add.layer();
         this.layerHud.setDepth(10000);
 
-        this.fpsText = this.add.text(5, 5, "0 FPS", { font: '16px Arial', color: '#000000' });
+        this.fpsText = this.add.text(5, 5, "FPS_TEXT");
+        this.fpsText.setFontFamily('Arial');
+        this.fpsText.setFontSize(20);
+        this.fpsText.setColor('#FFFFFF');
+        this.fpsText.setStroke('#000000', 4);
+
         this.layerHud.add(this.fpsText);
+
+        setInterval(() => {
+            this.fpsText.setText(`${this.game.loop.actualFps.toFixed(2)} FPS`);
+        }, 500);
     }
 
     public update(time: number, delta: number)
     {
-        this.fpsText.setText(`${this.game.loop.actualFps.toFixed(2)} FPS`);
-
         Gameface.Instance.preUpdate(delta);
         Gameface.Instance.update(delta);
         Gameface.Instance.postUpdate(delta);

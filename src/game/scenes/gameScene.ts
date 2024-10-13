@@ -20,13 +20,6 @@ export class GameScene extends Phaser.Scene
         GameScene.Instance = this;
     }
 
-    public preload()
-    {
-        this.load.setPath("/assets/");
-        this.load.image("crosshair_shotgun", "crosshair/shotgun.png");
-        this.load.audio("shot_m4", "weapons/m4/shot.wav");
-    }
-
     public async create()
     {
         this.camera.init();

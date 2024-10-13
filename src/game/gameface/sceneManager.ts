@@ -24,9 +24,9 @@ export class SceneManager extends BaseObject
             this.removeScene(scene);
         }
 
-        const s = phaser.scene.add(key, scene, true);
-
         this.log("start scene: " + key);
+
+        const s = phaser.scene.add(key, scene, true);
 
         this._gameface.updateScenesOrder();
 

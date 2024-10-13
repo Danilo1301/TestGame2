@@ -16,6 +16,9 @@ export const config: Phaser.Types.Core.GameConfig = {
     scene: [],
     audio: {
         disableWebAudio: false
+    },
+    input: {
+        activePointers: 4
     }
 }
 

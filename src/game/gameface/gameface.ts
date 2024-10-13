@@ -4,6 +4,8 @@ import { BaseObject } from "../../shared/baseObject";
 import { PhaserLoad } from "../../shared/phaserLoad"
 import { SceneManager } from "./sceneManager";
 import { MainScene } from "../scenes/mainScene";
+import { PreloadScene } from "../scenes/preloadScene";
+import { LoadScene } from "../scenes/loadScene";
 import { ThreeScene } from "../scenes/threeScene";
 import { MemoryDetect } from "../../shared/memoryDetect";
 import { Game } from "../game/game";
@@ -14,6 +16,7 @@ import { Weapon } from "../weapons/weapon";
 import { Network } from "../network/network";
 import { IPacketData_Models, IPacketData_WeaponShot, PACKET_TYPE } from "../network/packet";
 import { Entity } from "../entities/entity";
+import { getIsMobile } from "../../shared/utils";
 
 export class Gameface extends BaseObject
 {
@@ -53,6 +56,35 @@ export class Gameface extends BaseObject
         (window as any).Ammo = Ammo;
         (window as any).THREE = THREE;
 
+        this.sceneManager.startScene(PreloadScene);
+
+        await PreloadScene.Instance.waitForStart();
+
+        const loadScene = this.sceneManager.startScene(LoadScene) as LoadScene;
+
+        loadScene.setPath(`/assets/`);
+        loadScene.addImage("test1", "test1.png");
+        loadScene.addImage("test2", "test1.png");
+        loadScene.addImage("test3", "test1.png");
+        loadScene.addImage("test4", "test1.png");
+        loadScene.addImage("crosshair_shotgun", "crosshair/shotgun.png");
+        loadScene.addAudio("shot_m4", "weapons/m4/shot.wav");
+
+        //this.load.image("crosshair_shotgun", "crosshair/shotgun.png");
+        //this.load.audio("shot_m4", "weapons/m4/shot.wav");
+
+        loadScene.addAudio("testwav1", "weapons/m4/shot.wav");
+        loadScene.addTask("task_wait_1_second", async () => {
+            return new Promise<void>(resolve => {
+                setTimeout(() => {
+                    resolve();
+                }, 0);
+            })
+        });
+        //loadScene.addAtlas("test2", "test2");
+
+        await loadScene.loadAll();
+        
         this.sceneManager.startScene(MainScene);
         this.sceneManager.startScene(ThreeScene); 
 
@@ -80,7 +112,14 @@ export class Gameface extends BaseObject
         });
 
         Input.events.on("pointerup", () => {
-            MainScene.Instance.input.mouse?.requestPointerLock();
+
+            if(getIsMobile())
+            {
+                if(!this.isFullscreen()) this.enterFullscreen();
+            } else {
+                MainScene.Instance.input.mouse?.requestPointerLock();
+            }
+            
         });
             
         this.network.connect(async () => {
@@ -97,10 +136,21 @@ export class Gameface extends BaseObject
             this.game.create();
             this.game.serverScene.createLocalScene();
 
-            this.network.send(PACKET_TYPE.PACKET_CLIENT_READY, {});
+            //this.network.send(PACKET_TYPE.PACKET_CLIENT_READY, {});
             
-            //const ped = this.game.entityFactory.spawnPed(0, 5, 0);
-            //this.player = ped;
+            const ped = this.game.entityFactory.spawnPed(0, 5, 0);
+            this.player = ped;
+
+            const box = this.game.entityFactory.spawnBox(5, 5, 0);
+
+            const npc = this.game.entityFactory.spawnPed(0, 5, 0);
+            npc.inputZ = 0.01;   
+            
+            (window as any)["npc"] = npc;
+
+            setInterval(() => {
+                npc.lookAtEntity(box);
+            }, 500);
         });
     }
 
@@ -110,7 +160,7 @@ export class Gameface extends BaseObject
 
         this._memoryDetect.preUpdate();
         
-        ThreeScene.Instance.clearDebugObjects();
+        //ThreeScene.Instance.clearDebugObjects();
         this.game.preUpdate(delta);
         gameScene?.clientEntityManager.preUpdate(delta);
     }

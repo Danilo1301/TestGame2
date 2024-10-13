@@ -11,6 +11,7 @@ import { Weapon } from "../../weapons/weapon";
 import { WeaponItem } from "../weaponItem";
 import { ammoVector3ToThree } from "../../../shared/utils";
 import { THREEVector3_GetDirectionBetweenVectors, THREEVector_GetDistanceFromDirection } from "../../../shared/three/vector";
+import { AudioManager } from "../../audioManager";
 
 
 export class ClientEntityManager extends BaseObject {
@@ -128,12 +129,9 @@ export class ClientEntityManager extends BaseObject {
         let vol = Math.max(10-distance, 0)/10;
         if(vol <= 0) vol = 0.01;
 
-        var music = GameScene.Instance.sound.add('shot_m4');
-        music.setVolume(0.1 * vol);
-        music.play();
-
-        
-
+        var audio = AudioManager.createAudio('shot_m4');
+        audio.volume = 0.1 * vol;
+        audio.play();
     
         for(const [entity, clientEntity] of this.clientEntities)
         {
@@ -143,7 +141,7 @@ export class ClientEntityManager extends BaseObject {
 
             if(clientWeapon.weaponItem.weapon != weapon) continue;
 
-            clientWeapon.addTracer(from, to);
+            clientWeapon.addTracer(from, to, 0xff0000);
 
             const weaponPosition = ammoVector3ToThree(clientWeapon.weaponItem.getPosition()); 
 

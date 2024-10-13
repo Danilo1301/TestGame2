@@ -4,12 +4,12 @@ import { Gameface } from "./gameface/gameface";
 import { Input } from "./input";
 import { ThreeScene } from "./scenes/threeScene";
 import THREE from "three";
-import { ammoQuaternionToThree } from "../shared/utils";
+import { ammoQuaternionToThree, getIsMobile } from "../shared/utils";
 import { THREEQuaternion_Rotate } from "../shared/three/quaternion";
 
 export class Camera extends BaseObject
 {
-    public position = new Ammo.btVector3(0, 0, 0);
+    public position = new Ammo.btVector3(0, 3, 0);
 
     public cameraView = new Phaser.Math.Vector2(0, 0);
 
@@ -19,9 +19,13 @@ export class Camera extends BaseObject
 
     public init()
     {
-        Input.events.on('pointermove', (pointer: PointerEvent, movementX: number, movementY: number) => {
+        Input.events.on('pointermove', (pointer: any, movementX: number, movementY: number) => {
 
-            if(!Gameface.Instance.isPointerLocked()) return;
+            if(!getIsMobile())
+            {
+                if(!Gameface.Instance.isPointerLocked()) return;
+            }
+
 
             const sentitivity = 0.4;
 
@@ -47,7 +51,7 @@ export class Camera extends BaseObject
             const xDirection = -1;
             const yDirection = 1;
     
-            const lDirection = new Phaser.Math.Vector3(
+            const lDirection = new THREE.Vector3(
                 Math.sin(xDirection * angleX) *  Math.cos(angleY) * distance * yDirection,  // Horizontal movement combined with vertical tilt
                 Math.sin(angleY) * distance,                    // Vertical movement
                 Math.cos(xDirection * angleX) * Math.cos(angleY) * distance * yDirection  // Depth (Z-axis) movement combined with vertical tilt
