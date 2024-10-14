@@ -1,6 +1,8 @@
 import { ExtendedObject3D, Physics, ServerClock } from '@enable3d/ammo-on-nodejs'
 import { Game } from '../game/game';
 import { Debug } from '../../shared/debug';
+import { Ped } from '../entities/ped';
+import { Vector3_DistanceTo } from '../../shared/ammo/vector';
 
 export class ServerScene
 {
@@ -55,14 +57,49 @@ export class ServerScene
     {
         const box = this.game.entityFactory.spawnBox(0, 5, 0);
 
+        const npc2 = this.game.entityFactory.spawnPed(0, 5, 0);
+
         const npc = this.game.entityFactory.spawnPed(0, 5, 0);
         npc.equipWeapon(0);
         npc.aiming = true;
         
         setInterval(() => {
-            npc.lookAtEntity(box);
             npc.weapon!.shoot();
-        }, 1000);
+        }, 1500);
+
+        let target: Ped | undefined;
+
+        setInterval(() => {
+
+            let targets: Ped[] = [];
+
+            for(const [id, entity] of this.game.entityFactory.entities)
+            {
+                if(!(entity instanceof Ped)) continue;
+                if(entity == npc) continue;
+
+                targets.push(entity);
+            }
+
+            targets = targets.sort((a, b) => {
+                const distanceA = Vector3_DistanceTo(a.getPosition(), npc.getPosition())
+                const distanceB = Vector3_DistanceTo(b.getPosition(), npc.getPosition())
+                return distanceA - distanceB;
+            })
+
+            if(targets.length > 0)
+            {
+                const distance = Vector3_DistanceTo(targets[0].getPosition(), npc.getPosition())
+                
+                if(distance > 4) npc.inputZ = 1;
+                else npc.inputZ = 0;
+
+                npc.lookAtEntity(targets[0], 0, 0.5, 0);
+            }
+
+        }, 500);
+
+
 
         //this.game.entityFactory.spawnBox(0.2, 6, 0);
         //this.game.entityFactory.spawnBox(0.3, 7, 0);

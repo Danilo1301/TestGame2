@@ -9,6 +9,9 @@ export class HealthBar extends BaseObject
     public rect?: Phaser.GameObjects.Rectangle;
     public position: Phaser.Math.Vector2 = new Phaser.Math.Vector2(0, 0);
     public visible: boolean = true;
+    
+    private _prevHealth: number = 0;
+    private _lastChangedHealth: number = performance.now();
 
     constructor()
     {
@@ -21,13 +24,20 @@ export class HealthBar extends BaseObject
 
         const scene = MainScene.Instance;
 
-        const rect = scene.add.rectangle(0, 0, 200, 20, 0xff0000);
+        const rect = scene.add.rectangle(0, 0, 100, 8, 0xff0000);
         this.rect = rect;
     }
 
     public update()
     {
+        const now = performance.now();
         const text = this.rect;
+
+        if(this.health != this._prevHealth)
+        {
+            this._prevHealth = this.health;
+            this._lastChangedHealth = now;
+        }
 
         if(!text) this.create();
         if(!text) return;
@@ -35,7 +45,7 @@ export class HealthBar extends BaseObject
         text.setPosition(this.position.x, this.position.y);
         text.setVisible(this.visible);
 
-        if(this.health == this.maxHealth)
+        if(now > this._lastChangedHealth + 2000)
         {
             text.setVisible(false);
         }

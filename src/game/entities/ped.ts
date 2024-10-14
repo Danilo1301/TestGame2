@@ -235,10 +235,10 @@ export class Ped extends Entity
         Ammo.destroy(target);
     }
 
-    public lookAtEntity(entity: Entity)
+    public lookAtEntity(entity: Entity, offsetX: number, offsetY: number, offsetZ: number)
     {
         const position = entity.getPosition();
-        this.lookAt(position.x(), position.y(), position.z());
+        this.lookAt(position.x() + offsetX, position.y() + offsetY, position.z() + offsetZ);
     }
 
     public equipWeapon(id: number)

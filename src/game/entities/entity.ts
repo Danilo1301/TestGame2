@@ -47,6 +47,7 @@ export class Entity extends BaseObject
     public inputY: number = 0;
     public inputZ: number = 0;
 
+    public invincible: boolean = false;
     public health: number = 100.0;
 
     public get body() { return this.collision.body!; }

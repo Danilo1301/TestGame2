@@ -44,7 +44,6 @@ export class MasterServer extends BaseObject
         await server.loadModels();
         server.game.init();
         server.game.create();
-        server.game.serverScene.createServerScene();
 
         this.startClock();
 

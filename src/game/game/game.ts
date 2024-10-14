@@ -48,6 +48,14 @@ export class Game extends BaseObject
     public create()
     {
         this.serverScene.create();
+
+        if(this.isServer)
+        {
+            this.serverScene.createServerScene();
+
+        } else {
+            this.serverScene.createLocalScene();
+        }
     }
 
     public preUpdate(delta: number)

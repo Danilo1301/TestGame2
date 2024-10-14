@@ -125,6 +125,8 @@ export class Gameface extends BaseObject
             }
             
         });
+
+        const startMultiplayer: boolean = true;
             
         this.network.connect(async () => {
             this.log("conectado");
@@ -137,8 +139,18 @@ export class Gameface extends BaseObject
 
             Gameface.Instance.game.gltfCollection.fromPacketData(models);
             
+            this.game.isServer = !startMultiplayer;
             this.game.create();
-            this.game.serverScene.createLocalScene();
+
+            if(!startMultiplayer)
+            {
+
+                const ped = this.game.entityFactory.spawnPed(0, 5, 0);
+                this.player = ped;
+                // this.player.equipWeapon(0);
+
+                return;
+            }
 
             this.network.send(PACKET_TYPE.PACKET_CLIENT_READY, {});
             

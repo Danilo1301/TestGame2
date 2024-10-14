@@ -113,11 +113,12 @@ export class Weapon extends BaseObject {
                 const id = (r as any).uniqueId;
 
                 const entity = this.ped!.game.entityFactory.entities.get(id)!;
+                
                 entityHit = entity;
 
                 console.log(`weapon hit ${entity.id}`)
 
-                if(dealDamage)
+                if(dealDamage && !entity.invincible)
                 {
                     if(entity.game.isServer)
                     {

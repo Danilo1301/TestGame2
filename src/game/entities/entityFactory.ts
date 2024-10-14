@@ -76,6 +76,7 @@ export class EntityFactory extends BaseObject {
     {
         const entity = this.spawnEntity(Entity);
         entity.displayName = "ground";
+        entity.invincible = true;
         entity.setModel("ground");
         
         const box = entity.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(sx, 2, sz));

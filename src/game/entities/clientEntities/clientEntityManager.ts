@@ -12,6 +12,7 @@ import { WeaponItem } from "../weaponItem";
 import { ammoVector3ToThree } from "../../../shared/utils";
 import { THREEVector3_GetDirectionBetweenVectors, THREEVector_GetDistanceFromDirection } from "../../../shared/three/vector";
 import { AudioManager } from "../../audioManager";
+import { gameSettings } from "../../../shared/constants/gameSettings";
 
 
 export class ClientEntityManager extends BaseObject {
@@ -107,18 +108,6 @@ export class ClientEntityManager extends BaseObject {
         }
     }
 
-    public onPlayerShot(weapon: Weapon)
-    {
-        for(const [entity, clientEntity] of this.clientEntities)
-        {
-            if(!(clientEntity instanceof ClientWeapon)) continue;
-
-            if(clientEntity.weaponItem.weapon != weapon) continue;
-
-            clientEntity.onShoot();
-        }
-    }
-
     public onWeaponShot(weapon: Weapon, from: THREE.Vector3, to: THREE.Vector3)
     {
         const cameraPosition = GameScene.Instance.camera.position;
@@ -141,7 +130,8 @@ export class ClientEntityManager extends BaseObject {
 
             if(clientWeapon.weaponItem.weapon != weapon) continue;
 
-            clientWeapon.addTracer(from, to, 0xff0000);
+            if(gameSettings.showRedTracer)
+                clientWeapon.addTracer(from, to, 0xff0000);
 
             const weaponPosition = ammoVector3ToThree(clientWeapon.weaponItem.getPosition()); 
 

@@ -11,6 +11,7 @@ import { ThreeModel, ThreeModelManager } from "../../threeModelManager";
 import { Quaternion_Forward } from "../../../shared/ammo/quaterion";
 import { AnimationManager } from "./animationManager";
 import { Input } from "../../input";
+import { gameSettings } from "../../../shared/constants/gameSettings";
 
 export class ClientEntity extends BaseObject {
     public entity: Entity;
@@ -40,7 +41,8 @@ export class ClientEntity extends BaseObject {
             ThreeScene.Instance.third.add.existing(this.threeGroup);
         }
 
-        this.createCollisionModels();
+        if(gameSettings.showCollisions)
+            this.createCollisionModels();
 
         if(this.entity.modelName != undefined) this.createGLTFModel();
     }
@@ -244,12 +246,14 @@ export class ClientEntity extends BaseObject {
     {
         const position = this.entity.getPosition();
 
+        this.worldText.visible = gameSettings.showDebugWorldTexts;
+
         this.worldText.setTitle(this.entity.displayName);
         this.worldText.set3DPosition(new THREE.Vector3(position.x(), position.y(), position.z()));
         this.worldText.update();
 
         this.healthBar.health = this.entity.health;
-        this.healthBar.set3DPosition(new THREE.Vector3(position.x(), position.y(), position.z()));
+        this.healthBar.set3DPosition(new THREE.Vector3(position.x(), position.y() + 2, position.z()));
         this.healthBar.update();
         //this.log("update 3d text");
     }
