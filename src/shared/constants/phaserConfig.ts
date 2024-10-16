@@ -14,11 +14,15 @@ export const config: Phaser.Types.Core.GameConfig = {
         height: gameSize.y
     },
     scene: [],
+    dom: {
+        createContainer: true,
+    },
     audio: {
         disableWebAudio: false
     },
     input: {
         activePointers: 4
-    }
+    },
+    parent: 'game'
 }
 

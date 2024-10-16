@@ -55,8 +55,8 @@ export class SyncHelper extends BaseObject {
     {
         const game = Gameface.Instance.game;
 
-        console.log(`SyncHelper: got packet`)
-        console.log(data)
+        //console.log(`SyncHelper: got packet`)
+        //console.log(data)
 
         for(const entityJson of data.entities)
         {

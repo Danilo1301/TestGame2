@@ -17,6 +17,7 @@ import { Network } from "../network/network";
 import { IPacketData_Models, IPacketData_WeaponShot, PACKET_TYPE } from "../network/packet";
 import { Entity } from "../entities/entity";
 import { getIsMobile } from "../../shared/utils";
+import { Chat } from "../chat";
 
 export class Gameface extends BaseObject
 {
@@ -52,6 +53,10 @@ export class Gameface extends BaseObject
         this._phaser = await PhaserLoad.loadAsync();
 
         this.log(this.phaser);
+
+        const domContainer = document.getElementById("game")?.children[0] as any;
+        domContainer.style["z-index"] = 1;
+        
 
         (window as any).Ammo = Ammo;
         (window as any).THREE = THREE;
@@ -127,8 +132,13 @@ export class Gameface extends BaseObject
         });
 
         const startMultiplayer: boolean = true;
-            
+        
+        Chat.Instance.addColorMessage("Server", "gold", `Conectando-se ao servidor...`);
+
         this.network.connect(async () => {
+
+            Chat.Instance.addColorMessage("Server", "gold", `Conectado!`);
+
             this.log("conectado");
 
             this.network.send(PACKET_TYPE.PACKET_REQUEST_MODELS, {});
@@ -136,6 +146,8 @@ export class Gameface extends BaseObject
             this.log("waiting for models");
 
             const models = await this.network.waitForPacket<IPacketData_Models>(PACKET_TYPE.PACKET_MODELS);
+
+            Chat.Instance.addColorMessage("Server", "gold", `Recebido ${models.models.length} models`);
 
             Gameface.Instance.game.gltfCollection.fromPacketData(models);
             

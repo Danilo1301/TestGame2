@@ -6,6 +6,7 @@ import { PACKET_TYPE } from "../network/packet";
 import { Joystick } from "../joystick";
 import { Widgets } from "../widgets/widgets";
 import { getIsMobile } from "../../shared/utils";
+import { Chat } from "../chat";
 
 export class GameScene extends Phaser.Scene
 {
@@ -14,6 +15,7 @@ export class GameScene extends Phaser.Scene
     public clientEntityManager = new ClientEntityManager(this);
     public camera = new Camera();
     public joystick = new Joystick();
+    public chat = new Chat();
 
     private _prevMouse2Down: boolean = false;
 
@@ -30,6 +32,7 @@ export class GameScene extends Phaser.Scene
 
         this.camera.init();
         this.joystick.create();
+        this.chat.create();
 
         const gameSize = Gameface.Instance.getGameSize();
 

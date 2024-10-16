@@ -9,3 +9,16 @@ ServerClock delta: 0.031
 Physics delta: 31.0
 
 GameScene delta 16.0
+
+
+---
+Criar EntityWatcher
+
+EntityWatcher dividida em entidades
+cada entidade tem um grupo de propriedades (nametag, location, aim, health)
+cada grupo tem propriedades (ex:)
+nametag:
+ name: string
+ color: number
+quando uma propriedade alterar, o grupo vai estar marcado como canSync=true, e chamara onSend()
+caso a entidade por recem adicionada, enviar TODOS os grupos

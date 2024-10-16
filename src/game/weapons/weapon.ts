@@ -1,4 +1,3 @@
-import { dir } from "console";
 import { Quaternion_Forward } from "../../shared/ammo/quaterion";
 import { FormatVector3, Vector3_Clone } from "../../shared/ammo/vector";
 import { BaseObject } from "../../shared/baseObject";
