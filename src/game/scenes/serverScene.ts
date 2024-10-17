@@ -34,7 +34,7 @@ export class ServerScene
 
     public create()
     {
-        this.game.entityFactory.spawnGround(0, 0, 0, 50, 50);
+        this.game.entityFactory.spawnGround(0, -3, 0, 50, 50);
 
         /*
         const ground = this.physics.add.box({
@@ -55,6 +55,7 @@ export class ServerScene
 
     public createServerScene()
     {
+  
         const box = this.game.entityFactory.spawnBox(0, 5, 0);
 
         const npc2 = this.game.entityFactory.spawnPed(0, 5, 0);

@@ -8,6 +8,36 @@ export interface XYZ {
     z?: number
 }
 
+export function XYZ_SetValue(xyz: XYZ | undefined, defaultVec: XYZ)
+{
+  if(!xyz) return defaultVec;
+
+  xyz.x = xyz.x != undefined ? xyz.x : defaultVec.x!;
+  xyz.y = xyz.y != undefined ? xyz.y : defaultVec.y!;
+  xyz.z = xyz.z != undefined ? xyz.z : defaultVec.z!;
+
+  return xyz;
+}
+
+export function XYZW_SetValue(xyz: XYZW | undefined, defaultVec: XYZW)
+{
+  if(!xyz) return defaultVec;
+
+  xyz.x = xyz.x != undefined ? xyz.x : defaultVec.x!;
+  xyz.y = xyz.y != undefined ? xyz.y : defaultVec.y!;
+  xyz.z = xyz.z != undefined ? xyz.z : defaultVec.z!;
+  xyz.w = xyz.w != undefined ? xyz.w : defaultVec.w!;
+
+  return xyz;
+}
+
+export interface XYZW {
+  x?: number
+  y?: number
+  z?: number
+  w?: number
+}
+
 export class AmmoUtils
 {
   public physicsWorld!: Ammo.btSoftRigidDynamicsWorld;

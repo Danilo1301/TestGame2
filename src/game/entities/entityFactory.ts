@@ -7,6 +7,7 @@ import { Box } from "./box";
 import { Ped } from "./ped";
 import { WeaponItem } from "./weaponItem";
 import { Weapon } from "../weapons/weapon";
+import { Vehicle } from "./vehicle";
 
 export class EntityFactory extends BaseObject {
     public game: Game;
@@ -95,6 +96,57 @@ export class EntityFactory extends BaseObject {
 
         this.setupEntity(entity, {mass: 20});
         entity.setPosition(x, y, z);
+        return entity;
+    }
+
+    public spawnVehicle(x: number, y: number, z: number)
+    {
+        const entity = this.spawnEntity<Vehicle>(Vehicle);
+        entity.displayName = "vehicle";
+        //entity.setModel("vehicle");
+        this.setupEntity(entity, {mass: 100});
+        entity.setPosition(x, y, z);
+
+        entity.setupVehicleBody();
+
+        return entity;
+    }
+
+    public spawnWheel(x: number, y: number, z: number)
+    {
+        let wheelRadius = 0.5;
+
+        const entity = this.spawnEntity<Entity>(Entity);
+        //entity.collision.addCylinder(new THREE.Vector3(0, 0, 0), wheelRadius, 0.5);
+        entity.collision.addSphere(new THREE.Vector3(0, 0, 0), wheelRadius);
+        entity.displayName = "wheel";
+        entity.setModel("wheel2");
+        
+        this.setupEntity(entity, {mass: 10});
+        entity.body.setFriction(3);
+        entity.setPosition(x, y, z);
+
+        const quat = new THREE.Quaternion(0, 0, 0, 1);
+        quat.setFromEuler(new THREE.Euler(0, 0, Math.PI/2));
+        //entity.setRotation(quat.x, quat.y, quat.z, quat.w);
+
+        return entity;
+    }
+
+    public spawnAxis(x: number, y: number, z: number)
+    {
+        const entity = this.spawnEntity(Entity);
+        //entity.collision.addCylinder(new THREE.Vector3(0, 0, 0), wheelRadius, 0.5);
+        entity.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 0.2, 0.2));
+        entity.displayName = "axis";
+
+        this.setupEntity(entity, {mass: 50});
+        entity.setPosition(x, y, z);
+
+        const quat = new THREE.Quaternion(0, 0, 0, 1);
+        quat.setFromEuler(new THREE.Euler(0, 0, Math.PI/2));
+        //entity.setRotation(quat.x, quat.y, quat.z, quat.w);
+
         return entity;
     }
 

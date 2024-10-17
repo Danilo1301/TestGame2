@@ -3,45 +3,55 @@ import { Game } from '../../game/game/game';
 import { Client } from '../client/client';
 import { Loaders } from '@enable3d/ammo-on-nodejs';
 import path from 'path';
-import { Entity, Entity_JSON, EntityType } from '../../game/entities/entity';
+import { Entity, Entity_Info_Basic, Entity_JSON, EntityType } from '../../game/entities/entity';
 import { Ped } from '../../game/entities/ped';
-import { IPacket, IPacketData, IPacketData_Entities, IPacketData_Health, IPacketData_WeaponShot, PACKET_TYPE } from '../../game/network/packet';
+import { IPacket, IPacketData, IPacketData_Entities, IPacketData_Entity_Info_Basic, IPacketData_Health, IPacketData_WeaponShot, PACKET_TYPE } from '../../game/network/packet';
 import { Box } from '../../game/entities/box';
 import { BaseObject } from '../../shared/baseObject';
 import { gameSettings } from "../../shared/constants/gameSettings";
 import { gltfModels } from "../../shared/constants/assets";
 import { GLTFData } from '../../shared/gltf/gltfData';
 import { Weapon } from '../../game/weapons/weapon';
+import { EntityWatcher } from './entityWatcher';
+import { ObjectGroup } from '../../shared/objectWatcher/objectGroup';
 
 export class Server extends BaseObject
 {
     public get id() { return this._id; }
     public get name() { return this._name; }
     public get game() { return this._game; }
+    public get entityWatcher() { return this._entityWatcher; }
 
     public clients: Client[] = [];
     public assetsPath: string = "";
 
     private _id: string = uuidv4();
     private _name: string = "Server";
-    private _game: Game;
+    private _game = new Game();
+    private _entityWatcher = new EntityWatcher(this._game);
 
     private _lastSentData: number = performance.now();
 
     constructor()
     {
         super();
-        this._game = new Game();
-        this._game.isServer = true;
+        this.game.isServer = true;
 
         this.game.events.on("weapon_shot", (weapon: Weapon, from: THREE.Vector3, to: THREE.Vector3) => {
-            console.log("broadcast this shit")
+            console.log("broadcast this weapon_shot")
 
             this.sendToAll<IPacketData_WeaponShot>(PACKET_TYPE.PACKET_WEAPON_SHOT, {
                 hit: [to.x, to.y, to.z],
                 byPed: weapon!.ped!.id
             });
         });
+
+        this.entityWatcher.onEntityInfoChange = (entity: Entity, info: Entity_Info_Basic) =>
+        {   
+            //console.log("[info changed]", entity.displayName, info);
+
+            this.sendToAll<IPacketData_Entity_Info_Basic>(PACKET_TYPE.PACKET_ENTITY_INFO_BASIC, info);
+        }
     }
 
     public preUpdate(delta: number)
@@ -82,7 +92,17 @@ export class Server extends BaseObject
 
             //this.log("sending data");
 
-            this.broadcastEntities();
+            for(const [id, entity] of this.game.entityFactory.entities)
+            {
+                if(!this.entityWatcher.hasEntity(entity))
+                {
+                    this.entityWatcher.addEntity(entity);
+                }
+            }
+
+            this.entityWatcher.check();
+
+            //this.broadcastEntities();
         }
     }
 

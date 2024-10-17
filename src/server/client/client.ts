@@ -1,11 +1,13 @@
 import socketio, { Socket } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import { BaseObject } from "../../shared/baseObject"
-import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_JoinedServer, IPacketData_Models, IPacketData_WeaponShot, PACKET_TYPE } from "../../game/network/packet";
+import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_Entity_Info_Basic, IPacketData_JoinedServer, IPacketData_Models, IPacketData_WeaponShot, PACKET_TYPE } from "../../game/network/packet";
 import { MasterServer } from '../masterServer/masterServer';
 import { Server } from '../server/server';
 import { Ped, PedData_JSON } from '../../game/entities/ped';
 import { EntityType } from '../../game/entities/entity';
+import { XYZ, XYZ_SetValue, XYZW_SetValue } from '../../shared/ammo/ammoUtils';
+import THREE from 'three';
 
 export class Client extends BaseObject
 {
@@ -67,6 +69,8 @@ export class Client extends BaseObject
             }
 
             this.send(PACKET_TYPE.PACKET_MODELS, data);
+
+            return;
         }
 
         if(packet.type == PACKET_TYPE.PACKET_CLIENT_READY)
@@ -75,9 +79,55 @@ export class Client extends BaseObject
 
             const server = this._server!;
 
-            server.broadcastEntities();
+            server.entityWatcher.setAllEntityAsChangedAll();
+
+            return;
         }
         
+        if(packet.type == PACKET_TYPE.PACKET_CLIENT_INFO)
+        {
+            const data = packet.data as IPacketData_Entity_Info_Basic;
+
+            const entity = this._player;
+
+            if(!entity) return;
+
+            const playerPosition = entity.getPosition();
+            const position = XYZ_SetValue(data.position, {x: playerPosition.x(), y: playerPosition.y(), z: playerPosition.z()});
+
+            const posA = new THREE.Vector3(playerPosition.x(), playerPosition.y(), playerPosition.z());
+            const posB = new THREE.Vector3(position.x, position.y, position.z);
+
+            if(posA.distanceTo(posB) <= 3) {
+                entity.setPosition(position.x!, position.y!, position.z!);
+            }
+
+            const entityInput: XYZ = {x: entity.inputX, y: entity.inputY, z: entity.inputZ};
+            const input = XYZ_SetValue(data.input, entityInput);
+            entity.inputX = input.x!;
+            entity.inputY = input.y!;
+            entity.inputZ = input.z!;
+
+            if(data.aiming != undefined) entity.aiming = data.aiming;
+
+            const pedLookDir = entity.lookDir;
+            const lookDir = XYZW_SetValue(data.lookDir, {x: pedLookDir.x(), y: pedLookDir.y(), z: pedLookDir.z(), w: pedLookDir.w()});
+            entity.lookDir.setValue(lookDir.x!, lookDir.y!, lookDir.z!, lookDir.w!);
+
+            if(data.weapon != undefined)
+            {
+                let currentWeaponId = -1;
+                if(entity.weapon) currentWeaponId = entity.weapon.weaponData.id;
+
+                if(currentWeaponId != data.weapon)
+                {
+                    entity.equipWeapon(data.weapon);
+                }
+            }
+
+            return;
+        }
+
         if(packet.type == PACKET_TYPE.PACKET_CLIENT_DATA)
         {
             const player = this._player;

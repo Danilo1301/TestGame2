@@ -31,6 +31,22 @@ server.listen(port, "0.0.0.0", () => {
 
 console.log("Starting geckos...");
 
+class Ent {
+  public positionX: number = 2.50;
+}
+
+const ent = new Ent();
+
+import { ObjectWatcher } from "../shared/objectWatcher/objectWatcher";
+const objectWatcher = new ObjectWatcher();
+
+const entityInfo = objectWatcher.createGroup("entity_info");
+entityInfo.watch("x", () => ent.positionX);
+
+entityInfo.onChange = () => {
+  console.log("something changed");
+};
+
 import '@geckos.io/phaser-on-nodejs'
 
 const _global: any = global;

@@ -15,9 +15,10 @@ import { Input } from "../input";
 import { Weapon } from "../weapons/weapon";
 import { Network } from "../network/network";
 import { IPacketData_Models, IPacketData_WeaponShot, PACKET_TYPE } from "../network/packet";
-import { Entity } from "../entities/entity";
+import { Entity, Entity_Info_Basic } from "../entities/entity";
 import { getIsMobile } from "../../shared/utils";
 import { Chat } from "../chat";
+import { EntityWatcher } from "../../server/server/entityWatcher";
 
 export class Gameface extends BaseObject
 {
@@ -28,6 +29,7 @@ export class Gameface extends BaseObject
     public get game() { return this._game!; }
     public get input() { return this._input; }
     public get network() { return this._network; }
+    public get entityWatcher() { return this._entityWatcher; }
 
     public player?: Ped;
     public playerId: string = "";
@@ -38,12 +40,20 @@ export class Gameface extends BaseObject
     private _game = new Game();
     private _input = new Input();
     private _network = new Network();
+    private _entityWatcher = new EntityWatcher(this._game);
     
     constructor()
     {
         super();
 
         Gameface.Instance = this;
+
+        this.entityWatcher.onEntityInfoChange = (entity: Entity, info: Entity_Info_Basic) =>
+        {
+            console.log("LOCAL PLAYER", info);
+
+            this.network.sendPlayerData(info);
+        }
     }
 
     public async start()
@@ -57,7 +67,6 @@ export class Gameface extends BaseObject
         const domContainer = document.getElementById("game")?.children[0] as any;
         domContainer.style["z-index"] = 1;
         
-
         (window as any).Ammo = Ammo;
         (window as any).THREE = THREE;
 
@@ -131,8 +140,9 @@ export class Gameface extends BaseObject
             
         });
 
-        const startMultiplayer: boolean = true;
+        const startMultiplayer: boolean = false;
         
+        Chat.Instance.addColorMessage("Server", "gold", `Modo: ${startMultiplayer ? "Multiplayer" : "Singleplayer"}`);
         Chat.Instance.addColorMessage("Server", "gold", `Conectando-se ao servidor...`);
 
         this.network.connect(async () => {
@@ -160,6 +170,8 @@ export class Gameface extends BaseObject
                 const ped = this.game.entityFactory.spawnPed(0, 5, 0);
                 this.player = ped;
                 // this.player.equipWeapon(0);
+
+                const vehicle = this.game.entityFactory.spawnVehicle(0, 0, 0);
 
                 return;
             }
@@ -207,6 +219,8 @@ export class Gameface extends BaseObject
         this.game.update(delta);
         this.network.update(delta);
         gameScene?.clientEntityManager.update(delta);
+
+        this.entityWatcher.check();
     }
 
     public postUpdate(delta: number)

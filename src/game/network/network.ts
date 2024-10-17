@@ -1,8 +1,8 @@
 import { io, Socket } from "socket.io-client";
-import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_Entities, IPacketData_JoinedServer, IPacketData_WeaponShot, PACKET_TYPE } from "./packet";
+import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_Entities, IPacketData_Entity_Info_Basic, IPacketData_JoinedServer, IPacketData_WeaponShot, PACKET_TYPE } from "./packet";
 import { SyncHelper } from "./syncHelper";
 import { Gameface } from "../gameface/gameface";
-import { EntityType } from "../entities/entity";
+import { Entity_Info_Basic, EntityType } from "../entities/entity";
 import { BaseObject } from "../../shared/baseObject";
 import { gameSettings } from "../../shared/constants/gameSettings";
 import { Ped } from "../entities/ped";
@@ -136,34 +136,23 @@ export class Network extends BaseObject
         if(now - this._lastSentData > gameSettings.clientSendDataInterval)
         {
             this._lastSentData = now;
-            this.sendPlayerData();
+            //this.sendPlayerData();
         }
     }
 
-    public sendPlayerData()
+    public sendPlayerData(info: Entity_Info_Basic)
     {
-        const player = Gameface.Instance.player;
+        //const player = Gameface.Instance.player;
 
-        if(!player) return;
+        this.send<IPacketData_Entity_Info_Basic>(PACKET_TYPE.PACKET_CLIENT_INFO, info);
 
-        // const vehicle = player.onVehicle;
+        //if(!player) return;
 
-        // if(vehicle)
-        // {
-        //     const json = vehicle.toJSON();
-        //     json.type = EntityType.VEHICLE;
+        // const json = player.toJSON();
 
-        //     this.send<IPacketData_ClientData>(PACKET_TYPE.PACKET_CLIENT_DATA, {
-        //         player: json
-        //     });
-        //     return;
-        // } 
-
-        const json = player.toJSON();
-
-        this.send<IPacketData_ClientData>(PACKET_TYPE.PACKET_CLIENT_DATA, {
-            entity: json,
-            type: EntityType.PED
-        });
+        // this.send<IPacketData_ClientData>(PACKET_TYPE.PACKET_CLIENT_DATA, {
+        //     entity: json,
+        //     type: EntityType.PED
+        // });
     }
 }

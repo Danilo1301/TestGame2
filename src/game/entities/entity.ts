@@ -5,6 +5,7 @@ import { FormatVector3 } from '../../shared/ammo/vector';
 import { EntityCollision } from "./entityCollision";
 import { Quaternion_Clone, Quaternion_Forward, Quaternion_Right } from '../../shared/ammo/quaterion';
 import { EntitySync } from './entitySync';
+import { XYZ, XYZW } from '../../shared/ammo/ammoUtils';
 
 export interface EntityData_JSON {
 }
@@ -31,6 +32,20 @@ export interface Entity_JSON {
     input: number[]
     data?: EntityData_JSON
     fullData?: EntityFullData_JSON
+}
+
+export interface Entity_Info_Basic {
+    id: string
+    type: EntityType
+    position?: XYZ
+    rotation?: XYZW
+    velocity?: XYZ
+    input?: XYZ
+    health?: number
+
+    aiming?: boolean
+    lookDir?: XYZ
+    weapon?: number
 }
 
 export class Entity extends BaseObject

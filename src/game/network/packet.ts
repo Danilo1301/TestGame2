@@ -1,5 +1,5 @@
 import { GLTFData_JSON } from "../../shared/gltf/gltfData"
-import { Entity_JSON, EntityType } from "../entities/entity"
+import { Entity_Info_Basic, Entity_JSON, EntityType } from "../entities/entity"
 
 export enum PACKET_TYPE {
     PACKET_REQUEST_MODELS,
@@ -10,7 +10,11 @@ export enum PACKET_TYPE {
     PACKET_CLIENT_DATA,
     PACKET_ENTER_LEAVE_VEHICLE,
     PACKET_WEAPON_SHOT,
-    PACKET_HEALTH
+    PACKET_HEALTH,
+
+    // entity sync
+    PACKET_ENTITY_INFO_BASIC,
+    PACKET_CLIENT_INFO
 }
 
 export interface IPacketData {
@@ -53,3 +57,6 @@ export interface IPacketData_Health {
     entityId: string
     health: number
 }
+
+
+export interface IPacketData_Entity_Info_Basic extends Entity_Info_Basic {}
