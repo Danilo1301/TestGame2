@@ -130,6 +130,13 @@ export class GameScene extends Phaser.Scene
             player.aiming = mouse2Down;
         }
 
+        //vehicle
+
+        if(Input.getKeyDown("F"))
+        {
+            this.tryEnterOrLeaveVehicle();
+        }
+
         //camera
 
         if(Input.getKeyDown("V"))
@@ -182,7 +189,7 @@ export class GameScene extends Phaser.Scene
 
             Ammo.destroy(camPosition);
 
-            /*
+            
             const vehicle = player.onVehicle;
             if(vehicle)
             {
@@ -190,10 +197,44 @@ export class GameScene extends Phaser.Scene
                 this.camera.position.setX(vehPosition.x());
                 this.camera.position.setY(vehPosition.y());
                 this.camera.position.setZ(vehPosition.z());
+                
+                this.camera.distance = 6;
             }
-            */
         }
 
         this.camera.update();
+    }
+
+    public tryEnterOrLeaveVehicle()
+    {
+        const player = Gameface.Instance.player;
+
+        if(!player) return;
+
+        if(!player.onVehicle)
+        {
+            const vehicle = player.getClosestVehicle();
+        
+            if(vehicle)
+            {
+                console.log("enter vehicle");
+
+                player.enterVehicle(vehicle);
+
+                // Gameface.Instance.network.send<IPacketData_EnterLeaveVehicle>(PACKET_TYPE.PACKET_ENTER_LEAVE_VEHICLE, {
+                //     vehicleId: vehicle.id
+                // });
+            } else {
+                console.log("no vehicle found")
+            }
+        } else {
+            console.log("leave vehicle");
+
+            player.leaveVehicle();
+            
+            // Gameface.Instance.network.send<IPacketData_EnterLeaveVehicle>(PACKET_TYPE.PACKET_ENTER_LEAVE_VEHICLE, {
+            //     vehicleId: player.onVehicle!.id
+            // });
+        }
     }
 }

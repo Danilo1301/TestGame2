@@ -128,69 +128,6 @@ export class Client extends BaseObject
             return;
         }
 
-        if(packet.type == PACKET_TYPE.PACKET_CLIENT_DATA)
-        {
-            const player = this._player;
-
-            const data = packet.data as IPacketData_ClientData;
-            const entityType = data.type;
-
-            const entityData = data.entity;
-
-            const position = entityData.position;
-            const rotation = entityData.rotation;
-            const input = entityData.input;
-
-            if(player)
-            {
-                if(entityType == EntityType.PED)
-                {
-                    player.setPosition(position[0], position[1], position[2]);
-                    player.setRotation(rotation[0], rotation[1], rotation[2], rotation[3]);
-                    
-                    player.inputX = input[0];
-                    player.inputY = input[1];
-                    player.inputZ = input[2];
-
-                    const pedData = entityData.data as PedData_JSON;
-                    
-                    player.lookDir.setValue(pedData.lookDir[0], pedData.lookDir[1], pedData.lookDir[2], pedData.lookDir[3]);
-                    player.aiming = pedData.aiming;
-
-                    let currentWeaponId = -1;
-                    if(player.weapon) currentWeaponId = player.weapon.weaponData.id;
-
-                    if(currentWeaponId != pedData.weapon)
-                    {
-                        player.equipWeapon(pedData.weapon);
-                    }
-                }
-                
-                // const vehicle = player.onVehicle;
-
-                // if(vehicle)
-                // {
-                //     if(data.player.type == EntityType.VEHICLE)
-                //     {
-                //         //const vehicleData = data.player.data as Entity_JSON;
-    
-                //         console.log(data.player);
-
-                //         const position = data.player.position;
-                //         const rotation = data.player.rotation;
-                //         const input = data.player.input;
-        
-                //         player.inputX = input[0];
-                //         player.inputY = input[1];
-                //         player.inputZ = input[2];
-                        
-                //         vehicle.setVehiclePosition(position[0], position[1], position[2]);
-                //         vehicle.setVehicleRotation(rotation[0], rotation[1], rotation[2], rotation[3]);
-                //     }
-                // }
-            }
-        }
-
         if(packet.type == PACKET_TYPE.PACKET_WEAPON_SHOT)
         {
             console.log(packet);

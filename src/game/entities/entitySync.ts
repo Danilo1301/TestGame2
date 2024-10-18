@@ -17,9 +17,6 @@ export class EntitySync {
     public targetVelocity = new Ammo.btVector3(0, 0, 0);
     public targetRotation = new Ammo.btQuaternion(0, 0, 0, 1);
 
-    public onSetGameObjectPosition?: (x: number, y: number, z: number) => boolean;
-    public onSetGameObjectRotation?: (x: number, y: number, z: number, w: number) => boolean;
-
     constructor(entity: Entity)
     {
         this.entity = entity;
@@ -85,16 +82,7 @@ export class EntitySync {
     }
 
     private setEntityPosition(x: number, y: number, z: number)
-    {
-        if(this.onSetGameObjectPosition)
-        {
-            const result = this.onSetGameObjectPosition(x, y, z);
-            if(result == false)
-            {
-                return;
-            }
-        }
-        
+    {   
         this.entity.setPosition(x, y, z);
     }
 
@@ -114,12 +102,15 @@ export class EntitySync {
 
     private syncRotation(delta: number)
     {
-        const rotation_t = ammoQuaternionToThree(this.entity.getRotation());
-        const targetRotation_t = ammoQuaternionToThree(this.targetRotation);
 
-        let lerpAmount = 0.005 * delta;
+        //const rotation_t = ammoQuaternionToThree(this.entity.getRotation());
 
-        rotation_t.slerp(targetRotation_t, lerpAmount);
+        const targetRotation = this.targetRotation;
+        //const targetRotation_t = ammoQuaternionToThree(this.targetRotation);
+
+        // let lerpAmount = 0.005 * delta;
+
+        // rotation_t.slerp(targetRotation_t, lerpAmount);
 
         let update = true;
 
@@ -129,20 +120,11 @@ export class EntitySync {
         }
         
         if(update)
-            this.setEntityRotation(rotation_t.x, rotation_t.y, rotation_t.z, rotation_t.w);
+            this.setEntityRotation(targetRotation.x(), targetRotation.y(), targetRotation.z(), targetRotation.w());
     }
 
     private setEntityRotation(x: number, y: number, z: number, w: number)
     {
-        if(this.onSetGameObjectRotation)
-        {
-            const result = this.onSetGameObjectRotation(x, y, z, w);
-            if(result == false)
-            {
-                return;
-            }
-        }
-
         this.entity.setRotation(x, y, z, w);
     }
 

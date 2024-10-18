@@ -84,7 +84,7 @@ export class EntityWatcher
 
             if(type == EntityType.UNDEFINED)
             {
-                console.log(`Entity ${entity.displayName} can not be synced`);
+                //console.log(`Entity ${entity.displayName} can not be synced`);
                 return;
             }
 
@@ -132,6 +132,13 @@ export class EntityWatcher
         };
 
         this.setEntityAsChangedAll(entity);
+    }
+
+    public removeEntity(entity: Entity)
+    {
+        //TODO: delete data
+        
+        this.entities.delete(entity);
     }
 
     public getEntityType(entity: Entity)

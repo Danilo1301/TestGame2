@@ -99,6 +99,13 @@ export class Server extends BaseObject
                     this.entityWatcher.addEntity(entity);
                 }
             }
+            for(const [entity, data] of this.entityWatcher.entities)
+            {
+                if(!this.game.entityFactory.entities.has(entity.id))
+                {
+                    this.entityWatcher.removeEntity(entity);
+                }
+            }
 
             this.entityWatcher.check();
 

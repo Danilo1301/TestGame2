@@ -9,6 +9,8 @@ import { Entity, EntityType } from "../entities/entity";
 import { Ped } from "../entities/ped";
 import { Box } from "../entities/box";
 import { Vector3_DistanceTo } from "../../shared/ammo/vector";
+import { Vehicle } from "../entities/vehicle";
+import { Bike } from "../entities/bike";
 
 export class Game extends BaseObject
 {
@@ -39,6 +41,8 @@ export class Game extends BaseObject
     {
         this._entitiesInformation.set(Ped, EntityType.PED);
         this._entitiesInformation.set(Box, EntityType.BOX);
+        this._entitiesInformation.set(Bike, EntityType.BIKE);
+        this._entitiesInformation.set(Vehicle, EntityType.VEHICLE);
 
         this.weapons.init();
         this.serverScene.init();
@@ -71,10 +75,12 @@ export class Game extends BaseObject
         for(const entity of this.entityFactory.entities.values())
         {
             const position = entity.getPosition();
-            const zero = new Ammo.btVector3(0, 2, 0);
+            const zero = new Ammo.btVector3(0, 2, -20);
 
-            if(Vector3_DistanceTo(position, zero) > 30)
+            if(Vector3_DistanceTo(position, zero) > this.serverScene.groundSize)
             {
+                console.log(`${entity.displayName} is too far from spawn`);
+
                 entity.setPosition(zero.x(), zero.y(), zero.z());
             }
 

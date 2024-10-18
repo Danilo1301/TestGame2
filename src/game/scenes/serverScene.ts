@@ -16,6 +16,8 @@ export class ServerScene
 
     public testRigidBody?: Ammo.btRigidBody;
 
+    public groundSize: number = 200;
+
     constructor(game: Game)
     {
         this.game = game;
@@ -34,7 +36,7 @@ export class ServerScene
 
     public create()
     {
-        this.game.entityFactory.spawnGround(0, -3, 0, 50, 50);
+        this.game.entityFactory.spawnGround(0, -3, 0, this.groundSize, this.groundSize);
 
         /*
         const ground = this.physics.add.box({
@@ -50,17 +52,22 @@ export class ServerScene
 
     public createLocalScene()
     {
-        
+        const car = this.game.entityFactory.spawnCar(0, 0, 0);
+
+        const bike = this.game.entityFactory.spawnBike(10, 0, 0);
     }
 
     public createServerScene()
     {
-  
-        const box = this.game.entityFactory.spawnBox(0, 5, 0);
+        // const car = this.game.entityFactory.spawnCar(0, 0, 0);
 
-        const npc2 = this.game.entityFactory.spawnPed(0, 5, 0);
+        // const bike = this.game.entityFactory.spawnBike(10, 0, 0);
 
-        const npc = this.game.entityFactory.spawnPed(0, 5, 0);
+        const box = this.game.entityFactory.spawnBox(-10, 5, 0);
+
+        const npc2 = this.game.entityFactory.spawnPed(-12, 5, 0);
+
+        const npc = this.game.entityFactory.spawnPed(-15, 5, 0);
         npc.equipWeapon(0);
         npc.aiming = true;
         

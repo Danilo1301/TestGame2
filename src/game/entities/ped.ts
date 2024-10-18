@@ -1,9 +1,10 @@
 import { Quaternion_BetweenTwoVectors, Quaternion_Clone, Quaternion_Forward, Quaternion_Right, Quaternion_ToEuler, quaternionFromVectors } from '../../shared/ammo/quaterion';
-import { FormatVector3, getTurnDirection, rotateVectorAroundY, Vector3_Clone, Vector3_CrossVectors } from '../../shared/ammo/vector';
+import { FormatVector3, getTurnDirection, rotateVectorAroundY, Vector3_Clone, Vector3_CrossVectors, Vector3_DistanceTo } from '../../shared/ammo/vector';
 import { ammoVector3ToThree, threeVector3ToAmmo } from '../../shared/utils';
 import { Weapon } from '../weapons/weapon';
 import { Entity, EntityData_JSON } from './entity';
 import THREE from 'three';
+import { Vehicle } from './vehicle';
 
 export interface PedData_JSON extends EntityData_JSON {
     lookDir: number[]
@@ -26,6 +27,8 @@ export class Ped extends Entity
     public controlledByPlayer: boolean = false;
 
     public weapon?: Weapon;
+
+    public onVehicle?: Vehicle;
 
     public initCollision()
     {
@@ -65,8 +68,18 @@ export class Ped extends Entity
             )
         }
 
-        this.updateInputRotation(delta);
-        this.updateMovement(delta);
+        const vehicle = this.onVehicle;
+
+        if(vehicle)
+        {
+            vehicle.inputX = this.inputX;
+            vehicle.inputY = this.inputY;
+            vehicle.inputZ = this.inputZ;
+        } else {
+            this.updateInputRotation(delta);
+            this.updateMovement(delta);
+        }
+
         this.updateWeapon();
     }
 
@@ -306,6 +319,54 @@ export class Ped extends Entity
         return dir;
     }
 
+    public enterVehicle(vehicle: Vehicle)
+    {
+        if(vehicle.pedDriving) return;
+
+        this.onVehicle = vehicle;
+        this.onVehicle.pedDriving = this;
+    }
+
+    public leaveVehicle()
+    {
+        if(!this.onVehicle) return;
+
+        const vehiclePos = this.onVehicle.getPosition();
+
+        this.onVehicle.inputX = 0;
+        this.onVehicle.inputY = 0;
+        this.onVehicle.inputZ = 0;
+
+        this.onVehicle.pedDriving = undefined;
+        this.onVehicle = undefined;
+
+        this.setPosition(vehiclePos.x(), vehiclePos.y() + 3, vehiclePos.z());
+    }
+
+    public getClosestVehicle()
+    {
+        let closestVehicle: Vehicle | undefined;
+        let closestDistance = Infinity;
+
+        const pedPosition = this.getPosition();
+
+        for(const gameObject of this.game.entityFactory.entities.values())
+        {
+            if(gameObject instanceof Vehicle)
+            {
+                const distance = Vector3_DistanceTo(gameObject.getPosition(), pedPosition);
+
+                if(distance < closestDistance)
+                {
+                    closestDistance = distance;
+                    closestVehicle = gameObject;
+                }
+            }
+        }
+
+        return closestVehicle;
+    }
+    
     public toJSON()
     {
         const data: PedData_JSON = {

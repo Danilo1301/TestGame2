@@ -19,6 +19,7 @@ import { Entity, Entity_Info_Basic } from "../entities/entity";
 import { getIsMobile } from "../../shared/utils";
 import { Chat } from "../chat";
 import { EntityWatcher } from "../../server/server/entityWatcher";
+import { SyncHelper } from "../network/syncHelper";
 
 export class Gameface extends BaseObject
 {
@@ -50,8 +51,6 @@ export class Gameface extends BaseObject
 
         this.entityWatcher.onEntityInfoChange = (entity: Entity, info: Entity_Info_Basic) =>
         {
-            console.log("LOCAL PLAYER", info);
-
             this.network.sendPlayerData(info);
         }
     }
@@ -85,6 +84,7 @@ export class Gameface extends BaseObject
 
         loadScene.addImage("widget_aim", "widgets/widget_aim.png");
         loadScene.addImage("widget_shoot", "widgets/widget_shoot.png");
+        loadScene.addImage("widget_car", "widgets/widget_car.png");
 
         loadScene.addAudio("shot_m4", "weapons/m4/shot.wav");
 
@@ -140,7 +140,7 @@ export class Gameface extends BaseObject
             
         });
 
-        const startMultiplayer: boolean = false;
+        const startMultiplayer: boolean = true;
         
         Chat.Instance.addColorMessage("Server", "gold", `Modo: ${startMultiplayer ? "Multiplayer" : "Singleplayer"}`);
         Chat.Instance.addColorMessage("Server", "gold", `Conectando-se ao servidor...`);
@@ -171,7 +171,7 @@ export class Gameface extends BaseObject
                 this.player = ped;
                 // this.player.equipWeapon(0);
 
-                const vehicle = this.game.entityFactory.spawnVehicle(0, 0, 0);
+                
 
                 return;
             }
@@ -218,6 +218,7 @@ export class Gameface extends BaseObject
         gameScene?.updateScene(delta);
         this.game.update(delta);
         this.network.update(delta);
+        SyncHelper.update();
         gameScene?.clientEntityManager.update(delta);
 
         this.entityWatcher.check();

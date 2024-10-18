@@ -125,6 +125,10 @@ export class CollisionShape {
 export interface MakeBodyOptions {
     mass?: number
     position?: THREE.Vector3;
+    localInertia?: THREE.Vector3;
+
+    group?: number
+    mask?: number
 }
 
 export class EntityCollision
@@ -289,6 +293,9 @@ export class EntityCollision
 
         // Calculate the inertia for the compound shape
         const localInertia = new Ammo.btVector3(0, 0, 0);
+
+        if(options.localInertia) localInertia.setValue(options.localInertia.x, options.localInertia.y, options.localInertia.z);
+
         compoundShape.calculateLocalInertia(mass, localInertia);
     
         // Create the rigid body using the compound shape

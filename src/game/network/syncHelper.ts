@@ -4,10 +4,34 @@ import { BaseObject } from "../../shared/baseObject";
 import { Entity, EntityType } from "../entities/entity";
 import { eSyncType } from "../entities/entitySync";
 import { Ped, PedData_JSON } from "../entities/ped";
+import { Vehicle } from "../entities/vehicle";
 import { Gameface } from "../gameface/gameface";
 import { IPacket, IPacketData_Entities, IPacketData_Entity_Info_Basic, IPacketData_Health, IPacketData_WeaponShot, PACKET_TYPE } from "./packet";
 
-export class SyncHelper extends BaseObject {
+export class SyncHelper
+{
+    public static drivingVehicle?: Vehicle;
+
+    public static update()
+    {
+        const player = Gameface.Instance.player;
+
+        if(!player) return;
+
+        const vehicle = player.onVehicle;
+
+        if(this.drivingVehicle != vehicle)
+        {
+            if(vehicle)
+            {
+                //vehicle.sync.syncType = eSyncType.SYNC_NONE;
+            } else {
+                //this.drivingVehicle!.sync.syncType = eSyncType.SYNC_DEFAULT
+            }
+
+            this.drivingVehicle = vehicle;
+        }
+    }
 
     public static onReceivePacket(packet: IPacket)
     {
@@ -63,7 +87,7 @@ export class SyncHelper extends BaseObject {
     {
         const game = Gameface.Instance.game;
 
-        console.log(data);
+        //console.log(data);
         
         let entity: Entity | undefined = undefined;
         let justCreated = false;
@@ -79,22 +103,24 @@ export class SyncHelper extends BaseObject {
                     entity = game.entityFactory.spawnBox(0, 0, 0);
                     break;
                 case EntityType.VEHICLE:
-                    //entity = game.entityFactory.spawnVehicle(0, 0, 0);
+                    entity = game.entityFactory.spawnCar(0, 0, 0);
                     break;
                 case EntityType.BIKE:
-                    //entity = game.entityFactory.spawnBike(0, 0, 0);
+                    entity = game.entityFactory.spawnBike(0, 0, 0);
                     break;
                 default:
                     break;
             }
 
             if(!entity)
-                {
+            {
                 throw "SyncHelper: entity type " + data.type + " was not created";
             }
 
-            game.entityFactory.changeEntityId(entity, data.id);
+            entity.sync.syncType = eSyncType.SYNC_DEFAULT;
 
+            game.entityFactory.changeEntityId(entity, data.id);
+            
             justCreated = true;
         }
 
@@ -107,18 +133,15 @@ export class SyncHelper extends BaseObject {
 
         if(entity.id == Gameface.Instance.playerId)
         {
-            if(!Gameface.Instance.player) {
+            if(!Gameface.Instance.player)
+                {
                 Gameface.Instance.player = entity as Ped;
-                //Gameface.Instance.player.equipWeapon(0);
+                Gameface.Instance.player.equipWeapon(0);
+
+                entity.sync.syncType = eSyncType.SYNC_RECONCILIATE;
 
                 Gameface.Instance.entityWatcher.addEntity(entity);
             }
-            entity.sync.syncType = eSyncType.SYNC_RECONCILIATE;
-        }
-
-        if(entity.id != Gameface.Instance.playerId)
-        {
-            entity.sync.syncType = eSyncType.SYNC_DEFAULT;
         }
 
         const entityPosition = entity.getPosition();

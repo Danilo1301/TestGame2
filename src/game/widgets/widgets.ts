@@ -1,4 +1,5 @@
 import { Gameface } from "../gameface/gameface";
+import { GameScene } from "../scenes/gameScene";
 import { MainScene } from "../scenes/mainScene";
 import { Widget } from "./widget";
 
@@ -28,6 +29,13 @@ export class Widgets
             Gameface.Instance.player.mouse1 = false;
         };
         
+        const enterVehicle = this.createWidget(1080, 550, "widget_car");
+        enterVehicle.onClick = () => {
+
+            if(!Gameface.Instance.player) return;
+
+            GameScene.Instance.tryEnterOrLeaveVehicle();
+        };
     }
 
     public static update()

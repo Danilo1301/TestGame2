@@ -45,6 +45,9 @@ export class GLTFData {
 
                         const threeMesh = c as THREE.Mesh;
                         shape.triangles = convertMeshToTriangles(threeMesh);
+                    } else if(collisionName.startsWith("sphere"))
+                    {   
+                        shape.type = CollisionShapeType.COLLISION_TYPE_SPHERE;
                     } else {
                         shape.type = CollisionShapeType.COLLISION_TYPE_BOX;
                       

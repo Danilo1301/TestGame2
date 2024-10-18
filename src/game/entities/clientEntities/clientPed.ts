@@ -241,7 +241,7 @@ export class ClientPed extends ClientEntity
             this._lookDirLine = ThreeScene.Instance.createLine(start, end, 0xffff00);
         }
         this._lookDirLine.setPosition(start, end);
-        this._lookDirLine.line.position.set(pedPosition.x(), pedPosition.y() + this.ped.cameraAimHeight.y(), pedPosition.z());
+        this._lookDirLine.line.position.set(position.x(), position.y() + 1, position.z());
 
         Ammo.destroy(forward);
     }

@@ -3,7 +3,7 @@ import { BaseObject } from "../../shared/baseObject";
 import { Game } from "../game/game";
 import { FormatVector3 } from '../../shared/ammo/vector';
 import { EntityCollision } from "./entityCollision";
-import { Quaternion_Clone, Quaternion_Forward, Quaternion_Right } from '../../shared/ammo/quaterion';
+import { Quaternion_Clone, Quaternion_Forward, Quaternion_Right, Quaternion_Up } from '../../shared/ammo/quaterion';
 import { EntitySync } from './entitySync';
 import { XYZ, XYZW } from '../../shared/ammo/ammoUtils';
 
@@ -69,6 +69,9 @@ export class Entity extends BaseObject
     
     private _position = new Ammo.btVector3(0, 0, 0);
     private _rotation = new Ammo.btQuaternion(0, 0, 0, 1);
+
+    public customSetPosition?: Function;
+    public customSetRotation?: Function;
     
     public get forward() {
         const rotation = Quaternion_Clone(this.getRotation());
@@ -122,6 +125,12 @@ export class Entity extends BaseObject
 
     public setPosition(x: number, y: number, z: number)
     {
+        if(this.customSetPosition)
+        {
+            const result = this.customSetPosition(x, y, z);
+            if(!result) return;
+        }
+
         if(!this.collision.body)
         {
             this._position.setValue(x, y, z);
@@ -158,6 +167,12 @@ export class Entity extends BaseObject
 
     public setRotation(x: number, y: number, z: number, w: number)
     {
+        if(this.customSetRotation)
+        {
+            const result = this.customSetRotation(x, y, z, w);
+            if(!result) return;
+        }
+
         if(!this.collision.body)
         {
             this._rotation.setValue(x, y, z, w);
@@ -190,10 +205,54 @@ export class Entity extends BaseObject
         if(this.destroyed) return;
 
         this.destroyed = true;
-
-
     }
 
+    public transformFromObjectSpace(body: Ammo.btRigidBody, offset: Ammo.btVector3)
+    {
+        const transform = body.getWorldTransform();
+        const position = transform.getOrigin();
+        const rotation = transform.getRotation();
+
+        const result = {x: 0, y: 0, z: 0}
+
+        result.x = position.x();
+        result.y = position.y();
+        result.z = position.z();
+
+        const forward = Quaternion_Forward(rotation);
+        const right = Quaternion_Right(rotation);
+        const up = Quaternion_Up(rotation);
+
+        forward.normalize();
+        right.normalize();
+        up.normalize();
+
+        const translate = {x: 0, y: 0, z: 0};
+        translate.x = forward.x() * offset.z();
+        translate.y = forward.y() * offset.z();
+        translate.z = forward.z() * offset.z();
+
+        translate.x += right.x() * offset.x();
+        translate.y += right.y() * offset.x();
+        translate.z += right.z() * offset.x();
+
+        translate.x += up.x() * offset.y();
+        translate.y += up.y() * offset.y();
+        translate.z += up.z() * offset.y();
+
+        result.x += translate.x;
+        result.y += translate.y;
+        result.z += translate.z;
+
+        //result.op_add(offset);
+
+        Ammo.destroy(forward);
+        Ammo.destroy(right);
+        Ammo.destroy(up);
+
+        return new Ammo.btVector3(result.x, result.y, result.z);
+    }
+    
     public toJSON()
     {
         const body = this.collision.body!;
