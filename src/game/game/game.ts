@@ -11,6 +11,7 @@ import { Box } from "../entities/box";
 import { Vector3_DistanceTo } from "../../shared/ammo/vector";
 import { Vehicle } from "../entities/vehicle";
 import { Bike } from "../entities/bike";
+import { Ball } from "../entities/ball";
 
 export class Game extends BaseObject
 {
@@ -41,6 +42,7 @@ export class Game extends BaseObject
     {
         this._entitiesInformation.set(Ped, EntityType.PED);
         this._entitiesInformation.set(Box, EntityType.BOX);
+        this._entitiesInformation.set(Ball, EntityType.BALL);
         this._entitiesInformation.set(Bike, EntityType.BIKE);
         this._entitiesInformation.set(Vehicle, EntityType.VEHICLE);
 

@@ -20,6 +20,7 @@ export enum EntityType {
     UNDEFINED,
     PED,
     BOX,
+    BALL,
     VEHICLE,
     BIKE
 }

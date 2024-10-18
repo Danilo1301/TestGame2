@@ -54,16 +54,19 @@ export class ServerScene
     {
         const car = this.game.entityFactory.spawnCar(0, 0, 0);
 
-        const bike = this.game.entityFactory.spawnBike(10, 0, 0);
+        //const bike = this.game.entityFactory.spawnBike(10, 0, 0);
     }
 
     public createServerScene()
     {
-        // const car = this.game.entityFactory.spawnCar(0, 0, 0);
+        const car = this.game.entityFactory.spawnCar(0, 0, 0);
 
-        // const bike = this.game.entityFactory.spawnBike(10, 0, 0);
+        const bike = this.game.entityFactory.spawnBike(5, 0, 0);
 
-        const box = this.game.entityFactory.spawnBox(-10, 5, 0);
+        const ball = this.game.entityFactory.spawnBall(5, 2, 0);
+        setInterval(() => {
+            ball.body.setAngularVelocity(new Ammo.btVector3(0, 0, 0))
+        }, 1000);
 
         const npc2 = this.game.entityFactory.spawnPed(-12, 5, 0);
 
@@ -72,7 +75,7 @@ export class ServerScene
         npc.aiming = true;
         
         setInterval(() => {
-            npc.weapon!.shoot();
+            //npc.weapon!.shoot();
         }, 1500);
 
         let target: Ped | undefined;

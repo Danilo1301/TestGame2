@@ -140,7 +140,7 @@ export class Gameface extends BaseObject
             
         });
 
-        const startMultiplayer: boolean = true;
+        const startMultiplayer: boolean = false;
         
         Chat.Instance.addColorMessage("Server", "gold", `Modo: ${startMultiplayer ? "Multiplayer" : "Singleplayer"}`);
         Chat.Instance.addColorMessage("Server", "gold", `Conectando-se ao servidor...`);
@@ -166,12 +166,9 @@ export class Gameface extends BaseObject
 
             if(!startMultiplayer)
             {
-
-                const ped = this.game.entityFactory.spawnPed(0, 5, 0);
+                const ped = this.game.entityFactory.spawnPed(-4, 0, 0);
                 this.player = ped;
                 // this.player.equipWeapon(0);
-
-                
 
                 return;
             }

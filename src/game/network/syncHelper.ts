@@ -102,6 +102,9 @@ export class SyncHelper
                 case EntityType.BOX:
                     entity = game.entityFactory.spawnBox(0, 0, 0);
                     break;
+                case EntityType.BALL:
+                    entity = game.entityFactory.spawnBall(0, 0, 0);
+                    break;
                 case EntityType.VEHICLE:
                     entity = game.entityFactory.spawnCar(0, 0, 0);
                     break;
@@ -144,15 +147,24 @@ export class SyncHelper
             }
         }
 
-        const entityPosition = entity.getPosition();
-        const position = XYZ_SetValue(data.position, {x: entityPosition.x(), y: entityPosition.y(), z: entityPosition.z()});
+        const targetPosition = entity.sync.targetPosition;
+        const position = XYZ_SetValue(data.position, {x: targetPosition.x(), y: targetPosition.y(), z: targetPosition.z()});
         
         entity.sync.setPosition(position.x!, position.y!, position.z!);
 
-        const entityRotation = entity.getRotation();
-        const rotation = XYZW_SetValue(data.rotation, {x: entityRotation.x(), y: entityRotation.y(), z: entityRotation.z(), w: entityRotation.w()});
+        const targetVelocity = entity.sync.targetVelocity;
+        const velocity = XYZ_SetValue(data.velocity, {x: targetVelocity.x(), y: targetVelocity.y(), z: targetVelocity.z()});
+        
+        entity.sync.setVelocity(velocity.x!, velocity.y!, velocity.z!);
+
+        // rotation
+
+        const targetRotation = entity.sync.targetRotation;
+        const rotation = XYZW_SetValue(data.rotation, {x: targetRotation.x(), y: targetRotation.y(), z: targetRotation.z(), w: targetRotation.w()});
         
         entity.sync.setRotation(rotation.x!, rotation.y!, rotation.z!, rotation.w!);
+        
+        //
 
         if(justCreated) entity.setPosition(entity.sync.targetPosition.x(), entity.sync.targetPosition.y(), entity.sync.targetPosition.z());
 

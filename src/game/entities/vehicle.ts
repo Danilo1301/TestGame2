@@ -4,9 +4,10 @@ import { Entity } from './entity';
 import { Input } from "../input";
 import { Ped } from './ped';
 import { Wheel } from './wheel';
-import { FormatVector3, Vector3_Subtract } from '../../shared/ammo/vector';
+import { FormatVector3, Vector3_Clone, Vector3_Subtract } from '../../shared/ammo/vector';
 import { FormatQuaternion, Quaternion_Clone, Quaternion_ToEuler } from '../../shared/ammo/quaterion';
 import { Axis } from './axis';
+import { Rotor } from './rotor';
 
 export class Vehicle extends Entity
 {
@@ -21,6 +22,7 @@ export class Vehicle extends Entity
 
     public wheels: Wheel[] = [];
     public axis: Axis[] = [];
+    public rotors: Rotor[] = [];
 
     constructor()
     {
@@ -63,13 +65,16 @@ export class Vehicle extends Entity
                 setTransformedPosition(axis, axis.offsetFromChassis);
             }
 
+            for(const rotor of this.rotors)
+            {
+                setTransformedPosition(rotor, rotor.offsetFromChassis);
+            }
+
             return false;
         }
 
         this.customSetRotation = (x: number, y: number, z: number, w: number) =>
         {
-            return false;
-
             const body = this.collision.body!;
             const prevRotation = this.getRotation();
             const prevEuler = Quaternion_ToEuler(prevRotation);
@@ -146,6 +151,16 @@ export class Vehicle extends Entity
         //this.inputX = (Input.getKey("A") ? -1 : 0) + (Input.getKey("D") ? 1 : 0);
         //this.inputZ = (Input.getKey("W") ? 1 : 0) + (Input.getKey("S") ? -1 : 0);
 
+        for(const wheel of this.wheels)
+        {
+            //console.log(FormatVector3(wheel.body.getAngularVelocity()))
+
+
+            //wheel.body.setLinearVelocity(newvelocity)
+
+            //Ammo.destroy(newvelocity);
+        }
+
         this.darGrau = Input.getKey("SHIFT") == true;
 
         // front wheels
@@ -210,14 +225,14 @@ export class Vehicle extends Entity
 
             wheel.offsetFromChassis.setValue(x, y, z);
             
-            this.wheels.push(wheel);
+            //this.wheels.push(wheel);
 
             wheel.displayName += `${canSteer ? "F" : "B"}`;
             //wheel.offsetFromChassis.setValue(x, wheelY, z);
 
-            //this.wheels.push(wheel);
+            this.wheels.push(wheel);
 
-            const pivotWheel = new Ammo.btVector3(0, 0, 0);  // Wheels' local pivot
+            const pivot = new Ammo.btVector3(0, 0, 0);  // Wheels' local pivot
 
             if(canSteer)
             {
@@ -226,13 +241,15 @@ export class Vehicle extends Entity
 
                 // Step 2: Create a btGeneric6DofSpringConstraint for the front wheel
                 const frameInA = new Ammo.btTransform();  // Frame in chassis coordinate
-                const frameInB = new Ammo.btTransform();  // Frame in wheel coordinate
                 frameInA.setIdentity();
+
+                const frameInB = new Ammo.btTransform();  // Frame in wheel coordinate
                 frameInB.setIdentity();
+                frameInB.setRotation(wheel.getRotation());
 
                 // Set the pivot point and the rotation axis in local frame
                 frameInA.setOrigin(pivotChassis1);  // Front wheel offset on chassis
-                frameInB.setOrigin(pivotWheel);   
+                frameInB.setOrigin(pivot);   
                 
                 // Create hinge constraint for front wheel
                 const frontWheelConstraint = new Ammo.btGeneric6DofSpringConstraint(
@@ -252,13 +269,20 @@ export class Vehicle extends Entity
                 frontWheelConstraint.setLinearLowerLimit(new Ammo.btVector3(0, 0, 0));  // No linear motion allowed
                 frontWheelConstraint.setLinearUpperLimit(new Ammo.btVector3(0, 0, 0));  // No linear motion allowed
                 
-                frontWheelConstraint.setAngularLowerLimit(new Ammo.btVector3(0, 0, 0));  // No linear motion allowed
-                frontWheelConstraint.setAngularUpperLimit(new Ammo.btVector3(0, 0, 0));  // No linear motion allowed
+                frontWheelConstraint.setAngularLowerLimit(new Ammo.btVector3(-0.1, -0.1, -0.1));  // No linear motion allowed
+                frontWheelConstraint.setAngularUpperLimit(new Ammo.btVector3(0.1, 0, 0.1));  // No linear motion allowed
 
                 physicsWorld.addConstraint(frontWheelConstraint, true);
 
                 this.frontWheelContraints.push(frontWheelConstraint);
             } else {
+
+                const rotor = entityFactory.spawnRotor(x, y, z);
+
+                rotor.offsetFromChassis.setValue(x, y, z);
+
+                this.rotors.push(rotor);
+                
                 const pivotChassis2 = new Ammo.btVector3(x, 0, 0); // Rear wheel offset
 
                 const hingeAxis = new Ammo.btVector3(1, 0, 0);  // Forward/backward rotation axis
@@ -266,9 +290,9 @@ export class Vehicle extends Entity
                 // Create hinge constraint for rear wheel
                 const rearWheelHinge = new Ammo.btHingeConstraint(
                     axis.body,
-                    wheel.body,
+                    rotor.body,
                     pivotChassis2,   // Chassis pivot
-                    pivotWheel,      // Wheel pivot
+                    pivot,      // Wheel pivot
                     hingeAxis,       // Rotation axis for chassis
                     hingeAxis        // Rotation axis for wheel
                 );
@@ -277,6 +301,38 @@ export class Vehicle extends Entity
                 physicsWorld.addConstraint(rearWheelHinge, true);
 
                 this.backWheelConstraints.push(rearWheelHinge);
+
+
+                // wheel to back rotor
+
+                // Step 2: Create a btGeneric6DofSpringConstraint for the front wheel
+                const frameInA = new Ammo.btTransform();  // Frame in chassis coordinate
+                frameInA.setIdentity();
+
+                const frameInB = new Ammo.btTransform();  // Frame in wheel coordinate
+                frameInB.setIdentity();
+                frameInB.setRotation(wheel.getRotation());
+
+                // Set the pivot point and the rotation axis in local frame
+                frameInA.setOrigin(pivot);  // Front wheel offset on chassis
+                frameInB.setOrigin(pivot);   
+                
+                // Create hinge constraint for front wheel
+                const backWheelToRotorConstraint = new Ammo.btGeneric6DofSpringConstraint(
+                    rotor.body, 
+                    wheel.body, 
+                    frameInA, 
+                    frameInB, 
+                    true  // Use reference frame A
+                );
+
+                backWheelToRotorConstraint.setLinearLowerLimit(new Ammo.btVector3(0, 0, 0));  // No linear motion allowed
+                backWheelToRotorConstraint.setLinearUpperLimit(new Ammo.btVector3(0, 0, 0));  // No linear motion allowed
+                
+                backWheelToRotorConstraint.setAngularLowerLimit(new Ammo.btVector3(0, 0, 0));  // No linear motion allowed
+                backWheelToRotorConstraint.setAngularUpperLimit(new Ammo.btVector3(0, 0, 0));  // No linear motion allowed
+
+                physicsWorld.addConstraint(backWheelToRotorConstraint, true);
             }
 
             return wheel;
@@ -320,7 +376,7 @@ export class Vehicle extends Entity
             // Enable the spring on the Y axis (acts as a suspension)
             springConstraint.enableSpring(1, true)
             springConstraint.setStiffness(1, 1000.0)
-            springConstraint.setDamping(1, 1.0)
+            springConstraint.setDamping(1, 0.8)
 
             //springConstraint.enableSpring(1, true)
             //springConstraint.setStiffness(1, 1000.0)
@@ -331,7 +387,7 @@ export class Vehicle extends Entity
             return axis;
         }   
 
-        let wheelY = -0.4;
+        let wheelY = -0.5;
 
         let wheelZ = bike ? 0.7 : 1.6;
 
@@ -345,21 +401,21 @@ export class Vehicle extends Entity
         {   
             let wheelX = 1.0;
 
-            const wheelFL = makeWheel(wheelX, wheelY, -wheelZ, axisF, true);
-            wheelFL.displayName += `L`;
+            const FL = makeWheel(wheelX, wheelY, -wheelZ, axisF, true);
+   
 
-            const wheelFR = makeWheel(-wheelX, wheelY, -wheelZ, axisF, true);
-            wheelFR.displayName += `R`;
+            const FR = makeWheel(-wheelX, wheelY, -wheelZ, axisF, true);
 
-            const wheelBL = makeWheel(wheelX, wheelY, wheelZ, axisB, false);
-            wheelBL.displayName += `L`;
 
-            const wheelBR = makeWheel(-wheelX, wheelY, wheelZ, axisB, false);
-            wheelBR.displayName += `R`;
+            const BL = makeWheel(wheelX, wheelY, wheelZ, axisB, false);
+      
+
+            const BR = makeWheel(-wheelX, wheelY, wheelZ, axisB, false);
+       
         } else {
-            const wheelF = makeWheel(0.001, wheelY, -wheelZ, axisF, true);
+            const F = makeWheel(0, wheelY, -wheelZ, axisF, true);
 
-            const wheelB = makeWheel(0, wheelY, wheelZ, axisB, false);
+            const B = makeWheel(0, wheelY, wheelZ, axisB, false);
         }
 
         

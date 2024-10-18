@@ -50,14 +50,18 @@ export class EntityWatcher
         
         const entityInfo = objectWatcher.createGroup("entity_info");
 
-        entityInfo.watch("x", () => entity.getPosition().x()).setMinDifference(0.1);
-        entityInfo.watch("y", () => entity.getPosition().y()).setMinDifference(0.1);
-        entityInfo.watch("z", () => entity.getPosition().z()).setMinDifference(0.1);
+        entityInfo.watch("x", () => entity.getPosition().x()).setMinDifference(0.01);
+        entityInfo.watch("y", () => entity.getPosition().y()).setMinDifference(0.01);
+        entityInfo.watch("z", () => entity.getPosition().z()).setMinDifference(0.01);
 
-        entityInfo.watch("rotationX", () => entity.getRotation().x()).setMinDifference(0.1);
-        entityInfo.watch("rotationY", () => entity.getRotation().y()).setMinDifference(0.1);
-        entityInfo.watch("rotationZ", () => entity.getRotation().z()).setMinDifference(0.1);
-        entityInfo.watch("rotationW", () => entity.getRotation().w()).setMinDifference(0.1);
+        entityInfo.watch("velocity.x", () => entity.getPosition().z()).setMinDifference(0.01);
+        entityInfo.watch("velocity.y", () => entity.getPosition().z()).setMinDifference(0.01);
+        entityInfo.watch("velocity.z", () => entity.getPosition().z()).setMinDifference(0.01);
+
+        entityInfo.watch("rotationX", () => entity.getRotation().x()).setMinDifference(0.01);
+        entityInfo.watch("rotationY", () => entity.getRotation().y()).setMinDifference(0.01);
+        entityInfo.watch("rotationZ", () => entity.getRotation().z()).setMinDifference(0.01);
+        entityInfo.watch("rotationW", () => entity.getRotation().w()).setMinDifference(0.01);
 
         entityInfo.watch("input.x", () => entity.inputX);
         entityInfo.watch("input.y", () => entity.inputY);
@@ -69,10 +73,10 @@ export class EntityWatcher
         {
             entityInfo.watch("aiming", () => entity.aiming);
 
-            entityInfo.watch("lookDir.x", () => entity.lookDir.x()).setMinDifference(0.1);
-            entityInfo.watch("lookDir.y", () => entity.lookDir.y()).setMinDifference(0.1);
-            entityInfo.watch("lookDir.z", () => entity.lookDir.z()).setMinDifference(0.1);
-            entityInfo.watch("lookDir.w", () => entity.lookDir.w()).setMinDifference(0.1);
+            entityInfo.watch("lookDir.x", () => entity.lookDir.x()).setMinDifference(0.01);
+            entityInfo.watch("lookDir.y", () => entity.lookDir.y()).setMinDifference(0.01);
+            entityInfo.watch("lookDir.z", () => entity.lookDir.z()).setMinDifference(0.01);
+            entityInfo.watch("lookDir.w", () => entity.lookDir.w()).setMinDifference(0.01);
 
             entityInfo.watch("weapon", () => entity.weapon ? entity.weapon.weaponData.id : -1);
         }
@@ -98,6 +102,12 @@ export class EntityWatcher
             if(entityInfo.hasValueChanged("y")) position.y = entityInfo.getValue("y");
             if(entityInfo.hasValueChanged("z")) position.z = entityInfo.getValue("z");
             info.position = position;
+
+            const velocity: XYZ = {};
+            if(entityInfo.hasValueChanged("velocity.x")) velocity.x = entityInfo.getValue("velocity.x");
+            if(entityInfo.hasValueChanged("velocity.y")) velocity.y = entityInfo.getValue("velocity.y");
+            if(entityInfo.hasValueChanged("velocity.z")) velocity.z = entityInfo.getValue("velocity.z");
+            info.velocity = velocity;
 
             const rotation: XYZW = {};
             if(entityInfo.hasValueChanged("rotationX")) rotation.x = entityInfo.getValue("rotationX");

@@ -1,9 +1,10 @@
-import THREE, { Vector3 } from "three";
+import THREE from "three";
+import { Game } from "../game/game";
 import { MakeBodyOptions } from "./entityCollision";
 import { BaseObject } from "../../shared/baseObject";
-import { Game } from "../game/game";
 import { Entity } from "./entity";
 import { Box } from "./box";
+import { Ball } from "./ball";
 import { Ped } from "./ped";
 import { WeaponItem } from "./weaponItem";
 import { Weapon } from "../weapons/weapon";
@@ -12,6 +13,7 @@ import { Bike } from "./bike";
 import { CollisionGroups } from "../collisionGroups";
 import { Wheel } from "./wheel";
 import { Axis } from "./axis";
+import { Rotor } from "./rotor";
 
 export class EntityFactory extends BaseObject {
     public game: Game;
@@ -128,7 +130,7 @@ export class EntityFactory extends BaseObject {
         const MASK_CHASSIS = ~GROUP_WHEELS;
 
         this.setupEntity(entity, {
-            mass: 100,
+            mass: 50,
             localInertia: new THREE.Vector3(0, 0, 0),
             group: GROUP_CHASSIS,
             mask: MASK_CHASSIS
@@ -159,22 +161,42 @@ export class EntityFactory extends BaseObject {
         return entity;
     }
 
+    public spawnRotor(x: number, y: number, z: number)
+    {
+        let radius = 0.2;
+
+        const entity = this.spawnEntity<Rotor>(Rotor);
+        entity.collision.addSphere(new THREE.Vector3(0, 0, 0), radius);
+        entity.displayName = "rotor";
+        entity.setModel("rotor");
+
+        this.setupEntity(entity, {mass: 50});
+        
+        const CF_NO_CONTACT_RESPONSE = 4; // Constant for no contact response
+        entity.body.setCollisionFlags(CF_NO_CONTACT_RESPONSE);
+
+        entity.setPosition(x, y, z);
+
+        return entity;
+    }
+
     public spawnWheel(x: number, y: number, z: number, options: MakeBodyOptions)
     {
-        let wheelRadius = 0.4;
+        let radius = 0.4;
+        const depth = 0.3;
 
         const entity = this.spawnEntity<Wheel>(Wheel);
-        //entity.collision.addCylinder(new THREE.Vector3(0, 0, 0), wheelRadius, 0.5);
-        entity.collision.addSphere(new THREE.Vector3(0, 0, 0), wheelRadius);
+        entity.collision.addCylinder(new THREE.Vector3(0, 0, 0), radius, depth);
+        //entity.collision.addSphere(new THREE.Vector3(0, 0, 0), wheelRadius);
         entity.displayName = "wheel";
-        entity.setModel("wheel2");
+        entity.setModel("wheel");
         
         this.setupEntity(entity, options);
         entity.setPosition(x, y, z);
 
         const quat = new THREE.Quaternion(0, 0, 0, 1);
         quat.setFromEuler(new THREE.Euler(0, 0, Math.PI/2));
-        //entity.setRotation(quat.x, quat.y, quat.z, quat.w);
+        entity.setRotation(quat.x, quat.y, quat.z, quat.w);
 
         return entity;
     }
@@ -187,6 +209,7 @@ export class EntityFactory extends BaseObject {
         entity.displayName = "axis";
 
         this.setupEntity(entity, {mass: 50});
+
         const CF_NO_CONTACT_RESPONSE = 4; // Constant for no contact response
         entity.body.setCollisionFlags(CF_NO_CONTACT_RESPONSE);
 
@@ -203,9 +226,21 @@ export class EntityFactory extends BaseObject {
     {
         const entity = this.spawnEntity(Box);
         entity.displayName = "box";
-        entity.setModel("wheel");
+        entity.setModel("wheel2");
 
         this.setupEntity(entity, {mass: 100});
+        entity.setPosition(x, y, z);
+        entity.body.setFriction(1);
+        return entity;
+    }
+
+    public spawnBall(x: number, y: number, z: number)
+    {
+        const entity = this.spawnEntity(Ball);
+        entity.displayName = "ball";
+        entity.setModel("wheel2");
+
+        this.setupEntity(entity, {mass: 10});
         entity.setPosition(x, y, z);
         entity.body.setFriction(1);
         return entity;
