@@ -68,6 +68,15 @@ export class Game extends BaseObject
     {
     }
 
+    public getIsEntityAbleToSync(entity: Entity)
+    {
+        for(const [e, info] of this.entitiesInformation)
+        {
+            if(entity instanceof e) return true;
+        }
+        return false;
+    }
+
     public update(delta: number)
     {
         for(const entity of this.entityFactory.entities.values()) entity.update(delta);
@@ -76,6 +85,8 @@ export class Game extends BaseObject
 
         for(const entity of this.entityFactory.entities.values())
         {
+            if(!this.getIsEntityAbleToSync(entity)) continue;
+
             const position = entity.getPosition();
             const zero = new Ammo.btVector3(0, 2, -20);
 

@@ -123,17 +123,6 @@ export class Weapon extends BaseObject {
                     {
                         this.processWeaponDamage(entity);
                     }
-
-                    const force = new Ammo.btVector3(hitNormal.x(), hitNormal.y(), hitNormal.z());
-                    force.op_mul(-8000);
-
-                    const zero = new Ammo.btVector3(0, 0, 0);
-
-                    entity.body.activate();
-                    entity.body.applyForce(force, zero);
-
-                    Ammo.destroy(force);
-                    Ammo.destroy(zero);
                 }
             } else {
                 console.log("weapon hit an entity with unknown body")
@@ -156,5 +145,16 @@ export class Weapon extends BaseObject {
             entity.setPosition(0, 3, 0);
             entity.health = 100;
         }
+
+        const force = new Ammo.btVector3(0, 1, 0);
+        force.op_mul(8000);
+
+        const zero = new Ammo.btVector3(0, 0, 0);
+
+        entity.body.activate();
+        entity.body.applyForce(force, zero);
+
+        Ammo.destroy(force);
+        Ammo.destroy(zero);
     }
 }

@@ -4,6 +4,7 @@ import { Input } from "../input";
 import { Ped } from './ped';
 import { Vehicle } from './vehicle';
 import { Quaternion_ToEuler } from '../../shared/ammo/quaterion';
+import { FormatVector3 } from '../../shared/ammo/vector';
 
 export class Bike extends Vehicle
 {
@@ -21,7 +22,7 @@ export class Bike extends Vehicle
         const yaw = euler.z();
 
         const right = this.right;
-        right.op_mul(30000);
+        right.op_mul(20000);
 
         const forceRelative = new Ammo.btVector3(0, 2, 0)
 
@@ -42,7 +43,6 @@ export class Bike extends Vehicle
         newQuat.setEulerZYX(0, euler.y(), euler.x());
        
         this.body.getWorldTransform().setRotation(newQuat);
-
 
         Ammo.destroy(euler);
         Ammo.destroy(right);

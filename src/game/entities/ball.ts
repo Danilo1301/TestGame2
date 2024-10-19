@@ -7,7 +7,7 @@ export class Ball extends Entity
     public initCollision()
     {
         super.initCollision();
-        this.collision.addSphere(new THREE.Vector3(0, 0, 0), 1);
+        this.collision.addSphere(new THREE.Vector3(0, 0, 0), 0.5);
     }
 
     public update(delta: number)
@@ -15,13 +15,13 @@ export class Ball extends Entity
         super.update(delta);
 
    
-        if(this.sync.syncType == eSyncType.SYNC_DEFAULT)
-        {
-            const v = this.sync.targetRotation;
-            console.log(`${v.x().toFixed(2)}, ${v.y().toFixed(2)}, ${v.z().toFixed(2)}, ${v.w().toFixed(2)}`);
-        } else {
-            const v = this.getRotation();
-            console.log(`${v.x().toFixed(2)}, ${v.y().toFixed(2)}, ${v.z().toFixed(2)}, ${v.w().toFixed(2)}`);
-        }
+        // if(this.sync.syncType == eSyncType.SYNC_DEFAULT)
+        // {
+        //     const v = this.sync.targetRotation;
+        //     console.log(`${v.x().toFixed(2)}, ${v.y().toFixed(2)}, ${v.z().toFixed(2)}, ${v.w().toFixed(2)}`);
+        // } else {
+        //     const v = this.getRotation();
+        //     console.log(`${v.x().toFixed(2)}, ${v.y().toFixed(2)}, ${v.z().toFixed(2)}, ${v.w().toFixed(2)}`);
+        // }
     }
 }

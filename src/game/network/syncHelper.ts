@@ -18,15 +18,25 @@ export class SyncHelper
 
         if(!player) return;
 
+        const game = player.game;
+
+        if(game.isServer) return;
+
         const vehicle = player.onVehicle;
 
         if(this.drivingVehicle != vehicle)
         {
+            const prevVehicle = this.drivingVehicle!;
+
             if(vehicle)
             {
-                //vehicle.sync.syncType = eSyncType.SYNC_NONE;
+                Gameface.Instance.entityWatcher.addEntity(vehicle);
+
+                vehicle.sync.syncType = eSyncType.SYNC_NONE;
             } else {
-                //this.drivingVehicle!.sync.syncType = eSyncType.SYNC_DEFAULT
+                prevVehicle.sync.syncType = eSyncType.SYNC_DEFAULT
+
+                Gameface.Instance.entityWatcher.removeEntity(prevVehicle);
             }
 
             this.drivingVehicle = vehicle;
@@ -49,25 +59,25 @@ export class SyncHelper
             SyncHelper.onReceiveEntityInfoBasic(data);
         }
     
-        // if(packet.type == PACKET_TYPE.PACKET_WEAPON_SHOT)
-        // {
-        //     const data = packet.data as IPacketData_WeaponShot;
+        if(packet.type == PACKET_TYPE.PACKET_WEAPON_SHOT)
+        {
+            const data = packet.data as IPacketData_WeaponShot;
 
-        //     const game = Gameface.Instance.game;
-        //     const ped = game.entityFactory.entities.get(data.byPed) as Ped;
+            const game = Gameface.Instance.game;
+            const ped = game.entityFactory.entities.get(data.byPed) as Ped;
 
-        //     if(ped && ped != Gameface.Instance.player)
-        //     {
-        //         const hitPos = new Ammo.btVector3(data.hit[0], data.hit[1], data.hit[2]);
+            if(ped && ped != Gameface.Instance.player)
+            {
+                const hitPos = new Ammo.btVector3(data.hit[0], data.hit[1], data.hit[2]);
 
-        //         const dir = Vector3_GetDirectionBetweenVectors(ped.cameraPosition, hitPos);
+                const dir = Vector3_GetDirectionBetweenVectors(ped.cameraPosition, hitPos);
 
-        //         ped.weapon?.shootDirectionEx(ped.cameraPosition, dir, false);
+                ped.weapon?.shootDirectionEx(ped.cameraPosition, dir, false);
 
-        //         Ammo.destroy(hitPos);
-        //         Ammo.destroy(dir);
-        //     }
-        // }
+                Ammo.destroy(hitPos);
+                Ammo.destroy(dir);
+            }
+        }
 
         // if(packet.type == PACKET_TYPE.PACKET_HEALTH)
         // {
@@ -107,9 +117,11 @@ export class SyncHelper
                     break;
                 case EntityType.VEHICLE:
                     entity = game.entityFactory.spawnCar(0, 0, 0);
+                    entity.sync.vehicleSync = true;
                     break;
                 case EntityType.BIKE:
                     entity = game.entityFactory.spawnBike(0, 0, 0);
+                    entity.sync.vehicleSync = true;
                     break;
                 default:
                     break;
@@ -137,11 +149,11 @@ export class SyncHelper
         if(entity.id == Gameface.Instance.playerId)
         {
             if(!Gameface.Instance.player)
-                {
+            {
                 Gameface.Instance.player = entity as Ped;
                 Gameface.Instance.player.equipWeapon(0);
 
-                entity.sync.syncType = eSyncType.SYNC_RECONCILIATE;
+                entity.sync.syncType = eSyncType.SYNC_NONE;
 
                 Gameface.Instance.entityWatcher.addEntity(entity);
             }

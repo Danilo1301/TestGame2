@@ -1,13 +1,14 @@
 import socketio, { Socket } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import { BaseObject } from "../../shared/baseObject"
-import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_Entity_Info_Basic, IPacketData_JoinedServer, IPacketData_Models, IPacketData_WeaponShot, PACKET_TYPE } from "../../game/network/packet";
+import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_EnterLeaveVehicle, IPacketData_Entity_Info_Basic, IPacketData_JoinedServer, IPacketData_Models, IPacketData_WeaponShot, PACKET_TYPE } from "../../game/network/packet";
 import { MasterServer } from '../masterServer/masterServer';
 import { Server } from '../server/server';
 import { Ped, PedData_JSON } from '../../game/entities/ped';
-import { EntityType } from '../../game/entities/entity';
+import { Entity, EntityType } from '../../game/entities/entity';
 import { XYZ, XYZ_SetValue, XYZW_SetValue } from '../../shared/ammo/ammoUtils';
 import THREE from 'three';
+import { Vehicle } from '../../game/entities/vehicle';
 
 export class Client extends BaseObject
 {
@@ -88,44 +89,105 @@ export class Client extends BaseObject
         {
             const data = packet.data as IPacketData_Entity_Info_Basic;
 
-            const entity = this._player;
+            const player = this._player;
 
-            if(!entity) return;
+            if(!player) return;
 
-            const playerPosition = entity.getPosition();
-            const position = XYZ_SetValue(data.position, {x: playerPosition.x(), y: playerPosition.y(), z: playerPosition.z()});
+            let entity: Entity = player;
+            
+            if(player.onVehicle) {
+                entity = player.onVehicle;
+            } else {
+            }
+            
+            const type = data.type;
 
-            const posA = new THREE.Vector3(playerPosition.x(), playerPosition.y(), playerPosition.z());
-            const posB = new THREE.Vector3(position.x, position.y, position.z);
+            const entityInput: XYZ = {x: player.inputX, y: player.inputY, z: player.inputZ};
+            const input = XYZ_SetValue(data.input, entityInput);
+            player.inputX = input.x!;
+            player.inputY = input.y!;
+            player.inputZ = input.z!;
 
-            if(posA.distanceTo(posB) <= 3) {
-                entity.setPosition(position.x!, position.y!, position.z!);
+            //console.log(data.input)
+
+            if(type == EntityType.BIKE || type == EntityType.VEHICLE)
+            {
+                const entityPosition = entity.getPosition();
+                
+                const position = XYZ_SetValue(data.position, {x: entityPosition.x(), y: entityPosition.y(), z: entityPosition.z()});
+
+                const posA = new THREE.Vector3(entityPosition.x(), entityPosition.y(), entityPosition.z());
+                const posB = new THREE.Vector3(position.x, position.y, position.z);
+
+                if(posA.distanceTo(posB) >= 0.3) {
+                    entity.setPosition(position.x!, position.y!, position.z!);
+
+                    const entityRotation = entity.getRotation();
+                    const rotation = XYZW_SetValue(data.rotation, {x: entityRotation.x(), y: entityRotation.y(), z: entityRotation.z(), w: entityRotation.w()});
+                    entity.setRotation(rotation.x!, rotation.y!, rotation.z!, rotation.w!);
+                }
+
+                // entity.setPosition(position.x!, position.y!, position.z!);
+
+                // const entityRotation = entity.getRotation();
+                // const rotation = XYZW_SetValue(data.rotation, {x: entityRotation.x(), y: entityRotation.y(), z: entityRotation.z(), w: entityRotation.w()});
+                // entity.setRotation(rotation.x!, rotation.y!, rotation.z!, rotation.w!);
             }
 
-            const entityInput: XYZ = {x: entity.inputX, y: entity.inputY, z: entity.inputZ};
-            const input = XYZ_SetValue(data.input, entityInput);
-            entity.inputX = input.x!;
-            entity.inputY = input.y!;
-            entity.inputZ = input.z!;
-
-            if(data.aiming != undefined) entity.aiming = data.aiming;
-
-            const pedLookDir = entity.lookDir;
-            const lookDir = XYZW_SetValue(data.lookDir, {x: pedLookDir.x(), y: pedLookDir.y(), z: pedLookDir.z(), w: pedLookDir.w()});
-            entity.lookDir.setValue(lookDir.x!, lookDir.y!, lookDir.z!, lookDir.w!);
-
-            if(data.weapon != undefined)
+            if(type == EntityType.PED)
             {
-                let currentWeaponId = -1;
-                if(entity.weapon) currentWeaponId = entity.weapon.weaponData.id;
+                const playerPosition = entity.getPosition();
+                const position = XYZ_SetValue(data.position, {x: playerPosition.x(), y: playerPosition.y(), z: playerPosition.z()});
 
-                if(currentWeaponId != data.weapon)
+                const posA = new THREE.Vector3(playerPosition.x(), playerPosition.y(), playerPosition.z());
+                const posB = new THREE.Vector3(position.x, position.y, position.z);
+
+                if(posA.distanceTo(posB) >= 0.3) {
+                    entity.setPosition(position.x!, position.y!, position.z!);
+                }
+
+                if(data.aiming != undefined) player.aiming = data.aiming;
+
+                const pedLookDir = player.lookDir;
+                const lookDir = XYZW_SetValue(data.lookDir, {x: pedLookDir.x(), y: pedLookDir.y(), z: pedLookDir.z(), w: pedLookDir.w()});
+                player.lookDir.setValue(lookDir.x!, lookDir.y!, lookDir.z!, lookDir.w!);
+
+                if(data.weapon != undefined)
                 {
-                    entity.equipWeapon(data.weapon);
+                    let currentWeaponId = -1;
+                    if(player.weapon) currentWeaponId = player.weapon.weaponData.id;
+
+                    if(currentWeaponId != data.weapon)
+                    {
+                        player.equipWeapon(data.weapon);
+                    }
                 }
             }
-
             return;
+        }
+
+        if(packet.type == PACKET_TYPE.PACKET_ENTER_LEAVE_VEHICLE)
+        {
+            const data = packet.data as IPacketData_EnterLeaveVehicle;
+
+            const player = this._player;
+
+            if(!player) return;
+
+            if(!player.onVehicle)
+            {
+                const vehicle = player.game.entityFactory.entities.get(data.vehicleId) as Vehicle;
+
+                if(!vehicle) return;
+
+                console.log(`player entered vehicle ${vehicle.id}`)
+
+                player.enterVehicle(vehicle);
+            } else {
+                console.log(`player left`)
+
+                player.leaveVehicle();
+            }
         }
 
         if(packet.type == PACKET_TYPE.PACKET_WEAPON_SHOT)

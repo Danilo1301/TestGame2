@@ -45,7 +45,7 @@ export class Vehicle extends Entity
 
             const setTransformedPosition = (entity: Entity, offset: Ammo.btVector3) =>
             {
-                console.log(entity.displayName, FormatVector3(offset))
+                //console.log(entity.displayName, FormatVector3(offset))
 
                 const transformedPosition = this.transformFromObjectSpace(this.body, offset);
                 
@@ -75,9 +75,11 @@ export class Vehicle extends Entity
 
         this.customSetRotation = (x: number, y: number, z: number, w: number) =>
         {
+            
+
             const body = this.collision.body!;
-            const prevRotation = this.getRotation();
-            const prevEuler = Quaternion_ToEuler(prevRotation);
+            //const prevRotation = this.getRotation();
+            //const prevEuler = Quaternion_ToEuler(prevRotation);
 
             // set chassis rotation
 
@@ -85,48 +87,56 @@ export class Vehicle extends Entity
             body.getWorldTransform().setRotation(quat);
             Ammo.destroy(quat);
 
-            //
+            // update other bodies position becasue changed rotation
 
-            const newRotation = this.getRotation();
-            const newEuler = Quaternion_ToEuler(newRotation);
-            const diffEulerY = newEuler.y() - prevEuler.y();
-
-            // updates position of other bodies
-            
             const position = this.getPosition();
 
             this.customSetPosition!(position.x(), position.y(), position.z());
-
-            const rotateBody = (entity: Entity) =>
-            {
-                const wheelRotation = entity.getRotation();
-                const wheelEuler = Quaternion_ToEuler(wheelRotation);
-    
-                const newWheelEulerY = wheelEuler.y() + diffEulerY;
-    
-                const newWheelRotation = new Ammo.btQuaternion(0, 0, 0, 1);
-                newWheelRotation.setEulerZYX(wheelEuler.z(), newWheelEulerY, wheelEuler.x());
-    
-                entity.setRotation(newWheelRotation.x(), newWheelRotation.y(), newWheelRotation.z(), wheelRotation.w());
-    
-                Ammo.destroy(wheelEuler);
-                Ammo.destroy(newWheelRotation);
-            }
-
-            for(const wheel of this.wheels)
-            {
-                rotateBody(wheel);
-            }
-
-            for(const axis of this.axis)
-            {
-                rotateBody(axis);
-            }
-
-            Ammo.destroy(prevEuler);
-            Ammo.destroy(newEuler);
             
             return false;
+
+            //
+
+            // const newRotation = this.getRotation();
+            // const newEuler = Quaternion_ToEuler(newRotation);
+            // const diffEulerY = newEuler.y() - prevEuler.y();
+
+            // // updates position of other bodies
+            
+            // const position = this.getPosition();
+
+            // this.customSetPosition!(position.x(), position.y(), position.z());
+
+            // const rotateBody = (entity: Entity) =>
+            // {
+            //     const wheelRotation = entity.getRotation();
+            //     const wheelEuler = Quaternion_ToEuler(wheelRotation);
+    
+            //     const newWheelEulerY = wheelEuler.y() + diffEulerY;
+    
+            //     const newWheelRotation = new Ammo.btQuaternion(0, 0, 0, 1);
+            //     newWheelRotation.setEulerZYX(wheelEuler.z(), newWheelEulerY, wheelEuler.x());
+    
+            //     entity.setRotation(newWheelRotation.x(), newWheelRotation.y(), newWheelRotation.z(), wheelRotation.w());
+    
+            //     Ammo.destroy(wheelEuler);
+            //     Ammo.destroy(newWheelRotation);
+            // }
+
+            // for(const wheel of this.wheels)
+            // {
+            //     rotateBody(wheel);
+            // }
+
+            // for(const axis of this.axis)
+            // {
+            //     rotateBody(axis);
+            // }
+
+            // Ammo.destroy(prevEuler);
+            // Ammo.destroy(newEuler);
+            
+            // return false;
         }
     }
 
@@ -217,7 +227,7 @@ export class Vehicle extends Entity
             const wheel = entityFactory.spawnWheel(
                 x, y, z,
                 {
-                    mass: 50,
+                    mass: 80,
                     group: GROUP_WHEELS,
                     mask: -1
                 }

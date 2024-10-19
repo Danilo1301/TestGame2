@@ -52,16 +52,17 @@ export class ServerScene
 
     public createLocalScene()
     {
-        const car = this.game.entityFactory.spawnCar(0, 0, 0);
+        //const car = this.game.entityFactory.spawnCar(0, 0, 0);
 
         //const bike = this.game.entityFactory.spawnBike(10, 0, 0);
     }
 
     public createServerScene()
     {
-        const car = this.game.entityFactory.spawnCar(0, 0, 0);
+        const bike = this.game.entityFactory.spawnBike(0, 0, 0);
 
-        const bike = this.game.entityFactory.spawnBike(5, 0, 0);
+        const car = this.game.entityFactory.spawnCar(10, 0, 0);
+
 
         const ball = this.game.entityFactory.spawnBall(5, 2, 0);
         setInterval(() => {

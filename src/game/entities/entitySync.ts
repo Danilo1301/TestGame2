@@ -17,6 +17,8 @@ export class EntitySync {
     public targetVelocity = new Ammo.btVector3(0, 0, 0);
     public targetRotation = new Ammo.btQuaternion(0, 0, 0, 1);
 
+    public vehicleSync: boolean = false;
+
     constructor(entity: Entity)
     {
         this.entity = entity;
@@ -31,9 +33,9 @@ export class EntitySync {
             console.log(this.entity.getPosition().y() + "->" + this.targetPosition.y());
         }
 
-        if(this.syncType == eSyncType.SYNC_RECONCILIATE || this.syncType == eSyncType.SYNC_DEFAULT)
+        if(this.vehicleSync)
         {
-            if(this.getDistanceFromEntity() >= 3)
+            if(this.getDistanceFromEntity() >= 0.3)
             {
                 this.forceSetPosition();
             }
@@ -67,20 +69,22 @@ export class EntitySync {
 
         //console.log(lerpAmount);
 
-        if(this.syncType == eSyncType.SYNC_RECONCILIATE)
-        {
-            if(this.getDistanceFromEntity() < 3)
-            {
-                update = false;
-            }
-        }
+        // if(this.syncType == eSyncType.SYNC_RECONCILIATE)
+        // {
+        //     if(this.getDistanceFromEntity() < 1.5)
+        //     {
+        //         update = false;
+        //     }
+        // }
 
         const newPosition = position_t.lerp(targetPosition_t, lerpAmount);
 
+        if(this.vehicleSync) update = false;
+
         if(update)
         {
-            //this.setEntityPosition(newPosition.x, newPosition.y, newPosition.z);
-            this.setEntityPosition(this.targetPosition.x(), this.targetPosition.y(), this.targetPosition.z());
+            this.setEntityPosition(newPosition.x, newPosition.y, newPosition.z);
+            //this.setEntityPosition(this.targetPosition.x(), this.targetPosition.y(), this.targetPosition.z());
         }
     }
 
@@ -100,10 +104,10 @@ export class EntitySync {
         const newVelocity = this.targetVelocity;
         let update = true;
 
-        if(this.syncType == eSyncType.SYNC_RECONCILIATE)
-        {
-            update = false;
-        }
+        // if(this.syncType == eSyncType.SYNC_RECONCILIATE)
+        // {
+        //     update = false;
+        // }
 
         update = false;
 
@@ -113,26 +117,33 @@ export class EntitySync {
 
     private syncRotation(delta: number)
     {
+        let update = true;
+        let lerpAmount = 0.005 * delta;
+
         const rotation_t = ammoQuaternionToThree(this.entity.getRotation());
 
         const targetRotation = this.targetRotation;
         const targetRotation_t = ammoQuaternionToThree(this.targetRotation);
 
-        let lerpAmount = 0.005 * delta;
+        const angle = rotation_t.angleTo(targetRotation_t);
 
         rotation_t.slerp(targetRotation_t, lerpAmount);
 
-        let update = true;
+        // if(this.syncType == eSyncType.SYNC_RECONCILIATE)
+        // {
+        //     update = false;
+        // }
 
-        if(this.syncType == eSyncType.SYNC_RECONCILIATE)
-        {
-            update = false;
-        }
+        if(this.vehicleSync) update = false;
+
+        //console.log(angle)
+
+        //update = false;
 
         if(update)
         {
-            //this.setEntityRotation(rotation_t.x, rotation_t.y, rotation_t.z, rotation_t.w);
-            this.setEntityRotation(targetRotation.x(), targetRotation.y(), targetRotation.z(), targetRotation.w());
+            this.setEntityRotation(rotation_t.x, rotation_t.y, rotation_t.z, rotation_t.w);
+            //this.setEntityRotation(targetRotation.x(), targetRotation.y(), targetRotation.z(), targetRotation.w());
         }
     }
 
@@ -140,11 +151,9 @@ export class EntitySync {
     {
         this.entity.setRotation(x, y, z, w);
 
-        const zero = new Ammo.btVector3(0, 0, 0);
-
-        this.entity.body.setAngularVelocity(zero);
-
-        Ammo.destroy(zero);
+        //const zero = new Ammo.btVector3(0, 0, 0);
+        //this.entity.body.setAngularVelocity(zero);
+        //Ammo.destroy(zero);
     }
 
     public setPosition(x: number, y: number, z: number)

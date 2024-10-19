@@ -267576,22 +267576,21 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Ball = void 0;
 const entity_1 = __webpack_require__(/*! ./entity */ "./src/game/entities/entity.ts");
 const three_1 = __importDefault(__webpack_require__(/*! three */ "./node_modules/three/build/three.cjs"));
-const entitySync_1 = __webpack_require__(/*! ./entitySync */ "./src/game/entities/entitySync.ts");
 class Ball extends entity_1.Entity {
     initCollision() {
         super.initCollision();
-        this.collision.addSphere(new three_1.default.Vector3(0, 0, 0), 1);
+        this.collision.addSphere(new three_1.default.Vector3(0, 0, 0), 0.5);
     }
     update(delta) {
         super.update(delta);
-        if (this.sync.syncType == entitySync_1.eSyncType.SYNC_DEFAULT) {
-            const v = this.sync.targetRotation;
-            console.log(`${v.x().toFixed(2)}, ${v.y().toFixed(2)}, ${v.z().toFixed(2)}, ${v.w().toFixed(2)}`);
-        }
-        else {
-            const v = this.getRotation();
-            console.log(`${v.x().toFixed(2)}, ${v.y().toFixed(2)}, ${v.z().toFixed(2)}, ${v.w().toFixed(2)}`);
-        }
+        // if(this.sync.syncType == eSyncType.SYNC_DEFAULT)
+        // {
+        //     const v = this.sync.targetRotation;
+        //     console.log(`${v.x().toFixed(2)}, ${v.y().toFixed(2)}, ${v.z().toFixed(2)}, ${v.w().toFixed(2)}`);
+        // } else {
+        //     const v = this.getRotation();
+        //     console.log(`${v.x().toFixed(2)}, ${v.y().toFixed(2)}, ${v.z().toFixed(2)}, ${v.w().toFixed(2)}`);
+        // }
     }
 }
 exports.Ball = Ball;
@@ -267621,7 +267620,7 @@ class Bike extends vehicle_1.Vehicle {
         const euler = (0, quaterion_1.Quaternion_ToEuler)(rotation);
         const yaw = euler.z();
         const right = this.right;
-        right.op_mul(30000);
+        right.op_mul(20000);
         const forceRelative = new Ammo.btVector3(0, 2, 0);
         //console.log(yaw);
         if (yaw > 0) {
@@ -269098,7 +269097,7 @@ class EntityFactory extends baseObject_1.BaseObject {
         const GROUP_WHEELS = entity.wheelsCollisionGroup = collisionGroups_1.CollisionGroups.createCollisionGroup();
         const MASK_CHASSIS = ~GROUP_WHEELS;
         this.setupEntity(entity, {
-            mass: 50,
+            mass: 200,
             localInertia: new three_1.default.Vector3(0, 0, 0),
             group: GROUP_CHASSIS,
             mask: MASK_CHASSIS
@@ -269153,7 +269152,7 @@ class EntityFactory extends baseObject_1.BaseObject {
         //entity.collision.addCylinder(new THREE.Vector3(0, 0, 0), wheelRadius, 0.5);
         entity.collision.addBox(new three_1.default.Vector3(0, 0, 0), new three_1.default.Vector3(1, 0.2, 0.2));
         entity.displayName = "axis";
-        this.setupEntity(entity, { mass: 50 });
+        this.setupEntity(entity, { mass: 80 });
         const CF_NO_CONTACT_RESPONSE = 4; // Constant for no contact response
         entity.body.setCollisionFlags(CF_NO_CONTACT_RESPONSE);
         entity.setPosition(x, y, z);
@@ -269226,6 +269225,7 @@ class EntitySync {
         this.targetPosition = new Ammo.btVector3(0, 0, 0);
         this.targetVelocity = new Ammo.btVector3(0, 0, 0);
         this.targetRotation = new Ammo.btQuaternion(0, 0, 0, 1);
+        this.vehicleSync = false;
         this.entity = entity;
     }
     update(delta) {
@@ -269234,8 +269234,8 @@ class EntitySync {
         if (this.entity.displayName.includes("box")) {
             console.log(this.entity.getPosition().y() + "->" + this.targetPosition.y());
         }
-        if (this.syncType == eSyncType.SYNC_RECONCILIATE || this.syncType == eSyncType.SYNC_DEFAULT) {
-            if (this.getDistanceFromEntity() >= 3) {
+        if (this.vehicleSync) {
+            if (this.getDistanceFromEntity() >= 0.3) {
                 this.forceSetPosition();
             }
         }
@@ -269256,15 +269256,19 @@ class EntitySync {
         const position_t = (0, utils_1.ammoVector3ToThree)(position);
         let lerpAmount = 0.005 * delta;
         //console.log(lerpAmount);
-        if (this.syncType == eSyncType.SYNC_RECONCILIATE) {
-            if (this.getDistanceFromEntity() < 3) {
-                update = false;
-            }
-        }
+        // if(this.syncType == eSyncType.SYNC_RECONCILIATE)
+        // {
+        //     if(this.getDistanceFromEntity() < 1.5)
+        //     {
+        //         update = false;
+        //     }
+        // }
         const newPosition = position_t.lerp(targetPosition_t, lerpAmount);
+        if (this.vehicleSync)
+            update = false;
         if (update) {
-            //this.setEntityPosition(newPosition.x, newPosition.y, newPosition.z);
-            this.setEntityPosition(this.targetPosition.x(), this.targetPosition.y(), this.targetPosition.z());
+            this.setEntityPosition(newPosition.x, newPosition.y, newPosition.z);
+            //this.setEntityPosition(this.targetPosition.x(), this.targetPosition.y(), this.targetPosition.z());
         }
     }
     forceSetPosition() {
@@ -269277,33 +269281,40 @@ class EntitySync {
     syncVelocity(delta) {
         const newVelocity = this.targetVelocity;
         let update = true;
-        if (this.syncType == eSyncType.SYNC_RECONCILIATE) {
-            update = false;
-        }
+        // if(this.syncType == eSyncType.SYNC_RECONCILIATE)
+        // {
+        //     update = false;
+        // }
         update = false;
         if (update)
             this.entity.body.setLinearVelocity(newVelocity);
     }
     syncRotation(delta) {
+        let update = true;
+        let lerpAmount = 0.005 * delta;
         const rotation_t = (0, utils_1.ammoQuaternionToThree)(this.entity.getRotation());
         const targetRotation = this.targetRotation;
         const targetRotation_t = (0, utils_1.ammoQuaternionToThree)(this.targetRotation);
-        let lerpAmount = 0.005 * delta;
+        const angle = rotation_t.angleTo(targetRotation_t);
         rotation_t.slerp(targetRotation_t, lerpAmount);
-        let update = true;
-        if (this.syncType == eSyncType.SYNC_RECONCILIATE) {
+        // if(this.syncType == eSyncType.SYNC_RECONCILIATE)
+        // {
+        //     update = false;
+        // }
+        if (this.vehicleSync)
             update = false;
-        }
+        //console.log(angle)
+        //update = false;
         if (update) {
-            //this.setEntityRotation(rotation_t.x, rotation_t.y, rotation_t.z, rotation_t.w);
-            this.setEntityRotation(targetRotation.x(), targetRotation.y(), targetRotation.z(), targetRotation.w());
+            this.setEntityRotation(rotation_t.x, rotation_t.y, rotation_t.z, rotation_t.w);
+            //this.setEntityRotation(targetRotation.x(), targetRotation.y(), targetRotation.z(), targetRotation.w());
         }
     }
     setEntityRotation(x, y, z, w) {
         this.entity.setRotation(x, y, z, w);
-        const zero = new Ammo.btVector3(0, 0, 0);
-        this.entity.body.setAngularVelocity(zero);
-        Ammo.destroy(zero);
+        //const zero = new Ammo.btVector3(0, 0, 0);
+        //this.entity.body.setAngularVelocity(zero);
+        //Ammo.destroy(zero);
     }
     setPosition(x, y, z) {
         this.targetPosition.setValue(x, y, z);
@@ -269613,8 +269624,6 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Vehicle = void 0;
 const entity_1 = __webpack_require__(/*! ./entity */ "./src/game/entities/entity.ts");
 const input_1 = __webpack_require__(/*! ../input */ "./src/game/input.ts");
-const vector_1 = __webpack_require__(/*! ../../shared/ammo/vector */ "./src/shared/ammo/vector.ts");
-const quaterion_1 = __webpack_require__(/*! ../../shared/ammo/quaterion */ "./src/shared/ammo/quaterion.ts");
 class Vehicle extends entity_1.Entity {
     constructor() {
         super();
@@ -269636,7 +269645,7 @@ class Vehicle extends entity_1.Entity {
             Ammo.destroy(origin);
             Ammo.destroy(transform);
             const setTransformedPosition = (entity, offset) => {
-                console.log(entity.displayName, (0, vector_1.FormatVector3)(offset));
+                //console.log(entity.displayName, FormatVector3(offset))
                 const transformedPosition = this.transformFromObjectSpace(this.body, offset);
                 entity.setPosition(transformedPosition.x(), transformedPosition.y(), transformedPosition.z());
                 //entity.setPosition(x, y, z);
@@ -269655,38 +269664,45 @@ class Vehicle extends entity_1.Entity {
         };
         this.customSetRotation = (x, y, z, w) => {
             const body = this.collision.body;
-            const prevRotation = this.getRotation();
-            const prevEuler = (0, quaterion_1.Quaternion_ToEuler)(prevRotation);
+            //const prevRotation = this.getRotation();
+            //const prevEuler = Quaternion_ToEuler(prevRotation);
             // set chassis rotation
             const quat = new Ammo.btQuaternion(x, y, z, w);
             body.getWorldTransform().setRotation(quat);
             Ammo.destroy(quat);
-            //
-            const newRotation = this.getRotation();
-            const newEuler = (0, quaterion_1.Quaternion_ToEuler)(newRotation);
-            const diffEulerY = newEuler.y() - prevEuler.y();
-            // updates position of other bodies
+            // update other bodies position becasue changed rotation
             const position = this.getPosition();
             this.customSetPosition(position.x(), position.y(), position.z());
-            const rotateBody = (entity) => {
-                const wheelRotation = entity.getRotation();
-                const wheelEuler = (0, quaterion_1.Quaternion_ToEuler)(wheelRotation);
-                const newWheelEulerY = wheelEuler.y() + diffEulerY;
-                const newWheelRotation = new Ammo.btQuaternion(0, 0, 0, 1);
-                newWheelRotation.setEulerZYX(wheelEuler.z(), newWheelEulerY, wheelEuler.x());
-                entity.setRotation(newWheelRotation.x(), newWheelRotation.y(), newWheelRotation.z(), wheelRotation.w());
-                Ammo.destroy(wheelEuler);
-                Ammo.destroy(newWheelRotation);
-            };
-            for (const wheel of this.wheels) {
-                rotateBody(wheel);
-            }
-            for (const axis of this.axis) {
-                rotateBody(axis);
-            }
-            Ammo.destroy(prevEuler);
-            Ammo.destroy(newEuler);
             return false;
+            //
+            // const newRotation = this.getRotation();
+            // const newEuler = Quaternion_ToEuler(newRotation);
+            // const diffEulerY = newEuler.y() - prevEuler.y();
+            // // updates position of other bodies
+            // const position = this.getPosition();
+            // this.customSetPosition!(position.x(), position.y(), position.z());
+            // const rotateBody = (entity: Entity) =>
+            // {
+            //     const wheelRotation = entity.getRotation();
+            //     const wheelEuler = Quaternion_ToEuler(wheelRotation);
+            //     const newWheelEulerY = wheelEuler.y() + diffEulerY;
+            //     const newWheelRotation = new Ammo.btQuaternion(0, 0, 0, 1);
+            //     newWheelRotation.setEulerZYX(wheelEuler.z(), newWheelEulerY, wheelEuler.x());
+            //     entity.setRotation(newWheelRotation.x(), newWheelRotation.y(), newWheelRotation.z(), wheelRotation.w());
+            //     Ammo.destroy(wheelEuler);
+            //     Ammo.destroy(newWheelRotation);
+            // }
+            // for(const wheel of this.wheels)
+            // {
+            //     rotateBody(wheel);
+            // }
+            // for(const axis of this.axis)
+            // {
+            //     rotateBody(axis);
+            // }
+            // Ammo.destroy(prevEuler);
+            // Ammo.destroy(newEuler);
+            // return false;
         };
     }
     initCollision() {
@@ -269744,7 +269760,7 @@ class Vehicle extends entity_1.Entity {
             const GROUP_WHEELS = this.wheelsCollisionGroup;
             //const MASK_WHEELS = ~GROUP_CHASSIS; 
             const wheel = entityFactory.spawnWheel(x, y, z, {
-                mass: 50,
+                mass: 80,
                 group: GROUP_WHEELS,
                 mask: -1
             });
@@ -270011,11 +270027,20 @@ class Game extends baseObject_1.BaseObject {
     }
     preUpdate(delta) {
     }
+    getIsEntityAbleToSync(entity) {
+        for (const [e, info] of this.entitiesInformation) {
+            if (entity instanceof e)
+                return true;
+        }
+        return false;
+    }
     update(delta) {
         for (const entity of this.entityFactory.entities.values())
             entity.update(delta);
         this.serverScene.update(delta);
         for (const entity of this.entityFactory.entities.values()) {
+            if (!this.getIsEntityAbleToSync(entity))
+                continue;
             const position = entity.getPosition();
             const zero = new Ammo.btVector3(0, 2, -20);
             if ((0, vector_1.Vector3_DistanceTo)(position, zero) > this.serverScene.groundSize) {
@@ -270070,6 +270095,7 @@ const gameScene_1 = __webpack_require__(/*! ../scenes/gameScene */ "./src/game/s
 const input_1 = __webpack_require__(/*! ../input */ "./src/game/input.ts");
 const network_1 = __webpack_require__(/*! ../network/network */ "./src/game/network/network.ts");
 const packet_1 = __webpack_require__(/*! ../network/packet */ "./src/game/network/packet.ts");
+const entity_1 = __webpack_require__(/*! ../entities/entity */ "./src/game/entities/entity.ts");
 const utils_1 = __webpack_require__(/*! ../../shared/utils */ "./src/shared/utils.ts");
 const chat_1 = __webpack_require__(/*! ../chat */ "./src/game/chat.ts");
 const entityWatcher_1 = __webpack_require__(/*! ../../server/server/entityWatcher */ "./src/server/server/entityWatcher.ts");
@@ -270092,6 +270118,20 @@ class Gameface extends baseObject_1.BaseObject {
         this._entityWatcher = new entityWatcher_1.EntityWatcher(this._game);
         Gameface.Instance = this;
         this.entityWatcher.onEntityInfoChange = (entity, info) => {
+            //console.log(`changed ${entity.displayName}`)
+            const player = this.player;
+            if (!player)
+                return;
+            const vehicle = player.onVehicle;
+            if (vehicle) {
+                if (entity != vehicle)
+                    return;
+            }
+            info.type = this.entityWatcher.getEntityType(entity);
+            if (info.type == entity_1.EntityType.UNDEFINED)
+                return;
+            //console.log(`sending ${entity.displayName}`)
+            //console.log(`z ${entity.inputZ}`)
             this.network.sendPlayerData(info);
         };
     }
@@ -270157,7 +270197,7 @@ class Gameface extends baseObject_1.BaseObject {
                     (_a = mainScene_1.MainScene.Instance.input.mouse) === null || _a === void 0 ? void 0 : _a.requestPointerLock();
                 }
             });
-            const startMultiplayer = false;
+            const startMultiplayer = true;
             chat_1.Chat.Instance.addColorMessage("Server", "gold", `Modo: ${startMultiplayer ? "Multiplayer" : "Singleplayer"}`);
             chat_1.Chat.Instance.addColorMessage("Server", "gold", `Conectando-se ao servidor...`);
             this.network.connect(() => __awaiter(this, void 0, void 0, function* () {
@@ -270916,6 +270956,7 @@ var PACKET_TYPE;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SyncHelper = void 0;
 const ammoUtils_1 = __webpack_require__(/*! ../../shared/ammo/ammoUtils */ "./src/shared/ammo/ammoUtils.ts");
+const vector_1 = __webpack_require__(/*! ../../shared/ammo/vector */ "./src/shared/ammo/vector.ts");
 const entity_1 = __webpack_require__(/*! ../entities/entity */ "./src/game/entities/entity.ts");
 const entitySync_1 = __webpack_require__(/*! ../entities/entitySync */ "./src/game/entities/entitySync.ts");
 const ped_1 = __webpack_require__(/*! ../entities/ped */ "./src/game/entities/ped.ts");
@@ -270926,13 +270967,19 @@ class SyncHelper {
         const player = gameface_1.Gameface.Instance.player;
         if (!player)
             return;
+        const game = player.game;
+        if (game.isServer)
+            return;
         const vehicle = player.onVehicle;
         if (this.drivingVehicle != vehicle) {
+            const prevVehicle = this.drivingVehicle;
             if (vehicle) {
-                //vehicle.sync.syncType = eSyncType.SYNC_NONE;
+                gameface_1.Gameface.Instance.entityWatcher.addEntity(vehicle);
+                vehicle.sync.syncType = entitySync_1.eSyncType.SYNC_NONE;
             }
             else {
-                //this.drivingVehicle!.sync.syncType = eSyncType.SYNC_DEFAULT
+                prevVehicle.sync.syncType = entitySync_1.eSyncType.SYNC_DEFAULT;
+                gameface_1.Gameface.Instance.entityWatcher.removeEntity(prevVehicle);
             }
             this.drivingVehicle = vehicle;
         }
@@ -270941,26 +270988,25 @@ class SyncHelper {
         // if(packet.type == PACKET_TYPE.PACKET_ENTITIES)
         // {
         //     const data = packet.data as IPacketData_Entities;
+        var _a;
         //     SyncHelper.onReceiveEntitiesPacket(data);
         // }
         if (packet.type == packet_1.PACKET_TYPE.PACKET_ENTITY_INFO_BASIC) {
             const data = packet.data;
             SyncHelper.onReceiveEntityInfoBasic(data);
         }
-        // if(packet.type == PACKET_TYPE.PACKET_WEAPON_SHOT)
-        // {
-        //     const data = packet.data as IPacketData_WeaponShot;
-        //     const game = Gameface.Instance.game;
-        //     const ped = game.entityFactory.entities.get(data.byPed) as Ped;
-        //     if(ped && ped != Gameface.Instance.player)
-        //     {
-        //         const hitPos = new Ammo.btVector3(data.hit[0], data.hit[1], data.hit[2]);
-        //         const dir = Vector3_GetDirectionBetweenVectors(ped.cameraPosition, hitPos);
-        //         ped.weapon?.shootDirectionEx(ped.cameraPosition, dir, false);
-        //         Ammo.destroy(hitPos);
-        //         Ammo.destroy(dir);
-        //     }
-        // }
+        if (packet.type == packet_1.PACKET_TYPE.PACKET_WEAPON_SHOT) {
+            const data = packet.data;
+            const game = gameface_1.Gameface.Instance.game;
+            const ped = game.entityFactory.entities.get(data.byPed);
+            if (ped && ped != gameface_1.Gameface.Instance.player) {
+                const hitPos = new Ammo.btVector3(data.hit[0], data.hit[1], data.hit[2]);
+                const dir = (0, vector_1.Vector3_GetDirectionBetweenVectors)(ped.cameraPosition, hitPos);
+                (_a = ped.weapon) === null || _a === void 0 ? void 0 : _a.shootDirectionEx(ped.cameraPosition, dir, false);
+                Ammo.destroy(hitPos);
+                Ammo.destroy(dir);
+            }
+        }
         // if(packet.type == PACKET_TYPE.PACKET_HEALTH)
         // {
         //     const data = packet.data as IPacketData_Health;
@@ -270990,9 +271036,11 @@ class SyncHelper {
                     break;
                 case entity_1.EntityType.VEHICLE:
                     entity = game.entityFactory.spawnCar(0, 0, 0);
+                    entity.sync.vehicleSync = true;
                     break;
                 case entity_1.EntityType.BIKE:
                     entity = game.entityFactory.spawnBike(0, 0, 0);
+                    entity.sync.vehicleSync = true;
                     break;
                 default:
                     break;
@@ -271013,7 +271061,7 @@ class SyncHelper {
             if (!gameface_1.Gameface.Instance.player) {
                 gameface_1.Gameface.Instance.player = entity;
                 gameface_1.Gameface.Instance.player.equipWeapon(0);
-                entity.sync.syncType = entitySync_1.eSyncType.SYNC_RECONCILIATE;
+                entity.sync.syncType = entitySync_1.eSyncType.SYNC_NONE;
                 gameface_1.Gameface.Instance.entityWatcher.addEntity(entity);
             }
         }
@@ -271105,6 +271153,7 @@ const camera_1 = __webpack_require__(/*! ../camera */ "./src/game/camera.ts");
 const clientEntityManager_1 = __webpack_require__(/*! ../entities/clientEntities/clientEntityManager */ "./src/game/entities/clientEntities/clientEntityManager.ts");
 const gameface_1 = __webpack_require__(/*! ../gameface/gameface */ "./src/game/gameface/gameface.ts");
 const input_1 = __webpack_require__(/*! ../input */ "./src/game/input.ts");
+const packet_1 = __webpack_require__(/*! ../network/packet */ "./src/game/network/packet.ts");
 const joystick_1 = __webpack_require__(/*! ../joystick */ "./src/game/joystick.ts");
 const widgets_1 = __webpack_require__(/*! ../widgets/widgets */ "./src/game/widgets/widgets.ts");
 const utils_1 = __webpack_require__(/*! ../../shared/utils */ "./src/shared/utils.ts");
@@ -271250,9 +271299,9 @@ class GameScene extends Phaser.Scene {
             if (vehicle) {
                 console.log("enter vehicle");
                 player.enterVehicle(vehicle);
-                // Gameface.Instance.network.send<IPacketData_EnterLeaveVehicle>(PACKET_TYPE.PACKET_ENTER_LEAVE_VEHICLE, {
-                //     vehicleId: vehicle.id
-                // });
+                gameface_1.Gameface.Instance.network.send(packet_1.PACKET_TYPE.PACKET_ENTER_LEAVE_VEHICLE, {
+                    vehicleId: vehicle.id
+                });
             }
             else {
                 console.log("no vehicle found");
@@ -271260,10 +271309,11 @@ class GameScene extends Phaser.Scene {
         }
         else {
             console.log("leave vehicle");
+            const vehicleId = player.onVehicle.id;
             player.leaveVehicle();
-            // Gameface.Instance.network.send<IPacketData_EnterLeaveVehicle>(PACKET_TYPE.PACKET_ENTER_LEAVE_VEHICLE, {
-            //     vehicleId: player.onVehicle!.id
-            // });
+            gameface_1.Gameface.Instance.network.send(packet_1.PACKET_TYPE.PACKET_ENTER_LEAVE_VEHICLE, {
+                vehicleId: vehicleId
+            });
         }
     }
 }
@@ -271644,12 +271694,12 @@ class ServerScene {
         */
     }
     createLocalScene() {
-        const car = this.game.entityFactory.spawnCar(0, 0, 0);
+        //const car = this.game.entityFactory.spawnCar(0, 0, 0);
         //const bike = this.game.entityFactory.spawnBike(10, 0, 0);
     }
     createServerScene() {
-        const car = this.game.entityFactory.spawnCar(0, 0, 0);
-        const bike = this.game.entityFactory.spawnBike(5, 0, 0);
+        const bike = this.game.entityFactory.spawnBike(0, 0, 0);
+        const car = this.game.entityFactory.spawnCar(10, 0, 0);
         const ball = this.game.entityFactory.spawnBall(5, 2, 0);
         setInterval(() => {
             ball.body.setAngularVelocity(new Ammo.btVector3(0, 0, 0));
@@ -272040,13 +272090,6 @@ class Weapon extends baseObject_1.BaseObject {
                     if (entity.game.isServer) {
                         this.processWeaponDamage(entity);
                     }
-                    const force = new Ammo.btVector3(hitNormal.x(), hitNormal.y(), hitNormal.z());
-                    force.op_mul(-8000);
-                    const zero = new Ammo.btVector3(0, 0, 0);
-                    entity.body.activate();
-                    entity.body.applyForce(force, zero);
-                    Ammo.destroy(force);
-                    Ammo.destroy(zero);
                 }
             }
             else {
@@ -272065,6 +272108,13 @@ class Weapon extends baseObject_1.BaseObject {
             entity.setPosition(0, 3, 0);
             entity.health = 100;
         }
+        const force = new Ammo.btVector3(0, 1, 0);
+        force.op_mul(8000);
+        const zero = new Ammo.btVector3(0, 0, 0);
+        entity.body.activate();
+        entity.body.applyForce(force, zero);
+        Ammo.destroy(force);
+        Ammo.destroy(zero);
     }
 }
 exports.Weapon = Weapon;
@@ -272422,7 +272472,7 @@ class EntityWatcher {
                 if (entityInfo.hasValueChanged("lookDir.y"))
                     lookDir.y = entityInfo.getValue("lookDir.y");
                 if (entityInfo.hasValueChanged("lookDir.z"))
-                    lookDir.y = entityInfo.getValue("lookDir.z");
+                    lookDir.z = entityInfo.getValue("lookDir.z");
                 if (entityInfo.hasValueChanged("lookDir.w"))
                     lookDir.w = entityInfo.getValue("lookDir.w");
                 info.lookDir = lookDir;

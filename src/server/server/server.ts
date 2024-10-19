@@ -38,7 +38,7 @@ export class Server extends BaseObject
         this.game.isServer = true;
 
         this.game.events.on("weapon_shot", (weapon: Weapon, from: THREE.Vector3, to: THREE.Vector3) => {
-            console.log("broadcast this weapon_shot")
+            //console.log("broadcast this weapon_shot")
 
             this.sendToAll<IPacketData_WeaponShot>(PACKET_TYPE.PACKET_WEAPON_SHOT, {
                 hit: [to.x, to.y, to.z],

@@ -2,7 +2,7 @@ import { Quaternion_Right, Quaternion_Up } from "../../shared/ammo/quaterion";
 import { Camera } from "../camera";
 import { ClientEntityManager } from "../entities/clientEntities/clientEntityManager";
 import { Gameface } from "../gameface/gameface";import { Input } from "../input";
-import { PACKET_TYPE } from "../network/packet";
+import { IPacketData_EnterLeaveVehicle, PACKET_TYPE } from "../network/packet";
 import { Joystick } from "../joystick";
 import { Widgets } from "../widgets/widgets";
 import { getIsMobile } from "../../shared/utils";
@@ -221,20 +221,22 @@ export class GameScene extends Phaser.Scene
 
                 player.enterVehicle(vehicle);
 
-                // Gameface.Instance.network.send<IPacketData_EnterLeaveVehicle>(PACKET_TYPE.PACKET_ENTER_LEAVE_VEHICLE, {
-                //     vehicleId: vehicle.id
-                // });
+                Gameface.Instance.network.send<IPacketData_EnterLeaveVehicle>(PACKET_TYPE.PACKET_ENTER_LEAVE_VEHICLE, {
+                    vehicleId: vehicle.id
+                });
             } else {
                 console.log("no vehicle found")
             }
         } else {
             console.log("leave vehicle");
 
+            const vehicleId = player.onVehicle.id;
+
             player.leaveVehicle();
             
-            // Gameface.Instance.network.send<IPacketData_EnterLeaveVehicle>(PACKET_TYPE.PACKET_ENTER_LEAVE_VEHICLE, {
-            //     vehicleId: player.onVehicle!.id
-            // });
+            Gameface.Instance.network.send<IPacketData_EnterLeaveVehicle>(PACKET_TYPE.PACKET_ENTER_LEAVE_VEHICLE, {
+                vehicleId: vehicleId
+            });
         }
     }
 }

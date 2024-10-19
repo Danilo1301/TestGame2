@@ -131,7 +131,7 @@ export class EntityWatcher
                 const lookDir: XYZW = {};
                 if(entityInfo.hasValueChanged("lookDir.x")) lookDir.x = entityInfo.getValue("lookDir.x");
                 if(entityInfo.hasValueChanged("lookDir.y")) lookDir.y = entityInfo.getValue("lookDir.y");
-                if(entityInfo.hasValueChanged("lookDir.z")) lookDir.y = entityInfo.getValue("lookDir.z");
+                if(entityInfo.hasValueChanged("lookDir.z")) lookDir.z = entityInfo.getValue("lookDir.z");
                 if(entityInfo.hasValueChanged("lookDir.w")) lookDir.w = entityInfo.getValue("lookDir.w");
                 info.lookDir = lookDir;
 

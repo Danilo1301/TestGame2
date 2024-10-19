@@ -130,7 +130,7 @@ export class EntityFactory extends BaseObject {
         const MASK_CHASSIS = ~GROUP_WHEELS;
 
         this.setupEntity(entity, {
-            mass: 50,
+            mass: 200,
             localInertia: new THREE.Vector3(0, 0, 0),
             group: GROUP_CHASSIS,
             mask: MASK_CHASSIS
@@ -208,7 +208,7 @@ export class EntityFactory extends BaseObject {
         entity.collision.addBox(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 0.2, 0.2));
         entity.displayName = "axis";
 
-        this.setupEntity(entity, {mass: 50});
+        this.setupEntity(entity, {mass: 80});
 
         const CF_NO_CONTACT_RESPONSE = 4; // Constant for no contact response
         entity.body.setCollisionFlags(CF_NO_CONTACT_RESPONSE);

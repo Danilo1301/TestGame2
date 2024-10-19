@@ -15,7 +15,7 @@ import { Input } from "../input";
 import { Weapon } from "../weapons/weapon";
 import { Network } from "../network/network";
 import { IPacketData_Models, IPacketData_WeaponShot, PACKET_TYPE } from "../network/packet";
-import { Entity, Entity_Info_Basic } from "../entities/entity";
+import { Entity, Entity_Info_Basic, EntityType } from "../entities/entity";
 import { getIsMobile } from "../../shared/utils";
 import { Chat } from "../chat";
 import { EntityWatcher } from "../../server/server/entityWatcher";
@@ -51,6 +51,26 @@ export class Gameface extends BaseObject
 
         this.entityWatcher.onEntityInfoChange = (entity: Entity, info: Entity_Info_Basic) =>
         {
+            //console.log(`changed ${entity.displayName}`)
+
+            const player = this.player;
+
+            if(!player) return;
+
+            const vehicle = player.onVehicle;
+
+            if(vehicle)
+            {
+                if(entity != vehicle) return;
+            }
+
+            info.type = this.entityWatcher.getEntityType(entity);
+
+            if(info.type == EntityType.UNDEFINED) return;
+
+            //console.log(`sending ${entity.displayName}`)
+            //console.log(`z ${entity.inputZ}`)
+
             this.network.sendPlayerData(info);
         }
     }
@@ -140,7 +160,7 @@ export class Gameface extends BaseObject
             
         });
 
-        const startMultiplayer: boolean = false;
+        const startMultiplayer: boolean = true;
         
         Chat.Instance.addColorMessage("Server", "gold", `Modo: ${startMultiplayer ? "Multiplayer" : "Singleplayer"}`);
         Chat.Instance.addColorMessage("Server", "gold", `Conectando-se ao servidor...`);
