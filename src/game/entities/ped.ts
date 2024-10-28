@@ -254,9 +254,9 @@ export class Ped extends Entity
         this.lookAt(position.x() + offsetX, position.y() + offsetY, position.z() + offsetZ);
     }
 
-    public equipWeapon(id: number)
+    public equipWeapon(id: string)
     {
-        if(id == -1)
+        if(id == "")
         {
             this.weapon = undefined;
             return;
@@ -369,14 +369,7 @@ export class Ped extends Entity
     
     public toJSON()
     {
-        const data: PedData_JSON = {
-            lookDir: [this.lookDir.x(), this.lookDir.y(), this.lookDir.z(), this.lookDir.w()],
-            aiming: this.aiming,
-            weapon: this.weapon ? this.weapon.weaponData.id : -1
-        }
-        
         const json = super.toJSON();
-        json.data = data;
 
         return json;
     }

@@ -46,7 +46,7 @@ export interface Entity_Info_Basic {
 
     aiming?: boolean
     lookDir?: XYZ
-    weapon?: number
+    weapon?: string
 }
 
 export class Entity extends BaseObject

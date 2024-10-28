@@ -213,6 +213,11 @@ export class AnimationManager extends BaseObject
         anim.stopAtEnd = true;
     }
 
+    public playSubAnimationOnce(name: string)
+    {
+        this.playAnimationEx(AnimRole.ANIM_SUB, name, 1);
+    }
+
     public stopMainAnimation(stopImidiately: boolean = false)
     {
         this.stopAnimationEx(AnimRole.ANIM_MAIN, stopImidiately);

@@ -163,12 +163,18 @@ export class Vehicle extends Entity
 
         for(const wheel of this.wheels)
         {
-            //console.log(FormatVector3(wheel.body.getAngularVelocity()))
+            const velocity = wheel.body.getAngularVelocity();
 
+            const newVelocity = Vector3_Clone(velocity);
+    
+            if(this.inputX == 0 && this.inputZ == 0)
+            {
+                newVelocity.op_mul(0.75);
+            }
 
-            //wheel.body.setLinearVelocity(newvelocity)
+            wheel.body.setAngularVelocity(newVelocity);
 
-            //Ammo.destroy(newvelocity);
+            Ammo.destroy(newVelocity);
         }
 
         this.darGrau = Input.getKey("SHIFT") == true;
@@ -186,7 +192,7 @@ export class Vehicle extends Entity
         }
 
         // back wheels
-        const force = 3000;
+        const force = 6000;
         const velocity = force * this.inputZ;
 
         this.setBackWheelsVelocity(velocity);
@@ -463,7 +469,7 @@ export class Vehicle extends Entity
 
             // 200 dá grau
             // 20 normal
-            constraint.enableAngularMotor(true, velocity, this.darGrau ? 100 : 5);
+            constraint.enableAngularMotor(true, velocity, this.darGrau ? 50 : 15);
         }
     }
 

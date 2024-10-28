@@ -151,7 +151,7 @@ export class SyncHelper
             if(!Gameface.Instance.player)
             {
                 Gameface.Instance.player = entity as Ped;
-                Gameface.Instance.player.equipWeapon(0);
+                Gameface.Instance.player.equipWeapon("m4");
 
                 entity.sync.syncType = eSyncType.SYNC_NONE;
 
@@ -201,7 +201,7 @@ export class SyncHelper
 
                 if(data.weapon != undefined)
                 {
-                    let currentWeaponId = -1;
+                    let currentWeaponId = "";
                     if(entity.weapon) currentWeaponId = entity.weapon.weaponData.id;
 
                     if(currentWeaponId != data.weapon)

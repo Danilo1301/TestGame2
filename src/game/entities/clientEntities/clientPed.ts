@@ -12,7 +12,7 @@ export class ClientPed extends ClientEntity
 {
     public get ped() { return this.entity as Ped; }
 
-    private _prevEquipedWeapon: number = -1;
+    private _prevEquipedWeapon: string = "";
     private _weaponItem?: WeaponItem;
 
     private _lookDirLine?: THREELine;
@@ -97,7 +97,7 @@ export class ClientPed extends ClientEntity
 
         //weapon
 
-        let currentWeaponId = -1;
+        let currentWeaponId = "";
         const weapon = this.ped.weapon;
 
         if(weapon)
@@ -109,6 +109,8 @@ export class ClientPed extends ClientEntity
         {
             this._prevEquipedWeapon = currentWeaponId;
 
+            this.animationManager.playSubAnimationOnce("equip_m4");
+            
             if(weapon)
             {
                 this._weaponItem = this.ped.game.entityFactory.spawnWeaponItem(weapon);
@@ -160,21 +162,14 @@ export class ClientPed extends ClientEntity
 
         if(Input.getKeyDown("1"))
         {
-            if(ped.weapon)
-            {
-                ped.equipWeapon(-1);
-            } else {
-                ped.equipWeapon(1);
-            }
+            ped.equipWeapon("m4");
         }
 
         if(Input.getKeyDown("2") && this.entity == Gameface.Instance.player)
         {
             const ped = Gameface.Instance.player;
 
-            ped.equipWeapon(1);
-
-            ped.game.entityFactory.spawnEmptyEntity(0, 5, 0);
+            ped.equipWeapon("ak");
         }
 
         if(Input.getKeyDown("Z"))

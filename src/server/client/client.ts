@@ -9,6 +9,7 @@ import { Entity, EntityType } from '../../game/entities/entity';
 import { XYZ, XYZ_SetValue, XYZW_SetValue } from '../../shared/ammo/ammoUtils';
 import THREE from 'three';
 import { Vehicle } from '../../game/entities/vehicle';
+import { Inventory } from '../../shared/inventory/inventory';
 
 export class Client extends BaseObject
 {
@@ -25,6 +26,8 @@ export class Client extends BaseObject
 
     public entitiesCreated: string[] = [];
     public isReady: boolean = false;
+
+    public inventory?: Inventory;
 
     constructor(socket: socketio.Socket)
     {
@@ -154,7 +157,7 @@ export class Client extends BaseObject
 
                 if(data.weapon != undefined)
                 {
-                    let currentWeaponId = -1;
+                    let currentWeaponId = "";
                     if(player.weapon) currentWeaponId = player.weapon.weaponData.id;
 
                     if(currentWeaponId != data.weapon)
@@ -249,6 +252,8 @@ export class Client extends BaseObject
 
         const player = server.game.entityFactory.spawnPed(0, 5, 0);
         this._player = player;
+
+        this.inventory = server.game.inventoryManager.createPlayerInventory();
 
         this.send<IPacketData_JoinedServer>(PACKET_TYPE.PACKET_JOINED_SERVER, {
             playerId: player.id,

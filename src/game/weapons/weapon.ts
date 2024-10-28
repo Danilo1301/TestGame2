@@ -7,7 +7,7 @@ import { Ped } from "../entities/ped";
 import { Game } from "../game/game";
 
 export interface WeaponData {
-    id: number
+    id: string
     anim: string
 }
 

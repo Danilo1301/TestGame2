@@ -3,29 +3,29 @@ import { WeaponData } from "./weapon";
 
 export class Weapons extends BaseObject {
 
-    public weaponDatas: WeaponData[] = [];
+    public weaponDatas = new Map<string, WeaponData>();
 
     public init()
     {
-        const m4 = this.createWeaponData();
+        const m4 = this.createWeaponData("m4");
         
-        const ak = this.createWeaponData();
+        const ak = this.createWeaponData("ak");
     }
 
-    public createWeaponData()
+    public createWeaponData(id: string)
     {
         const weaponData: WeaponData = {
-            id: this.weaponDatas.length,
+            id: id,
             anim: "m4"
         }
 
-        this.weaponDatas.push(weaponData);
+        this.weaponDatas.set(id, weaponData);
         
         return weaponData;
     }
 
-    public getWeaponData(id: number): WeaponData | undefined
+    public getWeaponData(id: string): WeaponData | undefined
     {
-        return this.weaponDatas[id];
+        return this.weaponDatas.get(id);
     }
 }

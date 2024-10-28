@@ -12,6 +12,8 @@ import { Vector3_DistanceTo } from "../../shared/ammo/vector";
 import { Vehicle } from "../entities/vehicle";
 import { Bike } from "../entities/bike";
 import { Ball } from "../entities/ball";
+import { InventoryManager } from "../../shared/inventory/inventoryManager";
+import { ItemManager } from "../../shared/inventory/item/itemManager";
 
 export class Game extends BaseObject
 {
@@ -25,6 +27,8 @@ export class Game extends BaseObject
     public get weapons() { return this._weapons; }
     public get gltfCollection() { return this._gltfCollection; }
     public get entitiesInformation() { return this._entitiesInformation; }
+    public get inventoryManager() { return this._inventoryManager; }
+    public get itemManager() { return this._itemManager; }
 
     private _serverScene = new ServerScene(this);
     private _ammoUtils = new AmmoUtils();
@@ -32,6 +36,8 @@ export class Game extends BaseObject
     private _weapons = new Weapons();
     private _gltfCollection = new GLTFCollection();
     private _entitiesInformation = new Map<typeof Entity, EntityType>();
+    private _inventoryManager = new InventoryManager(this);
+    private _itemManager = new ItemManager(this);
 
     constructor()
     {
@@ -46,7 +52,9 @@ export class Game extends BaseObject
         this._entitiesInformation.set(Bike, EntityType.BIKE);
         this._entitiesInformation.set(Vehicle, EntityType.VEHICLE);
 
+        this.itemManager.init();
         this.weapons.init();
+        this.inventoryManager.init();
         this.serverScene.init();
         this.ammoUtils.physicsWorld = this.serverScene.physics.physicsWorld;
     }

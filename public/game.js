@@ -267620,7 +267620,7 @@ class Bike extends vehicle_1.Vehicle {
         const euler = (0, quaterion_1.Quaternion_ToEuler)(rotation);
         const yaw = euler.z();
         const right = this.right;
-        right.op_mul(20000);
+        right.op_mul(30000);
         const forceRelative = new Ammo.btVector3(0, 2, 0);
         //console.log(yaw);
         if (yaw > 0) {
@@ -267843,6 +267843,9 @@ class AnimationManager extends baseObject_1.BaseObject {
     playSubAnimationAndStop(name) {
         const anim = this.playAnimationEx(AnimRole.ANIM_SUB, name, 1);
         anim.stopAtEnd = true;
+    }
+    playSubAnimationOnce(name) {
+        this.playAnimationEx(AnimRole.ANIM_SUB, name, 1);
     }
     stopMainAnimation(stopImidiately = false) {
         this.stopAnimationEx(AnimRole.ANIM_MAIN, stopImidiately);
@@ -268328,7 +268331,7 @@ const gameface_1 = __webpack_require__(/*! ../../gameface/gameface */ "./src/gam
 class ClientPed extends clientEntity_1.ClientEntity {
     constructor() {
         super(...arguments);
-        this._prevEquipedWeapon = -1;
+        this._prevEquipedWeapon = "";
         this._mainAnimI = 0;
         this._subAnimI = 0;
     }
@@ -268382,13 +268385,14 @@ class ClientPed extends clientEntity_1.ClientEntity {
         if (!this.animationManager.isPlayingAnim(animName))
             this.animationManager.playAnimationLoop(animName);
         //weapon
-        let currentWeaponId = -1;
+        let currentWeaponId = "";
         const weapon = this.ped.weapon;
         if (weapon) {
             currentWeaponId = weapon.weaponData.id;
         }
         if (currentWeaponId != this._prevEquipedWeapon) {
             this._prevEquipedWeapon = currentWeaponId;
+            this.animationManager.playSubAnimationOnce("equip_m4");
             if (weapon) {
                 this._weaponItem = this.ped.game.entityFactory.spawnWeaponItem(weapon);
             }
@@ -268425,17 +268429,11 @@ class ClientPed extends clientEntity_1.ClientEntity {
         if (ped != this.ped)
             return;
         if (input_1.Input.getKeyDown("1")) {
-            if (ped.weapon) {
-                ped.equipWeapon(-1);
-            }
-            else {
-                ped.equipWeapon(1);
-            }
+            ped.equipWeapon("m4");
         }
         if (input_1.Input.getKeyDown("2") && this.entity == gameface_1.Gameface.Instance.player) {
             const ped = gameface_1.Gameface.Instance.player;
-            ped.equipWeapon(1);
-            ped.game.entityFactory.spawnEmptyEntity(0, 5, 0);
+            ped.equipWeapon("ak");
         }
         if (input_1.Input.getKeyDown("Z")) {
             this._mainAnimI++;
@@ -269503,7 +269501,7 @@ class Ped extends entity_1.Entity {
         this.lookAt(position.x() + offsetX, position.y() + offsetY, position.z() + offsetZ);
     }
     equipWeapon(id) {
-        if (id == -1) {
+        if (id == "") {
             this.weapon = undefined;
             return;
         }
@@ -269575,13 +269573,7 @@ class Ped extends entity_1.Entity {
         return closestVehicle;
     }
     toJSON() {
-        const data = {
-            lookDir: [this.lookDir.x(), this.lookDir.y(), this.lookDir.z(), this.lookDir.w()],
-            aiming: this.aiming,
-            weapon: this.weapon ? this.weapon.weaponData.id : -1
-        };
         const json = super.toJSON();
-        json.data = data;
         return json;
     }
 }
@@ -269624,6 +269616,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Vehicle = void 0;
 const entity_1 = __webpack_require__(/*! ./entity */ "./src/game/entities/entity.ts");
 const input_1 = __webpack_require__(/*! ../input */ "./src/game/input.ts");
+const vector_1 = __webpack_require__(/*! ../../shared/ammo/vector */ "./src/shared/ammo/vector.ts");
 class Vehicle extends entity_1.Entity {
     constructor() {
         super();
@@ -269718,9 +269711,13 @@ class Vehicle extends entity_1.Entity {
         //this.inputX = (Input.getKey("A") ? -1 : 0) + (Input.getKey("D") ? 1 : 0);
         //this.inputZ = (Input.getKey("W") ? 1 : 0) + (Input.getKey("S") ? -1 : 0);
         for (const wheel of this.wheels) {
-            //console.log(FormatVector3(wheel.body.getAngularVelocity()))
-            //wheel.body.setLinearVelocity(newvelocity)
-            //Ammo.destroy(newvelocity);
+            const velocity = wheel.body.getAngularVelocity();
+            const newVelocity = (0, vector_1.Vector3_Clone)(velocity);
+            if (this.inputX == 0 && this.inputZ == 0) {
+                newVelocity.op_mul(0.75);
+            }
+            wheel.body.setAngularVelocity(newVelocity);
+            Ammo.destroy(newVelocity);
         }
         this.darGrau = input_1.Input.getKey("SHIFT") == true;
         // front wheels
@@ -269734,7 +269731,7 @@ class Vehicle extends entity_1.Entity {
             this.steerWheels(Math.PI / 4);
         }
         // back wheels
-        const force = 3000;
+        const force = 6000;
         const velocity = force * this.inputZ;
         this.setBackWheelsVelocity(velocity);
         if (input_1.Input.getKey("Y")) {
@@ -269900,7 +269897,7 @@ class Vehicle extends entity_1.Entity {
             }
             // 200 dá grau
             // 20 normal
-            constraint.enableAngularMotor(true, velocity, this.darGrau ? 100 : 5);
+            constraint.enableAngularMotor(true, velocity, this.darGrau ? 50 : 15);
         }
     }
     toJSON() {
@@ -269985,6 +269982,8 @@ const vector_1 = __webpack_require__(/*! ../../shared/ammo/vector */ "./src/shar
 const vehicle_1 = __webpack_require__(/*! ../entities/vehicle */ "./src/game/entities/vehicle.ts");
 const bike_1 = __webpack_require__(/*! ../entities/bike */ "./src/game/entities/bike.ts");
 const ball_1 = __webpack_require__(/*! ../entities/ball */ "./src/game/entities/ball.ts");
+const inventoryManager_1 = __webpack_require__(/*! ../../shared/inventory/inventoryManager */ "./src/shared/inventory/inventoryManager.ts");
+const itemManager_1 = __webpack_require__(/*! ../../shared/inventory/item/itemManager */ "./src/shared/inventory/item/itemManager.ts");
 class Game extends baseObject_1.BaseObject {
     get serverScene() { return this._serverScene; }
     ;
@@ -269995,6 +269994,8 @@ class Game extends baseObject_1.BaseObject {
     get weapons() { return this._weapons; }
     get gltfCollection() { return this._gltfCollection; }
     get entitiesInformation() { return this._entitiesInformation; }
+    get inventoryManager() { return this._inventoryManager; }
+    get itemManager() { return this._itemManager; }
     constructor() {
         super();
         this.isServer = false;
@@ -270005,6 +270006,8 @@ class Game extends baseObject_1.BaseObject {
         this._weapons = new weapons_1.Weapons();
         this._gltfCollection = new gltfCollection_1.GLTFCollection();
         this._entitiesInformation = new Map();
+        this._inventoryManager = new inventoryManager_1.InventoryManager(this);
+        this._itemManager = new itemManager_1.ItemManager(this);
     }
     init() {
         this._entitiesInformation.set(ped_1.Ped, entity_1.EntityType.PED);
@@ -270012,7 +270015,9 @@ class Game extends baseObject_1.BaseObject {
         this._entitiesInformation.set(ball_1.Ball, entity_1.EntityType.BALL);
         this._entitiesInformation.set(bike_1.Bike, entity_1.EntityType.BIKE);
         this._entitiesInformation.set(vehicle_1.Vehicle, entity_1.EntityType.VEHICLE);
+        this.itemManager.init();
         this.weapons.init();
+        this.inventoryManager.init();
         this.serverScene.init();
         this.ammoUtils.physicsWorld = this.serverScene.physics.physicsWorld;
     }
@@ -270100,6 +270105,7 @@ const utils_1 = __webpack_require__(/*! ../../shared/utils */ "./src/shared/util
 const chat_1 = __webpack_require__(/*! ../chat */ "./src/game/chat.ts");
 const entityWatcher_1 = __webpack_require__(/*! ../../server/server/entityWatcher */ "./src/server/server/entityWatcher.ts");
 const syncHelper_1 = __webpack_require__(/*! ../network/syncHelper */ "./src/game/network/syncHelper.ts");
+const clientInventoryManager_1 = __webpack_require__(/*! ../../shared/inventory/client/clientInventoryManager */ "./src/shared/inventory/client/clientInventoryManager.ts");
 class Gameface extends baseObject_1.BaseObject {
     get sceneManager() { return this._sceneManager; }
     get phaser() { return this._phaser; }
@@ -270157,6 +270163,8 @@ class Gameface extends baseObject_1.BaseObject {
             loadScene.addImage("widget_aim", "widgets/widget_aim.png");
             loadScene.addImage("widget_shoot", "widgets/widget_shoot.png");
             loadScene.addImage("widget_car", "widgets/widget_car.png");
+            loadScene.addImage("item_m4", "items/m4/m4.png");
+            loadScene.addImage("item_ak", "items/ak/ak.png");
             loadScene.addAudio("shot_m4", "weapons/m4/shot.wav");
             //this.load.image("crosshair_shotgun", "crosshair/shotgun.png");
             //this.load.audio("shot_m4", "weapons/m4/shot.wav");
@@ -270175,6 +270183,7 @@ class Gameface extends baseObject_1.BaseObject {
             this.input.init(mainScene_1.MainScene.Instance);
             this.sceneManager.startScene(gameScene_1.GameScene);
             this.game.init();
+            clientInventoryManager_1.ClientInventoryManager.init();
             this.game.events.on("weapon_shot", (weapon, from, to, entity) => {
                 gameScene_1.GameScene.Instance.clientEntityManager.onWeaponShot(weapon, from, to);
                 const ped = weapon.ped;
@@ -270217,16 +270226,6 @@ class Gameface extends baseObject_1.BaseObject {
                     return;
                 }
                 this.network.send(packet_1.PACKET_TYPE.PACKET_CLIENT_READY, {});
-                // const ped = this.game.entityFactory.spawnPed(0, 5, 0);
-                // this.player = ped;
-                // this.player.equipWeapon(0);
-                // const box = this.game.entityFactory.spawnBox(5, 5, 0);
-                // const npc = this.game.entityFactory.spawnPed(0, 5, 0);
-                // npc.inputZ = 0.01;   
-                // (window as any)["npc"] = npc;
-                // setInterval(() => {
-                //     npc.lookAtEntity(box);
-                // }, 500);
             }));
         });
     }
@@ -271060,7 +271059,7 @@ class SyncHelper {
         if (entity.id == gameface_1.Gameface.Instance.playerId) {
             if (!gameface_1.Gameface.Instance.player) {
                 gameface_1.Gameface.Instance.player = entity;
-                gameface_1.Gameface.Instance.player.equipWeapon(0);
+                gameface_1.Gameface.Instance.player.equipWeapon("m4");
                 entity.sync.syncType = entitySync_1.eSyncType.SYNC_NONE;
                 gameface_1.Gameface.Instance.entityWatcher.addEntity(entity);
             }
@@ -271093,7 +271092,7 @@ class SyncHelper {
                 const lookDir = (0, ammoUtils_1.XYZW_SetValue)(data.lookDir, { x: pedLookDir.x(), y: pedLookDir.y(), z: pedLookDir.z(), w: pedLookDir.w() });
                 entity.lookDir.setValue(lookDir.x, lookDir.y, lookDir.z, lookDir.w);
                 if (data.weapon != undefined) {
-                    let currentWeaponId = -1;
+                    let currentWeaponId = "";
                     if (entity.weapon)
                         currentWeaponId = entity.weapon.weaponData.id;
                     if (currentWeaponId != data.weapon) {
@@ -271158,6 +271157,7 @@ const joystick_1 = __webpack_require__(/*! ../joystick */ "./src/game/joystick.t
 const widgets_1 = __webpack_require__(/*! ../widgets/widgets */ "./src/game/widgets/widgets.ts");
 const utils_1 = __webpack_require__(/*! ../../shared/utils */ "./src/shared/utils.ts");
 const chat_1 = __webpack_require__(/*! ../chat */ "./src/game/chat.ts");
+const clientInventoryManager_1 = __webpack_require__(/*! ../../shared/inventory/client/clientInventoryManager */ "./src/shared/inventory/client/clientInventoryManager.ts");
 class GameScene extends Phaser.Scene {
     constructor() {
         super({});
@@ -271242,6 +271242,27 @@ class GameScene extends Phaser.Scene {
         //vehicle
         if (input_1.Input.getKeyDown("F")) {
             this.tryEnterOrLeaveVehicle();
+        }
+        if (input_1.Input.getKeyDown("Y")) {
+            if (!clientInventoryManager_1.ClientInventoryManager.isInventoryOpen) {
+                clientInventoryManager_1.ClientInventoryManager.isInventoryOpen = true;
+                const inventory = clientInventoryManager_1.ClientInventoryManager.inventory;
+                clientInventoryManager_1.ClientInventoryManager.createInventory(inventory, 100, 100);
+                // const inventoryManager = Gameface.Instance.game.inventoryManager;
+                // inventoryManager.test();
+                // var i = 0;
+                // for(const [id, inventory] of inventoryManager.inventories)
+                // {
+                //     var x = 100;
+                //     if(i == 1) x = 600;
+                //     ClientInventoryManager.createInventory(inventory, x, 100);
+                //     i++;
+                // }
+            }
+            else {
+                clientInventoryManager_1.ClientInventoryManager.isInventoryOpen = false;
+                clientInventoryManager_1.ClientInventoryManager.removeAllIventories();
+            }
         }
         //camera
         if (input_1.Input.getKeyDown("V")) {
@@ -271706,7 +271727,7 @@ class ServerScene {
         }, 1000);
         const npc2 = this.game.entityFactory.spawnPed(-12, 5, 0);
         const npc = this.game.entityFactory.spawnPed(-15, 5, 0);
-        npc.equipWeapon(0);
+        npc.equipWeapon("m4");
         npc.aiming = true;
         setInterval(() => {
             //npc.weapon!.shoot();
@@ -272136,22 +272157,22 @@ const baseObject_1 = __webpack_require__(/*! ../../shared/baseObject */ "./src/s
 class Weapons extends baseObject_1.BaseObject {
     constructor() {
         super(...arguments);
-        this.weaponDatas = [];
+        this.weaponDatas = new Map();
     }
     init() {
-        const m4 = this.createWeaponData();
-        const ak = this.createWeaponData();
+        const m4 = this.createWeaponData("m4");
+        const ak = this.createWeaponData("ak");
     }
-    createWeaponData() {
+    createWeaponData(id) {
         const weaponData = {
-            id: this.weaponDatas.length,
+            id: id,
             anim: "m4"
         };
-        this.weaponDatas.push(weaponData);
+        this.weaponDatas.set(id, weaponData);
         return weaponData;
     }
     getWeaponData(id) {
-        return this.weaponDatas[id];
+        return this.weaponDatas.get(id);
     }
 }
 exports.Weapons = Weapons;
@@ -273000,10 +273021,10 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.gameSettings = void 0;
 exports.gameSettings = {
     clientSendDataInterval: 250,
-    serverSendDataInterval: 250,
+    serverSendDataInterval: 80,
     showRedTracer: false,
-    showCollisions: true,
-    showDebugWorldTexts: true
+    showCollisions: false,
+    showDebugWorldTexts: false
 };
 
 
@@ -273183,6 +273204,564 @@ class GLTFData {
     }
 }
 exports.GLTFData = GLTFData;
+
+
+/***/ }),
+
+/***/ "./src/shared/inventory/client/clientInventory.ts":
+/*!********************************************************!*\
+  !*** ./src/shared/inventory/client/clientInventory.ts ***!
+  \********************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ClientInventory = void 0;
+const mainScene_1 = __webpack_require__(/*! ../../../game/scenes/mainScene */ "./src/game/scenes/mainScene.ts");
+const clientSlotGroup_1 = __webpack_require__(/*! ./clientSlotGroup */ "./src/shared/inventory/client/clientSlotGroup.ts");
+class ClientInventory {
+    constructor(inventory, x, y) {
+        this.clientSlotGroups = [];
+        this.inventory = inventory;
+        const scene = mainScene_1.MainScene.Instance;
+        for (const slotGroup of inventory.slotGroups) {
+            const position = new Phaser.Math.Vector2(x, y);
+            position.add(slotGroup.offset);
+            const clientSlotGroup = new clientSlotGroup_1.ClientSlotGroup(slotGroup, position.x, position.y);
+            this.clientSlotGroups.push(clientSlotGroup);
+        }
+        // events
+        this.onUpdatedInventory = () => {
+            console.log("it got updated");
+            for (const clientSlotGroup of this.clientSlotGroups) {
+                for (const clientSlot of clientSlotGroup.clientSlots) {
+                    clientSlot.updateDiv();
+                }
+            }
+        };
+        inventory.events.on("updated_inventory", this.onUpdatedInventory);
+    }
+    destroy() {
+        for (const clientSlotGroup of this.clientSlotGroups) {
+            clientSlotGroup.destroy();
+        }
+        this.clientSlotGroups = [];
+        this.inventory.events.removeListener("updated_inventory", this.onUpdatedInventory);
+    }
+}
+exports.ClientInventory = ClientInventory;
+
+
+/***/ }),
+
+/***/ "./src/shared/inventory/client/clientInventoryManager.ts":
+/*!***************************************************************!*\
+  !*** ./src/shared/inventory/client/clientInventoryManager.ts ***!
+  \***************************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ClientInventoryManager = void 0;
+const gameface_1 = __webpack_require__(/*! ../../../game/gameface/gameface */ "./src/game/gameface/gameface.ts");
+const clientInventory_1 = __webpack_require__(/*! ./clientInventory */ "./src/shared/inventory/client/clientInventory.ts");
+class ClientInventoryManager {
+    static startDrag() {
+        this.isDragging = true;
+        this.dragFromSlot = this.hoveringSlot;
+    }
+    static stopDrag() {
+        this.isDragging = false;
+        if (this.hoveringSlot && this.dragFromSlot) {
+            console.log("drag from:", this.dragFromSlot);
+            console.log("drag to:", this.hoveringSlot);
+            const fromX = this.dragFromSlot.ix;
+            const fromY = this.dragFromSlot.iy;
+            const toX = this.hoveringSlot.ix;
+            const toY = this.hoveringSlot.iy;
+            this.dragFromSlot.slotGroup.moveItem(fromX, fromY, this.hoveringSlot.slotGroup, toX, toY);
+        }
+        this.dragFromSlot = undefined;
+    }
+    static init() {
+        const game = gameface_1.Gameface.Instance.game;
+        this.inventory = game.inventoryManager.createPlayerInventory();
+    }
+    static createInventory(inventory, x, y) {
+        const clientInventory = new clientInventory_1.ClientInventory(inventory, x, y);
+        this.clientInventories.push(clientInventory);
+    }
+    static removeAllIventories() {
+        for (const clientInventory of this.clientInventories) {
+            clientInventory.destroy();
+        }
+        this.clientInventories = [];
+    }
+}
+exports.ClientInventoryManager = ClientInventoryManager;
+ClientInventoryManager.isInventoryOpen = false;
+ClientInventoryManager.clientInventories = [];
+ClientInventoryManager.isDragging = false;
+
+
+/***/ }),
+
+/***/ "./src/shared/inventory/client/clientSlot.ts":
+/*!***************************************************!*\
+  !*** ./src/shared/inventory/client/clientSlot.ts ***!
+  \***************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ClientSlot = void 0;
+const mainScene_1 = __webpack_require__(/*! ../../../game/scenes/mainScene */ "./src/game/scenes/mainScene.ts");
+const clientInventoryManager_1 = __webpack_require__(/*! ./clientInventoryManager */ "./src/shared/inventory/client/clientInventoryManager.ts");
+class ClientSlot {
+    constructor(slotGroup, ix, iy, x, y, size) {
+        this._prevItemId = "";
+        this.pointerOver = false;
+        this.pointerDown = false;
+        this.slotGroup = slotGroup;
+        this.ix = ix;
+        this.iy = iy;
+        const scene = mainScene_1.MainScene.Instance;
+        const div = document.createElement('div');
+        div.classList.add("grid-item");
+        div.style.width = size.x + "px";
+        div.style.height = size.y + "px";
+        //div.style.backgroundColor = "rgba(255, 255, 255)";
+        this.div = div;
+        div.addEventListener('pointerover', () => {
+            this.pointerOver = true;
+            clientInventoryManager_1.ClientInventoryManager.hoveringSlot = this;
+            this.updateDiv();
+        });
+        div.addEventListener('pointerout', () => {
+            this.pointerOver = false;
+            if (clientInventoryManager_1.ClientInventoryManager.hoveringSlot == this)
+                clientInventoryManager_1.ClientInventoryManager.hoveringSlot = undefined;
+            this.updateDiv();
+        });
+        div.addEventListener('pointerdown', () => {
+            var _a;
+            this.pointerDown = true;
+            this.updateDiv();
+            console.log((_a = this.getInventoryItem()) === null || _a === void 0 ? void 0 : _a.item.itemData.image);
+        });
+        document.addEventListener('pointerup', () => {
+            this.pointerDown = false;
+            //this.updateDiv();
+            console.log('pointerup');
+            if (clientInventoryManager_1.ClientInventoryManager.isDragging) {
+                clientInventoryManager_1.ClientInventoryManager.stopDrag();
+                console.log("stop drag");
+            }
+        });
+        div.addEventListener('pointermove', () => {
+            console.log('move');
+            if (this.pointerDown) {
+                if (!clientInventoryManager_1.ClientInventoryManager.isDragging) {
+                    clientInventoryManager_1.ClientInventoryManager.startDrag();
+                    console.log("started drag");
+                }
+            }
+        });
+        //const divElm = scene.add.dom(400, 300, div);
+        this.updateDiv();
+    }
+    getInventoryItem() {
+        return this.slotGroup.getItemInSlot(this.ix, this.iy);
+    }
+    createItemImage() {
+        const inventoryItem = this.getInventoryItem();
+        let needDelete = false;
+        if (!inventoryItem)
+            needDelete = true;
+        if (inventoryItem) {
+            if (inventoryItem.item.id != this._prevItemId)
+                needDelete = true;
+        }
+        if (needDelete) {
+            if (this.itemImage) {
+                this.itemImage.remove();
+                this.itemImage = undefined;
+                this._prevItemId = "";
+            }
+        }
+        if (!inventoryItem)
+            return;
+        if (this.itemImage)
+            return;
+        const itemImage = document.createElement('img');
+        itemImage.src = "/assets/" + inventoryItem.item.itemData.image;
+        itemImage.style.width = "100%";
+        itemImage.style.height = "100%";
+        itemImage.draggable = false;
+        //itemImage.style.backgroundColor = "rgba(255, 0, 0, 0.5)";
+        this.itemImage = itemImage;
+        this.div.appendChild(itemImage);
+        this._prevItemId = inventoryItem.item.id;
+    }
+    updateDiv() {
+        this.createItemImage();
+        const div = this.div;
+        if (this.pointerOver) {
+            div.style.backgroundColor = 'lightcoral'; // Muda a cor como exemplo
+        }
+        else {
+            div.style.backgroundColor = 'white'; // Muda a cor como exemplo
+        }
+    }
+}
+exports.ClientSlot = ClientSlot;
+
+
+/***/ }),
+
+/***/ "./src/shared/inventory/client/clientSlotGroup.ts":
+/*!********************************************************!*\
+  !*** ./src/shared/inventory/client/clientSlotGroup.ts ***!
+  \********************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ClientSlotGroup = void 0;
+const mainScene_1 = __webpack_require__(/*! ../../../game/scenes/mainScene */ "./src/game/scenes/mainScene.ts");
+const clientSlot_1 = __webpack_require__(/*! ./clientSlot */ "./src/shared/inventory/client/clientSlot.ts");
+class ClientSlotGroup {
+    constructor(slotGroup, x, y) {
+        this.clientSlots = [];
+        const scene = mainScene_1.MainScene.Instance;
+        const sy = slotGroup.slots.length;
+        const sx = slotGroup.slots[0].length;
+        const div = document.createElement('div');
+        div.innerHTML = "";
+        div.style.width = "400px";
+        div.style.height = "400px";
+        div.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+        const divContainer = document.createElement('div');
+        divContainer.innerHTML = "";
+        divContainer.classList.add("grid-container");
+        divContainer.style.gridTemplateColumns = `repeat(${sx}, 1fr)`; /* 3 colunas de tamanho igual */
+        divContainer.style.gridTemplateRows = `repeat(${sy}, auto)`; /* 2 linhas */
+        divContainer.style.width = "auto";
+        divContainer.style.height = "100%";
+        divContainer.style.backgroundColor = "rgba(0, 0, 255, 0.5)";
+        divContainer.style.overflowY = "scroll";
+        div.appendChild(divContainer);
+        const divElm = scene.add.dom(x, y, div);
+        divElm.setOrigin(0);
+        this.divElm = divElm;
+        const slotSize = new Phaser.Math.Vector2(64, 64);
+        for (var iy = 0; iy < sy; iy++) {
+            for (var ix = 0; ix < sx; ix++) {
+                const x = ix * (slotSize.x + 4);
+                const y = iy * (slotSize.y + 4);
+                const clientSlot = new clientSlot_1.ClientSlot(slotGroup, ix, iy, x, y, slotSize);
+                divContainer.appendChild(clientSlot.div);
+                this.clientSlots.push(clientSlot);
+            }
+        }
+    }
+    destroy() {
+        this.divElm.destroy();
+    }
+}
+exports.ClientSlotGroup = ClientSlotGroup;
+
+
+/***/ }),
+
+/***/ "./src/shared/inventory/inventory.ts":
+/*!*******************************************!*\
+  !*** ./src/shared/inventory/inventory.ts ***!
+  \*******************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Inventory = void 0;
+const slotGroup_1 = __webpack_require__(/*! ./slotGroup */ "./src/shared/inventory/slotGroup.ts");
+const uuid_1 = __webpack_require__(/*! uuid */ "./node_modules/uuid/dist/esm-browser/index.js");
+class Inventory {
+    constructor() {
+        this.id = (0, uuid_1.v4)();
+        this.slotGroups = [];
+        this.events = new Phaser.Events.EventEmitter();
+        this.events.on("item_moved", () => {
+            this.events.emit("updated_inventory");
+        });
+    }
+    addSlotGroup(sx, sy) {
+        const slotGroup = new slotGroup_1.SlotGroup(this, sx, sy);
+        this.slotGroups.push(slotGroup);
+        return slotGroup;
+    }
+}
+exports.Inventory = Inventory;
+
+
+/***/ }),
+
+/***/ "./src/shared/inventory/inventoryItem.ts":
+/*!***********************************************!*\
+  !*** ./src/shared/inventory/inventoryItem.ts ***!
+  \***********************************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.InventoryItem = void 0;
+class InventoryItem {
+    constructor(id, item) {
+        this.id = id;
+        this.item = item;
+    }
+}
+exports.InventoryItem = InventoryItem;
+
+
+/***/ }),
+
+/***/ "./src/shared/inventory/inventoryManager.ts":
+/*!**************************************************!*\
+  !*** ./src/shared/inventory/inventoryManager.ts ***!
+  \**************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.InventoryManager = void 0;
+const inventory_1 = __webpack_require__(/*! ./inventory */ "./src/shared/inventory/inventory.ts");
+class InventoryManager {
+    constructor(game) {
+        this.inventories = new Map();
+        this.game = game;
+    }
+    init() {
+        const inventory = this.createInventory();
+        inventory.addSlotGroup(4, 3);
+        const equipSlotGroup = inventory.addSlotGroup(4, 1);
+        equipSlotGroup.offset.set(0, 430);
+        setInterval(() => {
+            inventory.events.emit("updated_inventory");
+        }, 1000);
+        const inventory2 = this.createInventory();
+        inventory2.addSlotGroup(3, 10);
+    }
+    test() {
+        const inventory = Array.from(this.inventories.values())[0];
+        const slotGroup = inventory.slotGroups[0];
+        slotGroup.print();
+        const m4 = this.game.itemManager.makeItem("m4");
+        const ak = this.game.itemManager.makeItem("ak");
+        slotGroup.addItemToSlot(m4, 2, 2);
+        slotGroup.addItemToSlot(ak, 3, 2);
+        slotGroup.print();
+    }
+    test2() {
+        const inventory = Array.from(this.inventories.values())[0];
+        const slotGroup = inventory.slotGroups[0];
+        slotGroup.moveItem(3, 2, slotGroup, 0, 0);
+        slotGroup.print();
+    }
+    createInventory() {
+        console.log(`[InventoryManager] Create inventory`);
+        const inventory = new inventory_1.Inventory();
+        this.inventories.set(inventory.id, inventory);
+        return inventory;
+    }
+    createPlayerInventory() {
+        const inventory = this.createInventory();
+        inventory.addSlotGroup(4, 3);
+        const equipSlotGroup = inventory.addSlotGroup(4, 1);
+        equipSlotGroup.offset.set(0, 430);
+        return inventory;
+    }
+}
+exports.InventoryManager = InventoryManager;
+
+
+/***/ }),
+
+/***/ "./src/shared/inventory/item/item.ts":
+/*!*******************************************!*\
+  !*** ./src/shared/inventory/item/item.ts ***!
+  \*******************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Item = void 0;
+const uuid_1 = __webpack_require__(/*! uuid */ "./node_modules/uuid/dist/esm-browser/index.js");
+class Item {
+    constructor(itemData) {
+        this.id = (0, uuid_1.v4)();
+        this.itemData = itemData;
+    }
+}
+exports.Item = Item;
+
+
+/***/ }),
+
+/***/ "./src/shared/inventory/item/itemManager.ts":
+/*!**************************************************!*\
+  !*** ./src/shared/inventory/item/itemManager.ts ***!
+  \**************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ItemManager = void 0;
+const item_1 = __webpack_require__(/*! ./item */ "./src/shared/inventory/item/item.ts");
+class ItemManager {
+    constructor(game) {
+        this.itemsData = new Map();
+        this.game = game;
+    }
+    init() {
+        const m4 = this.createItemData("m4", "items/m4/m4.png");
+        const ak = this.createItemData("ak", "items/ak/ak.png");
+    }
+    createItemData(id, image) {
+        const itemData = {
+            id: id,
+            name: id,
+            image: image
+        };
+        this.itemsData.set(id, itemData);
+        return itemData;
+    }
+    getItemData(id) {
+        return this.itemsData.get(id);
+    }
+    makeItem(id) {
+        const itemData = this.getItemData(id);
+        const item = new item_1.Item(itemData);
+        return item;
+    }
+}
+exports.ItemManager = ItemManager;
+
+
+/***/ }),
+
+/***/ "./src/shared/inventory/slotGroup.ts":
+/*!*******************************************!*\
+  !*** ./src/shared/inventory/slotGroup.ts ***!
+  \*******************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SlotGroup = void 0;
+const inventoryItem_1 = __webpack_require__(/*! ./inventoryItem */ "./src/shared/inventory/inventoryItem.ts");
+class SlotGroup {
+    constructor(inventory, sx, sy) {
+        this.slots = [];
+        this.items = new Map();
+        this.offset = new Phaser.Math.Vector2(0, 0);
+        this.inventory = inventory;
+        for (var y = 0; y < sy; y++) {
+            const col = [];
+            for (var x = 0; x < sx; x++) {
+                col.push(-1);
+            }
+            this.slots.push(col);
+        }
+    }
+    createInventoryItem(item) {
+        var id = 0;
+        while (this.items.has(id)) {
+            id++;
+        }
+        const inventoryItem = new inventoryItem_1.InventoryItem(id, item);
+        console.log(`[SlotGroup] Created item id ${id}`);
+        this.items.set(inventoryItem.id, inventoryItem);
+        return inventoryItem;
+    }
+    print() {
+        console.log(`SlotGroup:`);
+        for (var y = 0; y < this.slots.length; y++) {
+            const col = this.slots[y];
+            console.log(`${y}: ` + col.join(","));
+        }
+    }
+    addItemToSlot(item, x, y) {
+        if (!this.isSlotValid(x, y)) {
+            console.warn("Not a valid slot to add item");
+            return;
+        }
+        const inventoryItemInSlot = this.getItemInSlot(x, y);
+        if (inventoryItemInSlot) {
+            console.warn("Theres already an item in this slot");
+            return;
+        }
+        const inventoryItem = this.createInventoryItem(item);
+        this.slots[y][x] = inventoryItem.id;
+        return inventoryItem;
+    }
+    removeItemFromSlot(x, y) {
+        if (!this.isSlotValid(x, y)) {
+            console.warn("Not a valid slot to add item");
+            return;
+        }
+        const inventoryItemInSlot = this.getItemInSlot(x, y);
+        if (!inventoryItemInSlot) {
+            console.warn("No items in this slot");
+            return;
+        }
+        const item = inventoryItemInSlot.item;
+        this.items.delete(inventoryItemInSlot.id);
+        this.slots[y][x] = -1;
+        return item;
+    }
+    moveItem(x, y, toSlotGroup, toX, toY) {
+        console.log(`[SlotGroup] MoveItem ${x},${y} to ${toX},${toY}`);
+        const removedItem = this.removeItemFromSlot(x, y);
+        if (!removedItem) {
+            console.log(`[SlotGroup] No items in slot ${x},${y}`);
+            return false;
+        }
+        const hasItemInSlot = this.getItemInSlot(toX, toY) != undefined;
+        if (hasItemInSlot) {
+            console.log(`[SlotGroup] There is already an item in in slot ${toX},${toY}`);
+            const removedItem2 = this.removeItemFromSlot(toX, toY);
+            this.addItemToSlot(removedItem2, x, y);
+        }
+        toSlotGroup.addItemToSlot(removedItem, toX, toY);
+        this.inventory.events.emit("item_moved", this, x, y, toSlotGroup, toX, toY);
+        toSlotGroup.inventory.events.emit("item_moved", this, x, y, toSlotGroup, toX, toY);
+        return true;
+    }
+    isSlotValid(x, y) {
+        if (y >= this.slots.length)
+            return false;
+        if (x >= this.slots[0].length)
+            return false;
+        return true;
+    }
+    getItemInSlot(x, y) {
+        if (!this.isSlotValid(x, y))
+            return undefined;
+        const id = this.slots[y][x];
+        return this.items.get(id);
+    }
+}
+exports.SlotGroup = SlotGroup;
 
 
 /***/ }),

@@ -1,8 +1,8 @@
 export const gameSettings = {
     clientSendDataInterval: 250,
-    serverSendDataInterval: 250,
+    serverSendDataInterval: 80,
 
     showRedTracer: false,
-    showCollisions: true,
-    showDebugWorldTexts: true
+    showCollisions: false,
+    showDebugWorldTexts: false
 }

@@ -22,7 +22,7 @@ export class Bike extends Vehicle
         const yaw = euler.z();
 
         const right = this.right;
-        right.op_mul(20000);
+        right.op_mul(30000);
 
         const forceRelative = new Ammo.btVector3(0, 2, 0)
 

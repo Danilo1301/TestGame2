@@ -72,7 +72,7 @@ export class ServerScene
         const npc2 = this.game.entityFactory.spawnPed(-12, 5, 0);
 
         const npc = this.game.entityFactory.spawnPed(-15, 5, 0);
-        npc.equipWeapon(0);
+        npc.equipWeapon("m4");
         npc.aiming = true;
         
         setInterval(() => {

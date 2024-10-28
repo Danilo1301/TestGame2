@@ -20,6 +20,9 @@ import { getIsMobile } from "../../shared/utils";
 import { Chat } from "../chat";
 import { EntityWatcher } from "../../server/server/entityWatcher";
 import { SyncHelper } from "../network/syncHelper";
+import { InventoryManager } from "../../shared/inventory/inventoryManager";
+import { Inventory } from "../../shared/inventory/inventory";
+import { ClientInventoryManager } from "../../shared/inventory/client/clientInventoryManager";
 
 export class Gameface extends BaseObject
 {
@@ -106,6 +109,9 @@ export class Gameface extends BaseObject
         loadScene.addImage("widget_shoot", "widgets/widget_shoot.png");
         loadScene.addImage("widget_car", "widgets/widget_car.png");
 
+        loadScene.addImage("item_m4", "items/m4/m4.png");
+        loadScene.addImage("item_ak", "items/ak/ak.png");
+
         loadScene.addAudio("shot_m4", "weapons/m4/shot.wav");
 
         //this.load.image("crosshair_shotgun", "crosshair/shotgun.png");
@@ -131,6 +137,8 @@ export class Gameface extends BaseObject
         this.sceneManager.startScene(GameScene);
 
         this.game.init();
+
+        ClientInventoryManager.init();
 
         this.game.events.on("weapon_shot", (weapon: Weapon, from: THREE.Vector3, to: THREE.Vector3, entity: Entity | undefined) => {
             GameScene.Instance.clientEntityManager.onWeaponShot(weapon, from, to);
@@ -189,26 +197,10 @@ export class Gameface extends BaseObject
                 const ped = this.game.entityFactory.spawnPed(-4, 0, 0);
                 this.player = ped;
                 // this.player.equipWeapon(0);
-
                 return;
             }
 
             this.network.send(PACKET_TYPE.PACKET_CLIENT_READY, {});
-            
-            // const ped = this.game.entityFactory.spawnPed(0, 5, 0);
-            // this.player = ped;
-            // this.player.equipWeapon(0);
-
-            // const box = this.game.entityFactory.spawnBox(5, 5, 0);
-
-            // const npc = this.game.entityFactory.spawnPed(0, 5, 0);
-            // npc.inputZ = 0.01;   
-            
-            // (window as any)["npc"] = npc;
-
-            // setInterval(() => {
-            //     npc.lookAtEntity(box);
-            // }, 500);
         });
     }
 

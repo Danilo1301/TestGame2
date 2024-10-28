@@ -7,6 +7,7 @@ import { Joystick } from "../joystick";
 import { Widgets } from "../widgets/widgets";
 import { getIsMobile } from "../../shared/utils";
 import { Chat } from "../chat";
+import { ClientInventoryManager } from "../../shared/inventory/client/clientInventoryManager";
 
 export class GameScene extends Phaser.Scene
 {
@@ -135,6 +136,37 @@ export class GameScene extends Phaser.Scene
         if(Input.getKeyDown("F"))
         {
             this.tryEnterOrLeaveVehicle();
+        }
+
+        if(Input.getKeyDown("Y"))
+        {
+            if(!ClientInventoryManager.isInventoryOpen)
+            {
+                ClientInventoryManager.isInventoryOpen = true;
+                
+                const inventory = ClientInventoryManager.inventory;
+
+                ClientInventoryManager.createInventory(inventory, 100, 100);
+
+                // const inventoryManager = Gameface.Instance.game.inventoryManager;
+                // inventoryManager.test();
+    
+                // var i = 0;
+                // for(const [id, inventory] of inventoryManager.inventories)
+                // {
+                //     var x = 100;
+                //     if(i == 1) x = 600;
+    
+                //     ClientInventoryManager.createInventory(inventory, x, 100);
+                //     i++;
+                // }
+            } else {
+                ClientInventoryManager.isInventoryOpen = false;
+
+                ClientInventoryManager.removeAllIventories();
+            }
+
+           
         }
 
         //camera
