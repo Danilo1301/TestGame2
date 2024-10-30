@@ -138,7 +138,12 @@ export class GameScene extends Phaser.Scene
             this.tryEnterOrLeaveVehicle();
         }
 
-        if(Input.getKeyDown("Y"))
+        if(Input.getKeyDown("T"))
+        {
+            this.chat.toggleChatInput(true);
+        }
+
+        if(Input.getKeyDown("N"))
         {
             if(!ClientInventoryManager.isInventoryOpen)
             {

@@ -1,12 +1,15 @@
 import { XYZ, XYZ_SetValue, XYZW_SetValue } from "../../shared/ammo/ammoUtils";
 import { Vector3_GetDirectionBetweenVectors } from "../../shared/ammo/vector";
-import { BaseObject } from "../../shared/baseObject";
+import { Chat } from "../chat";
 import { Entity, EntityType } from "../entities/entity";
 import { eSyncType } from "../entities/entitySync";
-import { Ped, PedData_JSON } from "../entities/ped";
+import { Ped } from "../entities/ped";
 import { Vehicle } from "../entities/vehicle";
 import { Gameface } from "../gameface/gameface";
-import { IPacket, IPacketData_Entities, IPacketData_Entity_Info_Basic, IPacketData_Health, IPacketData_WeaponShot, PACKET_TYPE } from "./packet";
+import { GameScene } from "../scenes/gameScene";
+import { IPacket, IPacketData_ChatMessage, IPacketData_Entity_Info_Basic, IPacketData_Entity_Teleported, IPacketData_InitialInfo, IPacketData_Inventory, IPacketData_InventoryItemMove, IPacketData_WeaponShot, PACKET_TYPE } from "./packet";
+import { ClientInventoryManager } from "../../shared/inventory/client/clientInventoryManager";
+import { SlotGroup } from "../../shared/inventory/slotGroup";
 
 export class SyncHelper
 {
@@ -58,6 +61,31 @@ export class SyncHelper
 
             SyncHelper.onReceiveEntityInfoBasic(data);
         }
+
+        if(packet.type == PACKET_TYPE.PACKET_ENTITY_TELEPORTED)
+        {
+            const data = packet.data as IPacketData_Entity_Teleported;
+            const game = Gameface.Instance.game;
+
+            const entity = game.entityFactory.entities.get(data.id);
+
+            if(!entity)
+            {
+                console.error("SyncHelper: could not find entity" + data.id);
+                return;
+            }
+            
+            const pos = data.position!;
+
+            if(entity.sync.syncType == eSyncType.SYNC_NONE)
+            {
+                entity.setPosition(pos.x!, pos.y!, pos.z!);
+            } else {
+                entity.sync.setPosition(pos.x!, pos.y!, pos.z!);
+                entity.sync.forceSetPosition();
+            }
+
+        }
     
         if(packet.type == PACKET_TYPE.PACKET_WEAPON_SHOT)
         {
@@ -79,6 +107,30 @@ export class SyncHelper
             }
         }
 
+        if(packet.type == PACKET_TYPE.PACKET_CHAT_MESSAGE)
+        {
+            const data = packet.data as IPacketData_ChatMessage;
+
+            GameScene.Instance.chat.addMessage(data.message);
+        }
+
+        if(packet.type == PACKET_TYPE.PACKET_INVENTORY)
+        {
+            const data = packet.data as IPacketData_Inventory;
+            const game = Gameface.Instance.game;
+
+            console.log(data);
+
+            const inventory = game.inventoryManager.inventories.get(data.inventory.id);
+
+            if(!inventory)
+            {
+                throw "Inventory not found";
+            }
+
+            inventory.fromJSON(data.inventory);
+        }
+        
         // if(packet.type == PACKET_TYPE.PACKET_HEALTH)
         // {
         //     const data = packet.data as IPacketData_Health;
@@ -91,6 +143,38 @@ export class SyncHelper
         //         entity.health = data.health;
         //     }
         // }
+    }
+
+    public static onReceiveInitialInfo(info: IPacketData_InitialInfo)
+    {
+        const game = Gameface.Instance.game;
+        const network = Gameface.Instance.network;
+
+        console.log(info);
+
+        Gameface.Instance.game.gltfCollection.fromPacketData(info);
+
+        Gameface.Instance.playerId = info.playerId;
+
+        const inventory = game.inventoryManager.createPlayerInventory();
+        game.inventoryManager.setInventoryId(inventory, info.inventoryId);
+        ClientInventoryManager.inventory = inventory;
+
+        inventory.events.on("item_moved", (slotGroup: SlotGroup, x: number, y: number, toSlotGroup: SlotGroup, toX: number, toY: number) => {
+            
+            console.log("send item_moved packet")
+
+            network.send<IPacketData_InventoryItemMove>(PACKET_TYPE.PACKET_INVENTORY_ITEM_MOVE, {
+                fromInventory: slotGroup.inventory.id,
+                fromSlotGroup: slotGroup.getIndex(),
+                fromX: x,
+                fromY: y,
+                toInventory: toSlotGroup.inventory.id,
+                toSlotGroup: toSlotGroup.getIndex(),
+                toX: toX,
+                toY: toY
+            });
+        });
     }
 
     public static onReceiveEntityInfoBasic(data: IPacketData_Entity_Info_Basic)
@@ -190,6 +274,10 @@ export class SyncHelper
         
         if(entity instanceof Ped)
         {
+            
+
+            if(data.nickname != undefined) entity.nickname = data.nickname;
+
             if(entity.id != Gameface.Instance.playerId)
             {
                 if(data.aiming != undefined) entity.aiming = data.aiming;
@@ -199,8 +287,12 @@ export class SyncHelper
         
                 entity.lookDir.setValue(lookDir.x!, lookDir.y!, lookDir.z!, lookDir.w!);
 
+                console.log("data.nickname", data.nickname);
+                console.log("data.weapon", data.weapon);
+
                 if(data.weapon != undefined)
                 {
+
                     let currentWeaponId = "";
                     if(entity.weapon) currentWeaponId = entity.weapon.weaponData.id;
 

@@ -267413,6 +267413,8 @@ exports.Camera = Camera;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Chat = void 0;
+const gameface_1 = __webpack_require__(/*! ./gameface/gameface */ "./src/game/gameface/gameface.ts");
+const packet_1 = __webpack_require__(/*! ./network/packet */ "./src/game/network/packet.ts");
 const gameScene_1 = __webpack_require__(/*! ./scenes/gameScene */ "./src/game/scenes/gameScene.ts");
 class Chat {
     constructor() {
@@ -267432,12 +267434,13 @@ class Chat {
                     <input id="chat-input" class="chat-input"></input>
                 </div>
                 <div class="col-1 p-0">
-                    <button class="chat-button">Send</button>
+                    <button id="chat-button-send" class="chat-button">Send</button>
                 </div>
             </div>
         `);
         this.messagesDiv = document.getElementById("chat-messages");
         this.input = document.getElementById("chat-input");
+        this.sendButton = document.getElementById("chat-button-send");
         window.messagesDiv = this.messagesDiv;
         window.chatInput = this.input;
         // let i = 0;
@@ -267446,17 +267449,22 @@ class Chat {
         //     this.addMessage("helo my <b>" + i + "</b>");
         // }, 500);
         const chat = this;
-        this.input.addEventListener('keydown', function (event) {
+        const input = this.input;
+        input.addEventListener('keydown', function (event) {
             if (event.key === 'Enter') {
+                chat.send();
+            }
+            console.log(event.key);
+            if (event.key === 'Escape') {
+                input.value = "";
                 chat.send();
             }
         });
         this.messagesDiv.addEventListener('click', () => {
-            var _a;
-            if (this.inputVisible)
-                return;
             this.toggleChatInput(true);
-            (_a = this.input) === null || _a === void 0 ? void 0 : _a.focus();
+        });
+        this.sendButton.addEventListener('click', () => {
+            chat.send();
         });
         this.toggleChatInput(false);
     }
@@ -267484,10 +267492,27 @@ class Chat {
         console.log('Text entered:', text);
         // Clear the input field
         input.value = '';
-        this.addMessage(`Player: <span style="color: white";>${text}</span>`);
+        if (text.length > 0) {
+            //this.addMessage(`Player: <span style="color: white";>${text}</span>`);
+            gameface_1.Gameface.Instance.network.send(packet_1.PACKET_TYPE.PACKET_CHAT_MESSAGE, {
+                message: text
+            });
+        }
         this.toggleChatInput(false);
     }
     toggleChatInput(enabled) {
+        if (enabled) {
+            if (this.inputVisible)
+                return;
+            gameface_1.Gameface.Instance.setPointerLocked(false);
+            this.input.focus();
+            setTimeout(() => {
+                this.input.focus();
+            }, 0);
+        }
+        else {
+            gameface_1.Gameface.Instance.setPointerLocked(true);
+        }
         this.inputVisible = enabled;
         document.getElementById("chat-input-row").style.display = enabled ? "" : "none";
         document.getElementById("chat-messages").style.height = enabled ? "80%" : "100%";
@@ -268328,9 +268353,11 @@ const three_1 = __importDefault(__webpack_require__(/*! three */ "./node_modules
 const threeScene_1 = __webpack_require__(/*! ../../scenes/threeScene */ "./src/game/scenes/threeScene.ts");
 const input_1 = __webpack_require__(/*! ../../input */ "./src/game/input.ts");
 const gameface_1 = __webpack_require__(/*! ../../gameface/gameface */ "./src/game/gameface/gameface.ts");
+const worldText_1 = __webpack_require__(/*! ../../worldText */ "./src/game/worldText.ts");
 class ClientPed extends clientEntity_1.ClientEntity {
     constructor() {
         super(...arguments);
+        this.nickNameWorldText = new worldText_1.WorldText(this.ped.nickname);
         this._prevEquipedWeapon = "";
         this._mainAnimI = 0;
         this._subAnimI = 0;
@@ -268341,6 +268368,14 @@ class ClientPed extends clientEntity_1.ClientEntity {
         const height = 1.5;
         const calsuleRoundHeight = 0.2;
         //this.modelOffset.setY(-height/2 - calsuleRoundHeight);
+    }
+    update3DText() {
+        super.update3DText();
+        const position = this.entity.getPosition();
+        this.nickNameWorldText.setTitle(this.ped.nickname);
+        this.nickNameWorldText.set3DPosition(new three_1.default.Vector3(position.x(), position.y() + 2, position.z()));
+        this.nickNameWorldText.position.y -= 40;
+        this.nickNameWorldText.update();
     }
     update(delta) {
         super.update(delta);
@@ -268714,30 +268749,6 @@ class Entity extends baseObject_1.BaseObject {
         Ammo.destroy(right);
         Ammo.destroy(up);
         return new Ammo.btVector3(result.x, result.y, result.z);
-    }
-    toJSON() {
-        const body = this.collision.body;
-        const transform = body.getWorldTransform();
-        const position = transform.getOrigin();
-        const rotation = transform.getRotation();
-        const velocity = body.getLinearVelocity();
-        const json = {
-            id: this.id,
-            position: [position.x(), position.y(), position.z()],
-            rotation: [rotation.x(), rotation.y(), rotation.z(), rotation.w()],
-            velocity: [velocity.x(), velocity.y(), velocity.z()],
-            input: [this.inputX, this.inputY, this.inputZ]
-        };
-        return json;
-    }
-    toFullJSON() {
-        const json = this.toJSON();
-        json.fullData = {
-            type: EntityType.UNDEFINED,
-            nickname: "Nickname",
-            nicknameColor: 0xffffff
-        };
-        return json;
     }
 }
 exports.Entity = Entity;
@@ -269359,6 +269370,7 @@ class Ped extends entity_1.Entity {
         this.aiming = false;
         this.targetDirection = new Ammo.btVector3(0, 0, 1);
         this.controlledByPlayer = false;
+        this.nickname = "Player";
     }
     initCollision() {
         super.initCollision();
@@ -269506,8 +269518,10 @@ class Ped extends entity_1.Entity {
             return;
         }
         const weaponData = this.game.weapons.getWeaponData(id);
-        if (!weaponData)
-            throw "Weapon ID " + id + " not found";
+        if (!weaponData) {
+            console.error("Ped: Weapon ID " + id + " not found");
+            return;
+        }
         const weapon = new weapon_1.Weapon(weaponData);
         weapon.ped = this;
         this.weapon = weapon;
@@ -269571,10 +269585,6 @@ class Ped extends entity_1.Entity {
             }
         }
         return closestVehicle;
-    }
-    toJSON() {
-        const json = super.toJSON();
-        return json;
     }
 }
 exports.Ped = Ped;
@@ -269900,11 +269910,6 @@ class Vehicle extends entity_1.Entity {
             constraint.enableAngularMotor(true, velocity, this.darGrau ? 50 : 15);
         }
     }
-    toJSON() {
-        const json = super.toJSON();
-        //json.data = data;
-        return json;
-    }
 }
 exports.Vehicle = Vehicle;
 
@@ -270057,6 +270062,12 @@ class Game extends baseObject_1.BaseObject {
     }
     postUpdate(delta) {
     }
+    onEntityDeath(entity, byWeapon) {
+        this.events.emit("entity_died", entity, byWeapon === null || byWeapon === void 0 ? void 0 : byWeapon.ped);
+        entity.setPosition(0, 3, 0);
+        this.events.emit("entity_teleported", entity);
+        entity.health = 100;
+    }
 }
 exports.Game = Game;
 
@@ -270106,6 +270117,7 @@ const chat_1 = __webpack_require__(/*! ../chat */ "./src/game/chat.ts");
 const entityWatcher_1 = __webpack_require__(/*! ../../server/server/entityWatcher */ "./src/server/server/entityWatcher.ts");
 const syncHelper_1 = __webpack_require__(/*! ../network/syncHelper */ "./src/game/network/syncHelper.ts");
 const clientInventoryManager_1 = __webpack_require__(/*! ../../shared/inventory/client/clientInventoryManager */ "./src/shared/inventory/client/clientInventoryManager.ts");
+const msgBox_1 = __webpack_require__(/*! ../msgBox */ "./src/game/msgBox.ts");
 class Gameface extends baseObject_1.BaseObject {
     get sceneManager() { return this._sceneManager; }
     get phaser() { return this._phaser; }
@@ -270145,6 +270157,8 @@ class Gameface extends baseObject_1.BaseObject {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
             this.log("start");
+            msgBox_1.MsgBox.init();
+            msgBox_1.MsgBox.createMsgBox("Info", "Loading...", "", "");
             this._phaser = yield phaserLoad_1.PhaserLoad.loadAsync();
             this.log(this.phaser);
             const domContainer = (_a = document.getElementById("game")) === null || _a === void 0 ? void 0 : _a.children[0];
@@ -270197,35 +270211,43 @@ class Gameface extends baseObject_1.BaseObject {
                 }
             });
             input_1.Input.events.on("pointerup", () => {
-                var _a;
                 if ((0, utils_1.getIsMobile)()) {
                     if (!this.isFullscreen())
                         this.enterFullscreen();
-                }
-                else {
-                    (_a = mainScene_1.MainScene.Instance.input.mouse) === null || _a === void 0 ? void 0 : _a.requestPointerLock();
-                }
-            });
-            const startMultiplayer = true;
-            chat_1.Chat.Instance.addColorMessage("Server", "gold", `Modo: ${startMultiplayer ? "Multiplayer" : "Singleplayer"}`);
-            chat_1.Chat.Instance.addColorMessage("Server", "gold", `Conectando-se ao servidor...`);
-            this.network.connect(() => __awaiter(this, void 0, void 0, function* () {
-                chat_1.Chat.Instance.addColorMessage("Server", "gold", `Conectado!`);
-                this.log("conectado");
-                this.network.send(packet_1.PACKET_TYPE.PACKET_REQUEST_MODELS, {});
-                this.log("waiting for models");
-                const models = yield this.network.waitForPacket(packet_1.PACKET_TYPE.PACKET_MODELS);
-                chat_1.Chat.Instance.addColorMessage("Server", "gold", `Recebido ${models.models.length} models`);
-                Gameface.Instance.game.gltfCollection.fromPacketData(models);
-                this.game.isServer = !startMultiplayer;
-                this.game.create();
-                if (!startMultiplayer) {
-                    const ped = this.game.entityFactory.spawnPed(-4, 0, 0);
-                    this.player = ped;
-                    // this.player.equipWeapon(0);
                     return;
                 }
-                this.network.send(packet_1.PACKET_TYPE.PACKET_CLIENT_READY, {});
+                if (chat_1.Chat.Instance.inputVisible)
+                    return;
+                this.setPointerLocked(true);
+            });
+            const startMultiplayer = true;
+            chat_1.Chat.Instance.addColorMessage("INFO", "#7794F9", `Connecting to the server...`);
+            this.network.connect(() => __awaiter(this, void 0, void 0, function* () {
+                chat_1.Chat.Instance.addColorMessage("INFO", "#7794F9", `Connected!`);
+                this.log("conectado");
+                msgBox_1.MsgBox.createMsgBoxWithInput("Server", "Nickname:", "OK", "");
+                msgBox_1.MsgBox.onResponse = (button, inputtext) => __awaiter(this, void 0, void 0, function* () {
+                    this.network.send(packet_1.PACKET_TYPE.PACKET_REQUEST_INITIAL_INFO, {
+                        nickname: inputtext
+                    });
+                    this.log("waiting for models");
+                    const info = yield this.network.waitForPacket(packet_1.PACKET_TYPE.PACKET_INITIAL_INFO);
+                    syncHelper_1.SyncHelper.onReceiveInitialInfo(info);
+                    this.game.isServer = !startMultiplayer;
+                    this.game.create();
+                    if (!startMultiplayer) {
+                        const ped = this.game.entityFactory.spawnPed(-4, 0, 0);
+                        this.player = ped;
+                        // this.player.equipWeapon(0);
+                        return;
+                    }
+                    this.network.send(packet_1.PACKET_TYPE.PACKET_CLIENT_READY, {});
+                });
+                if ((0, utils_1.getIsDevelopment)()) {
+                    setTimeout(() => {
+                        msgBox_1.MsgBox.simulateResponse(0, "Danilo1301");
+                    }, 500);
+                }
             }));
         });
     }
@@ -270271,6 +270293,15 @@ class Gameface extends baseObject_1.BaseObject {
     }
     isPointerLocked() {
         return document.pointerLockElement !== null;
+    }
+    setPointerLocked(locked) {
+        var _a;
+        if (locked) {
+            (_a = mainScene_1.MainScene.Instance.input.mouse) === null || _a === void 0 ? void 0 : _a.requestPointerLock();
+        }
+        else {
+            document.exitPointerLock();
+        }
     }
     leaveFullscreen() {
         if (document.exitFullscreen) {
@@ -270795,6 +270826,60 @@ exports.Joystick = Joystick;
 
 /***/ }),
 
+/***/ "./src/game/msgBox.ts":
+/*!****************************!*\
+  !*** ./src/game/msgBox.ts ***!
+  \****************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.MsgBox = void 0;
+class MsgBox {
+    static init() {
+        document.getElementById("msg-box-ok").addEventListener("click", () => {
+            let input = document.getElementById("msg-box-input");
+            let text = input.value;
+            this.simulateResponse(0, text);
+        });
+    }
+    static simulateResponse(buttonId, inputtext) {
+        if (this.onResponse)
+            this.onResponse(buttonId, inputtext);
+        this.onResponse = undefined;
+        this.setVisible(false);
+    }
+    static setVisible(visible) {
+        document.getElementById("msg-box").style.display = visible ? "" : "none";
+    }
+    static setInputVisible(visible) {
+        document.getElementById("msg-box-input-area").style.display = visible ? "" : "none";
+    }
+    static setButtonVisible(buttonId, visible) {
+        const parent = document.getElementById(buttonId).parentElement;
+        parent.style.display = visible ? "" : "none";
+    }
+    static createMsgBox(title, content, okButton, cancelButton) {
+        this.setVisible(true);
+        this.setInputVisible(false);
+        document.getElementById("msg-box-title").innerHTML = `<b>${title}</b>`;
+        document.getElementById("msg-box-content").innerHTML = `${content}`;
+        document.getElementById("msg-box-ok").textContent = okButton;
+        document.getElementById("msg-box-cancel").textContent = cancelButton;
+        this.setButtonVisible("msg-box-ok", okButton.length > 0);
+        this.setButtonVisible("msg-box-cancel", cancelButton.length > 0);
+    }
+    static createMsgBoxWithInput(title, content, okButton, cancelButton) {
+        this.createMsgBox(title, content, okButton, cancelButton);
+        this.setInputVisible(true);
+    }
+}
+exports.MsgBox = MsgBox;
+
+
+/***/ }),
+
 /***/ "./src/game/network/network.ts":
 /*!*************************************!*\
   !*** ./src/game/network/network.ts ***!
@@ -270808,7 +270893,6 @@ exports.Network = void 0;
 const socket_io_client_1 = __webpack_require__(/*! socket.io-client */ "./node_modules/socket.io-client/build/cjs/index.js");
 const packet_1 = __webpack_require__(/*! ./packet */ "./src/game/network/packet.ts");
 const syncHelper_1 = __webpack_require__(/*! ./syncHelper */ "./src/game/network/syncHelper.ts");
-const gameface_1 = __webpack_require__(/*! ../gameface/gameface */ "./src/game/gameface/gameface.ts");
 const baseObject_1 = __webpack_require__(/*! ../../shared/baseObject */ "./src/shared/baseObject.ts");
 const gameSettings_1 = __webpack_require__(/*! ../../shared/constants/gameSettings */ "./src/shared/constants/gameSettings.ts");
 class PacketListener {
@@ -270867,11 +270951,6 @@ class Network extends baseObject_1.BaseObject {
     onReceivePacket(packet) {
         //this.log(`reiceved packet ${packet.type}`)
         this._packetListener.emitReceivedPacketEvent(packet);
-        if (packet.type == packet_1.PACKET_TYPE.PACKET_JOINED_SERVER) {
-            const data = packet.data;
-            gameface_1.Gameface.Instance.playerId = data.playerId;
-            console.log(data);
-        }
         syncHelper_1.SyncHelper.onReceivePacket(packet);
     }
     waitForPacket(type) {
@@ -270927,18 +271006,21 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PACKET_TYPE = void 0;
 var PACKET_TYPE;
 (function (PACKET_TYPE) {
-    PACKET_TYPE[PACKET_TYPE["PACKET_REQUEST_MODELS"] = 0] = "PACKET_REQUEST_MODELS";
-    PACKET_TYPE[PACKET_TYPE["PACKET_CLIENT_READY"] = 1] = "PACKET_CLIENT_READY";
-    PACKET_TYPE[PACKET_TYPE["PACKET_MODELS"] = 2] = "PACKET_MODELS";
-    PACKET_TYPE[PACKET_TYPE["PACKET_JOINED_SERVER"] = 3] = "PACKET_JOINED_SERVER";
-    PACKET_TYPE[PACKET_TYPE["PACKET_ENTITIES"] = 4] = "PACKET_ENTITIES";
-    PACKET_TYPE[PACKET_TYPE["PACKET_CLIENT_DATA"] = 5] = "PACKET_CLIENT_DATA";
-    PACKET_TYPE[PACKET_TYPE["PACKET_ENTER_LEAVE_VEHICLE"] = 6] = "PACKET_ENTER_LEAVE_VEHICLE";
-    PACKET_TYPE[PACKET_TYPE["PACKET_WEAPON_SHOT"] = 7] = "PACKET_WEAPON_SHOT";
-    PACKET_TYPE[PACKET_TYPE["PACKET_HEALTH"] = 8] = "PACKET_HEALTH";
+    PACKET_TYPE[PACKET_TYPE["PACKET_REQUEST_INITIAL_INFO"] = 0] = "PACKET_REQUEST_INITIAL_INFO";
+    PACKET_TYPE[PACKET_TYPE["PACKET_INITIAL_INFO"] = 1] = "PACKET_INITIAL_INFO";
+    PACKET_TYPE[PACKET_TYPE["PACKET_CLIENT_READY"] = 2] = "PACKET_CLIENT_READY";
+    PACKET_TYPE[PACKET_TYPE["PACKET_ENTITIES"] = 3] = "PACKET_ENTITIES";
+    PACKET_TYPE[PACKET_TYPE["PACKET_CLIENT_DATA"] = 4] = "PACKET_CLIENT_DATA";
+    PACKET_TYPE[PACKET_TYPE["PACKET_ENTER_LEAVE_VEHICLE"] = 5] = "PACKET_ENTER_LEAVE_VEHICLE";
+    PACKET_TYPE[PACKET_TYPE["PACKET_WEAPON_SHOT"] = 6] = "PACKET_WEAPON_SHOT";
+    PACKET_TYPE[PACKET_TYPE["PACKET_HEALTH"] = 7] = "PACKET_HEALTH";
     // entity sync
-    PACKET_TYPE[PACKET_TYPE["PACKET_ENTITY_INFO_BASIC"] = 9] = "PACKET_ENTITY_INFO_BASIC";
-    PACKET_TYPE[PACKET_TYPE["PACKET_CLIENT_INFO"] = 10] = "PACKET_CLIENT_INFO";
+    PACKET_TYPE[PACKET_TYPE["PACKET_ENTITY_INFO_BASIC"] = 8] = "PACKET_ENTITY_INFO_BASIC";
+    PACKET_TYPE[PACKET_TYPE["PACKET_CLIENT_INFO"] = 9] = "PACKET_CLIENT_INFO";
+    PACKET_TYPE[PACKET_TYPE["PACKET_ENTITY_TELEPORTED"] = 10] = "PACKET_ENTITY_TELEPORTED";
+    PACKET_TYPE[PACKET_TYPE["PACKET_CHAT_MESSAGE"] = 11] = "PACKET_CHAT_MESSAGE";
+    PACKET_TYPE[PACKET_TYPE["PACKET_INVENTORY"] = 12] = "PACKET_INVENTORY";
+    PACKET_TYPE[PACKET_TYPE["PACKET_INVENTORY_ITEM_MOVE"] = 13] = "PACKET_INVENTORY_ITEM_MOVE";
 })(PACKET_TYPE || (exports.PACKET_TYPE = PACKET_TYPE = {}));
 
 
@@ -270960,7 +271042,9 @@ const entity_1 = __webpack_require__(/*! ../entities/entity */ "./src/game/entit
 const entitySync_1 = __webpack_require__(/*! ../entities/entitySync */ "./src/game/entities/entitySync.ts");
 const ped_1 = __webpack_require__(/*! ../entities/ped */ "./src/game/entities/ped.ts");
 const gameface_1 = __webpack_require__(/*! ../gameface/gameface */ "./src/game/gameface/gameface.ts");
+const gameScene_1 = __webpack_require__(/*! ../scenes/gameScene */ "./src/game/scenes/gameScene.ts");
 const packet_1 = __webpack_require__(/*! ./packet */ "./src/game/network/packet.ts");
+const clientInventoryManager_1 = __webpack_require__(/*! ../../shared/inventory/client/clientInventoryManager */ "./src/shared/inventory/client/clientInventoryManager.ts");
 class SyncHelper {
     static update() {
         const player = gameface_1.Gameface.Instance.player;
@@ -270994,6 +271078,23 @@ class SyncHelper {
             const data = packet.data;
             SyncHelper.onReceiveEntityInfoBasic(data);
         }
+        if (packet.type == packet_1.PACKET_TYPE.PACKET_ENTITY_TELEPORTED) {
+            const data = packet.data;
+            const game = gameface_1.Gameface.Instance.game;
+            const entity = game.entityFactory.entities.get(data.id);
+            if (!entity) {
+                console.error("SyncHelper: could not find entity" + data.id);
+                return;
+            }
+            const pos = data.position;
+            if (entity.sync.syncType == entitySync_1.eSyncType.SYNC_NONE) {
+                entity.setPosition(pos.x, pos.y, pos.z);
+            }
+            else {
+                entity.sync.setPosition(pos.x, pos.y, pos.z);
+                entity.sync.forceSetPosition();
+            }
+        }
         if (packet.type == packet_1.PACKET_TYPE.PACKET_WEAPON_SHOT) {
             const data = packet.data;
             const game = gameface_1.Gameface.Instance.game;
@@ -271006,6 +271107,20 @@ class SyncHelper {
                 Ammo.destroy(dir);
             }
         }
+        if (packet.type == packet_1.PACKET_TYPE.PACKET_CHAT_MESSAGE) {
+            const data = packet.data;
+            gameScene_1.GameScene.Instance.chat.addMessage(data.message);
+        }
+        if (packet.type == packet_1.PACKET_TYPE.PACKET_INVENTORY) {
+            const data = packet.data;
+            const game = gameface_1.Gameface.Instance.game;
+            console.log(data);
+            const inventory = game.inventoryManager.inventories.get(data.inventory.id);
+            if (!inventory) {
+                throw "Inventory not found";
+            }
+            inventory.fromJSON(data.inventory);
+        }
         // if(packet.type == PACKET_TYPE.PACKET_HEALTH)
         // {
         //     const data = packet.data as IPacketData_Health;
@@ -271016,6 +271131,29 @@ class SyncHelper {
         //         entity.health = data.health;
         //     }
         // }
+    }
+    static onReceiveInitialInfo(info) {
+        const game = gameface_1.Gameface.Instance.game;
+        const network = gameface_1.Gameface.Instance.network;
+        console.log(info);
+        gameface_1.Gameface.Instance.game.gltfCollection.fromPacketData(info);
+        gameface_1.Gameface.Instance.playerId = info.playerId;
+        const inventory = game.inventoryManager.createPlayerInventory();
+        game.inventoryManager.setInventoryId(inventory, info.inventoryId);
+        clientInventoryManager_1.ClientInventoryManager.inventory = inventory;
+        inventory.events.on("item_moved", (slotGroup, x, y, toSlotGroup, toX, toY) => {
+            console.log("send item_moved packet");
+            network.send(packet_1.PACKET_TYPE.PACKET_INVENTORY_ITEM_MOVE, {
+                fromInventory: slotGroup.inventory.id,
+                fromSlotGroup: slotGroup.getIndex(),
+                fromX: x,
+                fromY: y,
+                toInventory: toSlotGroup.inventory.id,
+                toSlotGroup: toSlotGroup.getIndex(),
+                toX: toX,
+                toY: toY
+            });
+        });
     }
     static onReceiveEntityInfoBasic(data) {
         const game = gameface_1.Gameface.Instance.game;
@@ -271085,12 +271223,16 @@ class SyncHelper {
         entity.inputY = input.y;
         entity.inputZ = input.z;
         if (entity instanceof ped_1.Ped) {
+            if (data.nickname != undefined)
+                entity.nickname = data.nickname;
             if (entity.id != gameface_1.Gameface.Instance.playerId) {
                 if (data.aiming != undefined)
                     entity.aiming = data.aiming;
                 const pedLookDir = entity.lookDir;
                 const lookDir = (0, ammoUtils_1.XYZW_SetValue)(data.lookDir, { x: pedLookDir.x(), y: pedLookDir.y(), z: pedLookDir.z(), w: pedLookDir.w() });
                 entity.lookDir.setValue(lookDir.x, lookDir.y, lookDir.z, lookDir.w);
+                console.log("data.nickname", data.nickname);
+                console.log("data.weapon", data.weapon);
                 if (data.weapon != undefined) {
                     let currentWeaponId = "";
                     if (entity.weapon)
@@ -271243,7 +271385,10 @@ class GameScene extends Phaser.Scene {
         if (input_1.Input.getKeyDown("F")) {
             this.tryEnterOrLeaveVehicle();
         }
-        if (input_1.Input.getKeyDown("Y")) {
+        if (input_1.Input.getKeyDown("T")) {
+            this.chat.toggleChatInput(true);
+        }
+        if (input_1.Input.getKeyDown("N")) {
             if (!clientInventoryManager_1.ClientInventoryManager.isInventoryOpen) {
                 clientInventoryManager_1.ClientInventoryManager.isInventoryOpen = true;
                 const inventory = clientInventoryManager_1.ClientInventoryManager.inventory;
@@ -271726,9 +271871,11 @@ class ServerScene {
             ball.body.setAngularVelocity(new Ammo.btVector3(0, 0, 0));
         }, 1000);
         const npc2 = this.game.entityFactory.spawnPed(-12, 5, 0);
+        npc2.nickname = `NPC Parado`;
         const npc = this.game.entityFactory.spawnPed(-15, 5, 0);
         npc.equipWeapon("m4");
         npc.aiming = true;
+        npc.nickname = `NPC`;
         setInterval(() => {
             //npc.weapon!.shoot();
         }, 1500);
@@ -272054,7 +272201,7 @@ class Weapon extends baseObject_1.BaseObject {
     }
     canShoot() {
         const now = performance.now();
-        if (now - this._lastTimeShot >= 300)
+        if (now - this._lastTimeShot >= 180)
             return true;
         return false;
     }
@@ -272126,16 +272273,15 @@ class Weapon extends baseObject_1.BaseObject {
     processWeaponDamage(entity) {
         entity.health -= 22;
         if (entity.health <= 0) {
-            entity.setPosition(0, 3, 0);
-            entity.health = 100;
+            this.ped.game.onEntityDeath(entity, this);
         }
-        const force = new Ammo.btVector3(0, 1, 0);
-        force.op_mul(8000);
-        const zero = new Ammo.btVector3(0, 0, 0);
-        entity.body.activate();
-        entity.body.applyForce(force, zero);
-        Ammo.destroy(force);
-        Ammo.destroy(zero);
+        // const force = new Ammo.btVector3(0, 1, 0);
+        // force.op_mul(8000);
+        // const zero = new Ammo.btVector3(0, 0, 0);
+        // entity.body.activate();
+        // entity.body.applyForce(force, zero);
+        // Ammo.destroy(force);
+        // Ammo.destroy(zero);
     }
 }
 exports.Weapon = Weapon;
@@ -272434,7 +272580,8 @@ class EntityWatcher {
             entityInfo.watch("lookDir.y", () => entity.lookDir.y()).setMinDifference(0.01);
             entityInfo.watch("lookDir.z", () => entity.lookDir.z()).setMinDifference(0.01);
             entityInfo.watch("lookDir.w", () => entity.lookDir.w()).setMinDifference(0.01);
-            entityInfo.watch("weapon", () => entity.weapon ? entity.weapon.weaponData.id : -1);
+            entityInfo.watch("weapon", () => entity.weapon ? entity.weapon.weaponData.id : "");
+            entityInfo.watch("nickname", () => entity.nickname);
         }
         entityInfo.onChange = () => {
             //console.log(`[EntityWatcher] entity_info changed`);
@@ -272499,6 +272646,8 @@ class EntityWatcher {
                 info.lookDir = lookDir;
                 if (entityInfo.hasValueChanged("weapon"))
                     info.weapon = entityInfo.getValue("weapon");
+                if (entityInfo.hasValueChanged("nickname"))
+                    info.nickname = entityInfo.getValue("nickname");
             }
             (_a = this.onEntityInfoChange) === null || _a === void 0 ? void 0 : _a.call(this, entity, info);
         };
@@ -273122,7 +273271,6 @@ class GLTFCollection {
         this.gltfs = new Map();
     }
     fromPacketData(data) {
-        console.log(data);
         for (const model of data.models) {
             const gltfData = new gltfData_1.GLTFData();
             gltfData.fromJSON(model);
@@ -273265,7 +273413,6 @@ exports.ClientInventory = ClientInventory;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ClientInventoryManager = void 0;
-const gameface_1 = __webpack_require__(/*! ../../../game/gameface/gameface */ "./src/game/gameface/gameface.ts");
 const clientInventory_1 = __webpack_require__(/*! ./clientInventory */ "./src/shared/inventory/client/clientInventory.ts");
 class ClientInventoryManager {
     static startDrag() {
@@ -273286,12 +273433,17 @@ class ClientInventoryManager {
         this.dragFromSlot = undefined;
     }
     static init() {
-        const game = gameface_1.Gameface.Instance.game;
-        this.inventory = game.inventoryManager.createPlayerInventory();
     }
     static createInventory(inventory, x, y) {
         const clientInventory = new clientInventory_1.ClientInventory(inventory, x, y);
         this.clientInventories.push(clientInventory);
+    }
+    static getClientInventoryById(id) {
+        for (const clientInventory of this.clientInventories) {
+            if (clientInventory.inventory.id == id)
+                return clientInventory;
+        }
+        return undefined;
     }
     static removeAllIventories() {
         for (const clientInventory of this.clientInventories) {
@@ -273491,18 +273643,72 @@ exports.Inventory = void 0;
 const slotGroup_1 = __webpack_require__(/*! ./slotGroup */ "./src/shared/inventory/slotGroup.ts");
 const uuid_1 = __webpack_require__(/*! uuid */ "./node_modules/uuid/dist/esm-browser/index.js");
 class Inventory {
-    constructor() {
+    constructor(inventoryManager) {
         this.id = (0, uuid_1.v4)();
         this.slotGroups = [];
         this.events = new Phaser.Events.EventEmitter();
-        this.events.on("item_moved", () => {
+        this.inventoryManager = inventoryManager;
+        this.events.on("item_moved", (slotGroup, x, y, toSlotGroup, toX, toY) => {
+            if (toSlotGroup.inventory != slotGroup.inventory) {
+                toSlotGroup.inventory.events.emit("item_moved", this, x, y, toSlotGroup, toX, toY);
+            }
             this.events.emit("updated_inventory");
+        });
+        this.events.on("item_added", () => {
+            this.events.emit("updated_inventory");
+        });
+        this.events.on("updated_inventory", () => {
+            this.inventoryManager.game.events.emit("updated_inventory", this);
         });
     }
     addSlotGroup(sx, sy) {
         const slotGroup = new slotGroup_1.SlotGroup(this, sx, sy);
         this.slotGroups.push(slotGroup);
         return slotGroup;
+    }
+    addItemToAnySlot(item) {
+        let toSlotGroup = undefined;
+        let x = -1;
+        let y = -1;
+        for (const slotGroup of this.slotGroups) {
+            var slot = slotGroup.getEmptySlot();
+            if (slot == undefined)
+                continue;
+            toSlotGroup = slotGroup;
+            x = slot.x;
+            y = slot.y;
+            break;
+        }
+        if (!toSlotGroup) {
+            console.warn("No more space in this inventory");
+            return false;
+        }
+        toSlotGroup.addItemToSlot(item, x, y);
+        return true;
+    }
+    toJSON() {
+        const json = {
+            id: this.id,
+            slotGroups: this.slotGroups.map(slotGroup => slotGroup.toJSON())
+        };
+        return json;
+    }
+    fromJSON(json) {
+        const itemManager = this.inventoryManager.game.itemManager;
+        var i = 0;
+        for (const slotGroup_json of json.slotGroups) {
+            const slotGroup = this.slotGroups[i];
+            slotGroup.slots = slotGroup_json.slots;
+            slotGroup.items.clear();
+            for (const item_json of slotGroup_json.items) {
+                console.log(item_json);
+                const item = itemManager.makeItem(item_json.item.itemData);
+                item.fromJSON(item_json.item);
+                slotGroup.addItemToItemsMap(item_json.id, item);
+            }
+            i++;
+        }
+        this.events.emit("updated_inventory");
     }
 }
 exports.Inventory = Inventory;
@@ -273524,6 +273730,13 @@ class InventoryItem {
     constructor(id, item) {
         this.id = id;
         this.item = item;
+    }
+    toJSON() {
+        const json = {
+            id: this.id,
+            item: this.item.toJSON()
+        };
+        return json;
     }
 }
 exports.InventoryItem = InventoryItem;
@@ -273554,7 +273767,7 @@ class InventoryManager {
         equipSlotGroup.offset.set(0, 430);
         setInterval(() => {
             inventory.events.emit("updated_inventory");
-        }, 1000);
+        }, 2000);
         const inventory2 = this.createInventory();
         inventory2.addSlotGroup(3, 10);
     }
@@ -273576,7 +273789,7 @@ class InventoryManager {
     }
     createInventory() {
         console.log(`[InventoryManager] Create inventory`);
-        const inventory = new inventory_1.Inventory();
+        const inventory = new inventory_1.Inventory(this);
         this.inventories.set(inventory.id, inventory);
         return inventory;
     }
@@ -273586,6 +273799,11 @@ class InventoryManager {
         const equipSlotGroup = inventory.addSlotGroup(4, 1);
         equipSlotGroup.offset.set(0, 430);
         return inventory;
+    }
+    setInventoryId(inventory, id) {
+        this.inventories.delete(inventory.id);
+        inventory.id = id;
+        this.inventories.set(id, inventory);
     }
 }
 exports.InventoryManager = InventoryManager;
@@ -273607,7 +273825,19 @@ const uuid_1 = __webpack_require__(/*! uuid */ "./node_modules/uuid/dist/esm-bro
 class Item {
     constructor(itemData) {
         this.id = (0, uuid_1.v4)();
+        this.amount = 1;
         this.itemData = itemData;
+    }
+    toJSON() {
+        const json = {
+            id: this.id,
+            amount: this.amount,
+            itemData: this.itemData.id
+        };
+        return json;
+    }
+    fromJSON(json) {
+        this.amount = json.amount;
     }
 }
 exports.Item = Item;
@@ -273647,8 +273877,8 @@ class ItemManager {
     getItemData(id) {
         return this.itemsData.get(id);
     }
-    makeItem(id) {
-        const itemData = this.getItemData(id);
+    makeItem(itemDataId) {
+        const itemData = this.getItemData(itemDataId);
         const item = new item_1.Item(itemData);
         return item;
     }
@@ -273712,6 +273942,12 @@ class SlotGroup {
         }
         const inventoryItem = this.createInventoryItem(item);
         this.slots[y][x] = inventoryItem.id;
+        this.inventory.events.emit("item_added", this, x, y);
+        return inventoryItem;
+    }
+    addItemToItemsMap(id, item) {
+        const inventoryItem = new inventoryItem_1.InventoryItem(id, item);
+        this.items.set(inventoryItem.id, inventoryItem);
         return inventoryItem;
     }
     removeItemFromSlot(x, y) {
@@ -273729,6 +273965,22 @@ class SlotGroup {
         this.slots[y][x] = -1;
         return item;
     }
+    getItemById(id) {
+        for (const [_, inventoryItem] of this.items) {
+            if (inventoryItem.item.id == id)
+                return inventoryItem;
+        }
+        return undefined;
+    }
+    getEmptySlot() {
+        for (var y = 0; y < this.slots.length; y++) {
+            for (var x = 0; x < this.slots[0].length; x++) {
+                if (this.slots[y][x] == -1)
+                    return { x: x, y: y };
+            }
+        }
+        return undefined;
+    }
     moveItem(x, y, toSlotGroup, toX, toY) {
         console.log(`[SlotGroup] MoveItem ${x},${y} to ${toX},${toY}`);
         const removedItem = this.removeItemFromSlot(x, y);
@@ -273736,15 +273988,14 @@ class SlotGroup {
             console.log(`[SlotGroup] No items in slot ${x},${y}`);
             return false;
         }
-        const hasItemInSlot = this.getItemInSlot(toX, toY) != undefined;
+        const hasItemInSlot = toSlotGroup.getItemInSlot(toX, toY) != undefined;
         if (hasItemInSlot) {
             console.log(`[SlotGroup] There is already an item in in slot ${toX},${toY}`);
-            const removedItem2 = this.removeItemFromSlot(toX, toY);
+            const removedItem2 = toSlotGroup.removeItemFromSlot(toX, toY);
             this.addItemToSlot(removedItem2, x, y);
         }
         toSlotGroup.addItemToSlot(removedItem, toX, toY);
         this.inventory.events.emit("item_moved", this, x, y, toSlotGroup, toX, toY);
-        toSlotGroup.inventory.events.emit("item_moved", this, x, y, toSlotGroup, toX, toY);
         return true;
     }
     isSlotValid(x, y) {
@@ -273759,6 +274010,17 @@ class SlotGroup {
             return undefined;
         const id = this.slots[y][x];
         return this.items.get(id);
+    }
+    getIndex() {
+        return this.inventory.slotGroups.indexOf(this);
+    }
+    toJSON() {
+        const items = Array.from(this.items.values()).map(inventoryItem => inventoryItem.toJSON());
+        const json = {
+            slots: this.slots,
+            items: items
+        };
+        return json;
     }
 }
 exports.SlotGroup = SlotGroup;
@@ -274077,7 +274339,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getIsMobile = exports.isMobile = void 0;
+exports.getIsDevelopment = exports.getIsMobile = exports.isMobile = void 0;
 exports.ammoQuaternionToThree = ammoQuaternionToThree;
 exports.ammoVector3ToThree = ammoVector3ToThree;
 exports.threeVector3ToAmmo = threeVector3ToAmmo;
@@ -274113,6 +274375,10 @@ const getIsMobile = () => {
     return false;
 };
 exports.getIsMobile = getIsMobile;
+const getIsDevelopment = () => {
+    return location.href.includes("localhost");
+};
+exports.getIsDevelopment = getIsDevelopment;
 function ammoQuaternionToThree(quaternion) {
     return new three_1.default.Quaternion(quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w());
 }

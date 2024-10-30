@@ -472,12 +472,4 @@ export class Vehicle extends Entity
             constraint.enableAngularMotor(true, velocity, this.darGrau ? 50 : 15);
         }
     }
-
-    public toJSON()
-    {
-        const json = super.toJSON();
-        //json.data = data;
-
-        return json;
-    }
 }

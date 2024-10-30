@@ -7,10 +7,13 @@ import { threeVector3ToAmmo } from "../../../shared/utils";
 import { Input } from "../../input";
 import { Gameface } from "../../gameface/gameface";
 import { WeaponItem } from "../weaponItem";
+import { WorldText } from "../../worldText";
 
 export class ClientPed extends ClientEntity
 {
     public get ped() { return this.entity as Ped; }
+
+    public nickNameWorldText = new WorldText(this.ped.nickname);
 
     private _prevEquipedWeapon: string = "";
     private _weaponItem?: WeaponItem;
@@ -30,6 +33,18 @@ export class ClientPed extends ClientEntity
 
     public _mainAnimI = 0;
     public _subAnimI = 0;
+
+    public update3DText()
+    {
+        super.update3DText();
+
+        const position = this.entity.getPosition();
+
+        this.nickNameWorldText.setTitle(this.ped.nickname);
+        this.nickNameWorldText.set3DPosition(new THREE.Vector3(position.x(), position.y() + 2, position.z()));
+        this.nickNameWorldText.position.y -= 40;
+        this.nickNameWorldText.update();
+    }
 
     public update(delta: number)
     {

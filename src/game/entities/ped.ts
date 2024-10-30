@@ -1,16 +1,10 @@
 import { Quaternion_BetweenTwoVectors, Quaternion_Clone, Quaternion_Forward, Quaternion_Right, Quaternion_ToEuler, quaternionFromVectors } from '../../shared/ammo/quaterion';
-import { FormatVector3, getTurnDirection, rotateVectorAroundY, Vector3_Clone, Vector3_CrossVectors, Vector3_DistanceTo } from '../../shared/ammo/vector';
+import { getTurnDirection, rotateVectorAroundY, Vector3_Clone, Vector3_CrossVectors, Vector3_DistanceTo } from '../../shared/ammo/vector';
 import { ammoVector3ToThree, threeVector3ToAmmo } from '../../shared/utils';
 import { Weapon } from '../weapons/weapon';
-import { Entity, EntityData_JSON } from './entity';
+import { Entity } from './entity';
 import THREE from 'three';
 import { Vehicle } from './vehicle';
-
-export interface PedData_JSON extends EntityData_JSON {
-    lookDir: number[]
-    aiming: boolean
-    weapon: number
-}
 
 export class Ped extends Entity
 {
@@ -29,6 +23,8 @@ export class Ped extends Entity
     public weapon?: Weapon;
 
     public onVehicle?: Vehicle;
+
+    public nickname: string = "Player";
 
     public initCollision()
     {
@@ -264,7 +260,11 @@ export class Ped extends Entity
 
         const weaponData = this.game.weapons.getWeaponData(id);
 
-        if(!weaponData) throw "Weapon ID " + id + " not found";
+        if(!weaponData)
+        {
+            console.error("Ped: Weapon ID " + id + " not found");
+            return;
+        }
 
         const weapon = new Weapon(weaponData);
         weapon.ped = this;
@@ -365,12 +365,5 @@ export class Ped extends Entity
         }
 
         return closestVehicle;
-    }
-    
-    public toJSON()
-    {
-        const json = super.toJSON();
-
-        return json;
     }
 }

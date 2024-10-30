@@ -1,3 +1,5 @@
+import { Gameface } from "./gameface/gameface";
+import { IPacketData_ChatMessage, PACKET_TYPE } from "./network/packet";
 import { GameScene } from "./scenes/gameScene";
 import { MainScene } from "./scenes/mainScene";
 
@@ -7,6 +9,7 @@ export class Chat
 
     public messagesDiv?: HTMLElement;
     public input?: HTMLInputElement;
+    public sendButton?: HTMLButtonElement;
     public inputVisible: boolean = true;
 
     constructor()
@@ -30,13 +33,14 @@ export class Chat
                     <input id="chat-input" class="chat-input"></input>
                 </div>
                 <div class="col-1 p-0">
-                    <button class="chat-button">Send</button>
+                    <button id="chat-button-send" class="chat-button">Send</button>
                 </div>
             </div>
         `);
 
         this.messagesDiv = document.getElementById("chat-messages")!;
         this.input = document.getElementById("chat-input") as HTMLInputElement;
+        this.sendButton = document.getElementById("chat-button-send") as HTMLButtonElement;
 
         (window as any).messagesDiv = this.messagesDiv;
         (window as any).chatInput = this.input;
@@ -49,20 +53,27 @@ export class Chat
         
         const chat = this;
 
-        this.input.addEventListener('keydown', function(event) {
+        const input = this.input;
+
+        input.addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
+                chat.send();
+            }
+
+            console.log(event.key);
+            if (event.key === 'Escape') {
+                input.value = "";
                 chat.send();
             }
         });
 
         this.messagesDiv.addEventListener('click', () => {
-
-            if(this.inputVisible) return;
-
             this.toggleChatInput(true);
-
-            this.input?.focus();
         })
+
+        this.sendButton.addEventListener('click', () => {
+            chat.send();
+        });
 
         this.toggleChatInput(false);
     }
@@ -104,13 +115,35 @@ export class Chat
         // Clear the input field
         input!.value = '';
 
-        this.addMessage(`Player: <span style="color: white";>${text}</span>`);
+        if(text.length > 0)
+        {
+            //this.addMessage(`Player: <span style="color: white";>${text}</span>`);
+
+            Gameface.Instance.network.send<IPacketData_ChatMessage>(PACKET_TYPE.PACKET_CHAT_MESSAGE, {
+                message: text
+            });
+        }
 
         this.toggleChatInput(false);
     }
 
     public toggleChatInput(enabled: boolean)
     {
+        if(enabled)
+        {
+            if(this.inputVisible) return;
+
+            Gameface.Instance.setPointerLocked(false);
+
+            this.input!.focus();
+            setTimeout(() => {
+                this.input!.focus();
+            }, 0);
+            
+        } else {
+            Gameface.Instance.setPointerLocked(true);
+        }
+
         this.inputVisible = enabled;
 
         document.getElementById("chat-input-row")!.style.display = enabled ? "" : "none";

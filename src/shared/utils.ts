@@ -29,6 +29,10 @@ export const getIsMobile = () => {
     return false;
 };
 
+export const getIsDevelopment = () => {
+    return location.href.includes("localhost");
+};
+
 export function ammoQuaternionToThree(quaternion: Ammo.btQuaternion)
 {
     return new THREE.Quaternion(quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w());

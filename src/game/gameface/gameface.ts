@@ -14,15 +14,16 @@ import { Ped } from "../entities/ped";
 import { Input } from "../input";
 import { Weapon } from "../weapons/weapon";
 import { Network } from "../network/network";
-import { IPacketData_Models, IPacketData_WeaponShot, PACKET_TYPE } from "../network/packet";
+import { IPacketData_InitialInfo, IPacketData_RequestInitialInfo, IPacketData_WeaponShot, PACKET_TYPE } from "../network/packet";
 import { Entity, Entity_Info_Basic, EntityType } from "../entities/entity";
-import { getIsMobile } from "../../shared/utils";
+import { getIsDevelopment, getIsMobile } from "../../shared/utils";
 import { Chat } from "../chat";
 import { EntityWatcher } from "../../server/server/entityWatcher";
 import { SyncHelper } from "../network/syncHelper";
 import { InventoryManager } from "../../shared/inventory/inventoryManager";
 import { Inventory } from "../../shared/inventory/inventory";
 import { ClientInventoryManager } from "../../shared/inventory/client/clientInventoryManager";
+import { MsgBox } from "../msgBox";
 
 export class Gameface extends BaseObject
 {
@@ -81,6 +82,9 @@ export class Gameface extends BaseObject
     public async start()
     {
         this.log("start");
+
+        MsgBox.init();
+        MsgBox.createMsgBox("Info", "Loading...", "", "");
 
         this._phaser = await PhaserLoad.loadAsync();
 
@@ -162,45 +166,58 @@ export class Gameface extends BaseObject
             if(getIsMobile())
             {
                 if(!this.isFullscreen()) this.enterFullscreen();
-            } else {
-                MainScene.Instance.input.mouse?.requestPointerLock();
+                return;
             }
             
+            if(Chat.Instance.inputVisible) return;
+
+            this.setPointerLocked(true);
         });
 
         const startMultiplayer: boolean = true;
         
-        Chat.Instance.addColorMessage("Server", "gold", `Modo: ${startMultiplayer ? "Multiplayer" : "Singleplayer"}`);
-        Chat.Instance.addColorMessage("Server", "gold", `Conectando-se ao servidor...`);
+        Chat.Instance.addColorMessage("INFO", "#7794F9", `Connecting to the server...`);
 
         this.network.connect(async () => {
 
-            Chat.Instance.addColorMessage("Server", "gold", `Conectado!`);
+            Chat.Instance.addColorMessage("INFO", "#7794F9", `Connected!`);
 
             this.log("conectado");
 
-            this.network.send(PACKET_TYPE.PACKET_REQUEST_MODELS, {});
+            MsgBox.createMsgBoxWithInput("Server", "Nickname:", "OK", "");
+            MsgBox.onResponse = async (button: number, inputtext: string) => {
 
-            this.log("waiting for models");
+                this.network.send<IPacketData_RequestInitialInfo>(PACKET_TYPE.PACKET_REQUEST_INITIAL_INFO, {
+                    nickname: inputtext
+                });
 
-            const models = await this.network.waitForPacket<IPacketData_Models>(PACKET_TYPE.PACKET_MODELS);
+                this.log("waiting for models");
 
-            Chat.Instance.addColorMessage("Server", "gold", `Recebido ${models.models.length} models`);
+                const info = await this.network.waitForPacket<IPacketData_InitialInfo>(PACKET_TYPE.PACKET_INITIAL_INFO);
 
-            Gameface.Instance.game.gltfCollection.fromPacketData(models);
-            
-            this.game.isServer = !startMultiplayer;
-            this.game.create();
+                SyncHelper.onReceiveInitialInfo(info);
 
-            if(!startMultiplayer)
+                this.game.isServer = !startMultiplayer;
+                this.game.create();
+
+                if(!startMultiplayer)
+                {
+                    const ped = this.game.entityFactory.spawnPed(-4, 0, 0);
+                    this.player = ped;
+                    // this.player.equipWeapon(0);
+                    return;
+                }
+
+                
+                this.network.send(PACKET_TYPE.PACKET_CLIENT_READY, {});
+            };
+
+            if(getIsDevelopment())
             {
-                const ped = this.game.entityFactory.spawnPed(-4, 0, 0);
-                this.player = ped;
-                // this.player.equipWeapon(0);
-                return;
+                setTimeout(() => {
+                    MsgBox.simulateResponse(0, "Danilo1301");
+                }, 500);
             }
-
-            this.network.send(PACKET_TYPE.PACKET_CLIENT_READY, {});
         });
     }
 
@@ -270,6 +287,16 @@ export class Gameface extends BaseObject
     public isPointerLocked()
     {
         return document.pointerLockElement !== null;
+    }
+
+    public setPointerLocked(locked: boolean)
+    {
+        if(locked)
+        {
+            MainScene.Instance.input.mouse?.requestPointerLock();
+        } else {
+            document.exitPointerLock();
+        }
     }
 
     public leaveFullscreen()

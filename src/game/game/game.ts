@@ -14,6 +14,7 @@ import { Bike } from "../entities/bike";
 import { Ball } from "../entities/ball";
 import { InventoryManager } from "../../shared/inventory/inventoryManager";
 import { ItemManager } from "../../shared/inventory/item/itemManager";
+import { Weapon } from "../weapons/weapon";
 
 export class Game extends BaseObject
 {
@@ -111,5 +112,16 @@ export class Game extends BaseObject
 
     public postUpdate(delta: number)
     {
+    }
+
+    public onEntityDeath(entity: Entity, byWeapon?: Weapon)
+    {
+        this.events.emit("entity_died", entity, byWeapon?.ped);
+
+        entity.setPosition(0, 3, 0);
+        this.events.emit("entity_teleported", entity);
+
+        entity.health = 100;
+
     }
 }

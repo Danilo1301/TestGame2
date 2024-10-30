@@ -28,7 +28,7 @@ export class Weapon extends BaseObject {
     public canShoot()
     {
         const now = performance.now();
-        if(now - this._lastTimeShot >= 300) return true;
+        if(now - this._lastTimeShot >= 180) return true;
         return false;
     }
 
@@ -142,19 +142,18 @@ export class Weapon extends BaseObject {
 
         if(entity.health <= 0)
         {
-            entity.setPosition(0, 3, 0);
-            entity.health = 100;
+            this.ped!.game.onEntityDeath(entity, this);
         }
 
-        const force = new Ammo.btVector3(0, 1, 0);
-        force.op_mul(8000);
+        // const force = new Ammo.btVector3(0, 1, 0);
+        // force.op_mul(8000);
 
-        const zero = new Ammo.btVector3(0, 0, 0);
+        // const zero = new Ammo.btVector3(0, 0, 0);
 
-        entity.body.activate();
-        entity.body.applyForce(force, zero);
+        // entity.body.activate();
+        // entity.body.applyForce(force, zero);
 
-        Ammo.destroy(force);
-        Ammo.destroy(zero);
+        // Ammo.destroy(force);
+        // Ammo.destroy(zero);
     }
 }

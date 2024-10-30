@@ -1,14 +1,12 @@
-import { IPacketData_Models } from "../../game/network/packet";
+import { IPacketData_InitialInfo } from "../../game/network/packet";
 import { GLTFData } from "./gltfData";
 
 export class GLTFCollection
 {
     public gltfs = new Map<string, GLTFData>();
 
-    public fromPacketData(data: IPacketData_Models)
+    public fromPacketData(data: IPacketData_InitialInfo)
     {
-        console.log(data);
-
         for(const model of data.models)
         {
             const gltfData = new GLTFData();

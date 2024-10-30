@@ -7,15 +7,6 @@ import { Quaternion_Clone, Quaternion_Forward, Quaternion_Right, Quaternion_Up }
 import { EntitySync } from './entitySync';
 import { XYZ, XYZW } from '../../shared/ammo/ammoUtils';
 
-export interface EntityData_JSON {
-}
-
-export interface EntityFullData_JSON {
-    type: EntityType
-    nickname: string
-    nicknameColor: number
-}
-
 export enum EntityType {
     UNDEFINED,
     PED,
@@ -23,16 +14,6 @@ export enum EntityType {
     BALL,
     VEHICLE,
     BIKE
-}
-
-export interface Entity_JSON {
-    id: string
-    position: number[]
-    rotation: number[]
-    velocity: number[]
-    input: number[]
-    data?: EntityData_JSON
-    fullData?: EntityFullData_JSON
 }
 
 export interface Entity_Info_Basic {
@@ -47,6 +28,8 @@ export interface Entity_Info_Basic {
     aiming?: boolean
     lookDir?: XYZ
     weapon?: string
+
+    nickname?: string
 }
 
 export class Entity extends BaseObject
@@ -123,7 +106,7 @@ export class Entity extends BaseObject
 
         return position;
     }
-
+    
     public setPosition(x: number, y: number, z: number)
     {
         if(this.customSetPosition)
@@ -252,37 +235,5 @@ export class Entity extends BaseObject
         Ammo.destroy(up);
 
         return new Ammo.btVector3(result.x, result.y, result.z);
-    }
-    
-    public toJSON()
-    {
-        const body = this.collision.body!;
-        const transform = body.getWorldTransform();
-        const position = transform.getOrigin();
-        const rotation = transform.getRotation();
-        const velocity = body.getLinearVelocity();
-
-        const json: Entity_JSON = {
-            id: this.id,
-            position: [position.x(), position.y(), position.z()],
-            rotation: [rotation.x(), rotation.y(), rotation.z(), rotation.w()],
-            velocity: [velocity.x(), velocity.y(), velocity.z()],
-            input: [this.inputX, this.inputY, this.inputZ]
-        }
-        
-        return json;
-    }
-
-    public toFullJSON()
-    {
-        const json = this.toJSON();
-
-        json.fullData = {
-            type: EntityType.UNDEFINED,
-            nickname: "Nickname",
-            nicknameColor: 0xffffff
-        };
-
-        return json;
     }
 }

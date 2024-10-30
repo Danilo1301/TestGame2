@@ -37,9 +37,9 @@ export class ItemManager
         return this.itemsData.get(id);
     }
 
-    public makeItem(id: string)
+    public makeItem(itemDataId: string)
     {
-        const itemData = this.getItemData(id)!;
+        const itemData = this.getItemData(itemDataId)!;
 
         const item = new Item(itemData);
 

@@ -1,15 +1,16 @@
 import socketio, { Socket } from 'socket.io';
+import THREE from 'three';
 import { v4 as uuidv4 } from 'uuid';
 import { BaseObject } from "../../shared/baseObject"
-import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_EnterLeaveVehicle, IPacketData_Entity_Info_Basic, IPacketData_JoinedServer, IPacketData_Models, IPacketData_WeaponShot, PACKET_TYPE } from "../../game/network/packet";
+import { IPacket, IPacketData, IPacketData_ChatMessage, IPacketData_ClientReady, IPacketData_EnterLeaveVehicle, IPacketData_Entity_Info_Basic, IPacketData_InitialInfo, IPacketData_InventoryItemMove, IPacketData_RequestInitialInfo, IPacketData_WeaponShot, PACKET_TYPE } from "../../game/network/packet";
 import { MasterServer } from '../masterServer/masterServer';
 import { Server } from '../server/server';
-import { Ped, PedData_JSON } from '../../game/entities/ped';
+import { Ped } from '../../game/entities/ped';
 import { Entity, EntityType } from '../../game/entities/entity';
 import { XYZ, XYZ_SetValue, XYZW_SetValue } from '../../shared/ammo/ammoUtils';
-import THREE from 'three';
 import { Vehicle } from '../../game/entities/vehicle';
 import { Inventory } from '../../shared/inventory/inventory';
+import { GLTFData_JSON } from '../../shared/gltf/gltfData';
 
 export class Client extends BaseObject
 {
@@ -24,16 +25,20 @@ export class Client extends BaseObject
     private _server?: Server;
     private _player?: Ped;
 
+    public nickname: string;
+
     public entitiesCreated: string[] = [];
     public isReady: boolean = false;
 
-    public inventory?: Inventory;
+    public inventory!: Inventory;
 
     constructor(socket: socketio.Socket)
     {
         super();
 
         this._socket = socket;
+
+        this.nickname = `Player` + this._id.slice(0, 5);
 
         socket.on('p', (packet: IPacket) => {
             try {
@@ -59,26 +64,38 @@ export class Client extends BaseObject
     {
         //this.log(`reiceved packet '${packet.type}'`);
 
-        if(packet.type == PACKET_TYPE.PACKET_REQUEST_MODELS)
+        if(packet.type == PACKET_TYPE.PACKET_REQUEST_INITIAL_INFO)
         {
+            const data = packet.data as IPacketData_RequestInitialInfo;
+
+            this.nickname = data.nickname;
+            this._player!.nickname = data.nickname;
+
             const server = MasterServer.Instance.getServers()[0];
 
-            const data: IPacketData_Models = {
-                models: []
-            }
+            const models: GLTFData_JSON[] = [];
 
             for(const gltf of server.game.gltfCollection.gltfs.values())
             {
-                data.models.push(gltf.toJSON());
+                models.push(gltf.toJSON());
             }
 
-            this.send(PACKET_TYPE.PACKET_MODELS, data);
+            const initialData: IPacketData_InitialInfo = {
+                models: models,
+                playerId: this._player!.id,
+                serverId: this._server!.id,
+                inventoryId: this.inventory.id
+            }
+
+            this.send(PACKET_TYPE.PACKET_INITIAL_INFO, initialData);
 
             return;
         }
 
         if(packet.type == PACKET_TYPE.PACKET_CLIENT_READY)
         {
+            const data = packet.data as IPacketData_ClientReady;
+
             this.isReady = true;
 
             const server = this._server!;
@@ -217,12 +234,36 @@ export class Client extends BaseObject
                         if(entityHit)
                         {
                             weapon.processWeaponDamage(entityHit);
-                            this._server?.broadcastEntityHealth(entityHit);
                         }
                     }
 
                     Ammo.destroy(hitPos);
                 }
+            }
+        }
+
+        if(packet.type == PACKET_TYPE.PACKET_CHAT_MESSAGE)
+        {
+            const data = packet.data as IPacketData_ChatMessage;
+
+            this._server?.processMessage(this, data.message);
+        }
+
+        if(packet.type == PACKET_TYPE.PACKET_INVENTORY_ITEM_MOVE)
+        {
+            const data = packet.data as IPacketData_InventoryItemMove;
+
+            const inventoryManager = this._server!.game.inventoryManager;
+
+            const fromInventory = inventoryManager.inventories.get(data.fromInventory);
+            const toInventory = inventoryManager.inventories.get(data.toInventory);
+
+            if(fromInventory && toInventory)
+            {
+                const fromSlotGroup = fromInventory.slotGroups[data.fromSlotGroup];
+                const toSlotGroup = toInventory.slotGroups[data.toSlotGroup];
+
+                fromSlotGroup.moveItem(data.fromX, data.fromY, toSlotGroup, data.toX, data.toY);
             }
         }
     }
@@ -254,11 +295,6 @@ export class Client extends BaseObject
         this._player = player;
 
         this.inventory = server.game.inventoryManager.createPlayerInventory();
-
-        this.send<IPacketData_JoinedServer>(PACKET_TYPE.PACKET_JOINED_SERVER, {
-            playerId: player.id,
-            serverId: server.id
-        });
     }
 
     public leaveServer()

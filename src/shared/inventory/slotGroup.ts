@@ -1,6 +1,11 @@
 import { Inventory } from "./inventory";
-import { InventoryItem } from "./inventoryItem";
+import { InventoryItem, InventoryItem_JSON } from "./inventoryItem";
 import { Item } from "./item/item";
+
+export interface SlotGroup_JSON {
+    slots: number[][]
+    items: InventoryItem_JSON[]
+}
 
 export class SlotGroup
 {
@@ -77,6 +82,17 @@ export class SlotGroup
 
         this.slots[y][x] = inventoryItem.id;
 
+        this.inventory.events.emit("item_added", this, x, y);
+
+        return inventoryItem;
+    }
+
+    public addItemToItemsMap(id: number, item: Item)
+    {
+        const inventoryItem = new InventoryItem(id, item);
+
+        this.items.set(inventoryItem.id, inventoryItem);
+
         return inventoryItem;
     }
 
@@ -105,6 +121,27 @@ export class SlotGroup
         return item;
     }
 
+    public getItemById(id: string)
+    {
+        for(const [_, inventoryItem] of this.items)
+        {
+            if(inventoryItem.item.id == id) return inventoryItem;
+        }
+        return undefined;
+    }
+
+    public getEmptySlot()
+    {
+        for(var y = 0; y < this.slots.length; y++)
+        {
+            for(var x = 0; x < this.slots[0].length; x++)
+            {
+                if(this.slots[y][x] == -1) return {x: x, y: y};
+            }
+        }
+        return undefined
+    }
+
     public moveItem(x: number, y: number, toSlotGroup: SlotGroup, toX: number, toY: number)
     {
         console.log(`[SlotGroup] MoveItem ${x},${y} to ${toX},${toY}`);
@@ -117,12 +154,12 @@ export class SlotGroup
             return false;
         }
 
-        const hasItemInSlot = this.getItemInSlot(toX, toY) != undefined;
+        const hasItemInSlot = toSlotGroup.getItemInSlot(toX, toY) != undefined;
 
         if(hasItemInSlot)
         {
             console.log(`[SlotGroup] There is already an item in in slot ${toX},${toY}`);
-            const removedItem2 = this.removeItemFromSlot(toX, toY)!;
+            const removedItem2 = toSlotGroup.removeItemFromSlot(toX, toY)!;
             
             this.addItemToSlot(removedItem2, x, y);
         }
@@ -130,7 +167,6 @@ export class SlotGroup
         toSlotGroup.addItemToSlot(removedItem, toX, toY);
 
         this.inventory.events.emit("item_moved", this, x, y, toSlotGroup, toX, toY);
-        toSlotGroup.inventory.events.emit("item_moved", this, x, y, toSlotGroup, toX, toY);
 
         return true;
     }
@@ -150,5 +186,22 @@ export class SlotGroup
         const id = this.slots[y][x];
 
         return this.items.get(id)!;
+    }
+
+    public getIndex()
+    {
+        return this.inventory.slotGroups.indexOf(this);
+    }
+
+    public toJSON()
+    {
+        const items = Array.from(this.items.values()).map(inventoryItem => inventoryItem.toJSON());
+
+        const json: SlotGroup_JSON = {
+            slots: this.slots,
+            items: items
+        }
+
+        return json;
     }
 }

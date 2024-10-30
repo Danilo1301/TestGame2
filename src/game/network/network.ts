@@ -1,11 +1,9 @@
 import { io, Socket } from "socket.io-client";
-import { IPacket, IPacketData, IPacketData_ClientData, IPacketData_Entities, IPacketData_Entity_Info_Basic, IPacketData_JoinedServer, IPacketData_WeaponShot, PACKET_TYPE } from "./packet";
+import { IPacket, IPacketData, IPacketData_Entity_Info_Basic, PACKET_TYPE } from "./packet";
 import { SyncHelper } from "./syncHelper";
-import { Gameface } from "../gameface/gameface";
 import { Entity_Info_Basic, EntityType } from "../entities/entity";
 import { BaseObject } from "../../shared/baseObject";
 import { gameSettings } from "../../shared/constants/gameSettings";
-import { Ped } from "../entities/ped";
 
 class PacketListener {
     public functions = new Map<PACKET_TYPE, Function[]>();
@@ -89,15 +87,6 @@ export class Network extends BaseObject
 
         this._packetListener.emitReceivedPacketEvent(packet);
 
-        if(packet.type == PACKET_TYPE.PACKET_JOINED_SERVER)
-        {
-            const data = packet.data as IPacketData_JoinedServer;
-
-            Gameface.Instance.playerId = data.playerId;
-
-            console.log(data);
-        }
-        
         SyncHelper.onReceivePacket(packet);
     }
 

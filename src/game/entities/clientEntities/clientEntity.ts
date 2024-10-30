@@ -242,7 +242,7 @@ export class ClientEntity extends BaseObject {
         
     }
 
-    private update3DText()
+    public update3DText()
     {
         const position = this.entity.getPosition();
 

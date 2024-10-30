@@ -21,7 +21,7 @@ export class InventoryManager
 
         setInterval(() => {
             inventory.events.emit("updated_inventory");
-        }, 1000);
+        }, 2000);
         
         const inventory2 = this.createInventory();
         inventory2.addSlotGroup(3, 10);
@@ -42,8 +42,6 @@ export class InventoryManager
         slotGroup.addItemToSlot(ak, 3, 2);
 
         slotGroup.print();
-
-       
     }
 
     public test2()
@@ -60,7 +58,7 @@ export class InventoryManager
     {
         console.log(`[InventoryManager] Create inventory`);
 
-        const inventory = new Inventory();
+        const inventory = new Inventory(this);
 
         this.inventories.set(inventory.id, inventory);
 
@@ -76,5 +74,12 @@ export class InventoryManager
         equipSlotGroup.offset.set(0, 430);
 
         return inventory;
+    }
+
+    public setInventoryId(inventory: Inventory, id: string)
+    {
+        this.inventories.delete(inventory.id);
+        inventory.id = id;
+        this.inventories.set(id, inventory);
     }
 }

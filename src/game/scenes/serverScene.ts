@@ -70,10 +70,12 @@ export class ServerScene
         }, 1000);
 
         const npc2 = this.game.entityFactory.spawnPed(-12, 5, 0);
+        npc2.nickname = `NPC Parado`;
 
         const npc = this.game.entityFactory.spawnPed(-15, 5, 0);
         npc.equipWeapon("m4");
         npc.aiming = true;
+        npc.nickname = `NPC`;
         
         setInterval(() => {
             //npc.weapon!.shoot();

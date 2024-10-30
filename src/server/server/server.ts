@@ -3,9 +3,9 @@ import { Game } from '../../game/game/game';
 import { Client } from '../client/client';
 import { Loaders } from '@enable3d/ammo-on-nodejs';
 import path from 'path';
-import { Entity, Entity_Info_Basic, Entity_JSON, EntityType } from '../../game/entities/entity';
+import { Entity, Entity_Info_Basic, EntityType } from '../../game/entities/entity';
 import { Ped } from '../../game/entities/ped';
-import { IPacket, IPacketData, IPacketData_Entities, IPacketData_Entity_Info_Basic, IPacketData_Health, IPacketData_WeaponShot, PACKET_TYPE } from '../../game/network/packet';
+import { IPacket, IPacketData, IPacketData_ChatMessage, IPacketData_Entity_Info_Basic, IPacketData_Entity_Teleported, IPacketData_Inventory, IPacketData_WeaponShot, PACKET_TYPE } from '../../game/network/packet';
 import { Box } from '../../game/entities/box';
 import { BaseObject } from '../../shared/baseObject';
 import { gameSettings } from "../../shared/constants/gameSettings";
@@ -14,6 +14,8 @@ import { GLTFData } from '../../shared/gltf/gltfData';
 import { Weapon } from '../../game/weapons/weapon';
 import { EntityWatcher } from './entityWatcher';
 import { ObjectGroup } from '../../shared/objectWatcher/objectGroup';
+import { Inventory } from '../../shared/inventory/inventory';
+import { SlotGroup_JSON } from '../../shared/inventory/slotGroup';
 
 export class Server extends BaseObject
 {
@@ -44,6 +46,51 @@ export class Server extends BaseObject
                 hit: [to.x, to.y, to.z],
                 byPed: weapon!.ped!.id
             });
+        });
+
+        this.game.events.on("updated_inventory", (inventory: Inventory) => {
+
+            for(const client of this.clients)
+            {
+                if(inventory.id == client.inventory?.id)
+                {
+                    console.log("sending inventory data " + inventory.id + " to " + client.nickname)
+
+                    console.log(inventory.toJSON());
+
+                    client.send<IPacketData_Inventory>(PACKET_TYPE.PACKET_INVENTORY, {
+                        inventory: inventory.toJSON()
+                    });
+                }
+            }
+        });
+
+        
+        this.game.events.on("entity_teleported", (entity: Entity) => {
+            
+            console.log("game: entity_teleported");
+
+            const info: Entity_Info_Basic = {
+                id: entity.id,
+                type: this.entityWatcher.getEntityType(entity)
+            }
+
+            const position = entity.getPosition();
+
+            info.position = {x: position.x(), y: position.y(), z: position.z()};
+
+            this.sendToAll<IPacketData_Entity_Teleported>(PACKET_TYPE.PACKET_ENTITY_TELEPORTED, info);
+        });
+
+        this.game.events.on("entity_died", (entity: Entity, byEntity: Entity | undefined) => {
+            
+            if(entity instanceof Ped)
+            {
+                if(byEntity instanceof Ped)
+                {
+                    this.sendServerMessage(`${entity.nickname} foi morto por ${byEntity.nickname}`);
+                }
+            }
         });
 
         this.entityWatcher.onEntityInfoChange = (entity: Entity, info: Entity_Info_Basic) =>
@@ -108,77 +155,8 @@ export class Server extends BaseObject
             }
 
             this.entityWatcher.check();
-
-            //this.broadcastEntities();
         }
     }
-
-    public broadcastEntityHealth(entity: Entity)
-    {
-        this.sendToAll<IPacketData_Health>(PACKET_TYPE.PACKET_HEALTH, {
-            entityId: entity.id,
-            health: entity.health
-        });
-    }
-
-    public broadcastEntities()
-    {
-        for(const client of this.clients)
-        {
-            if(!client.isReady) continue;
-
-            const packetData: IPacketData_Entities = {
-                entities: []
-            }
-
-            for(const [_id, entity] of this.game.entityFactory.entities)
-            {
-                let sendFullData = !client.entitiesCreated.includes(entity.id);
-
-                const json = this.getEntityJson(entity, sendFullData);
-
-                if(json)
-                {
-                    if(sendFullData)
-                    {
-                        console.log(`sending entity full data of: ${entity.displayName} (${json.fullData?.type})`);
-                    }
-
-                    client.entitiesCreated.push(entity.id);
-
-                    packetData.entities.push(json);
-                }
-            }
-
-            client.send(PACKET_TYPE.PACKET_ENTITIES, packetData);
-        }
-    }
-
-    public getEntityJson(entity: Entity, getFullData: boolean)
-    {
-        let canSend = false;
-        let entityType: EntityType = EntityType.UNDEFINED;
-
-        for(const pair of this.game.entitiesInformation)
-        {
-            if(entity instanceof pair[0])
-            {
-                canSend = true;
-                entityType = pair[1];
-            }
-        }
-
-        if(!canSend) return undefined;
-
-        const data = getFullData ? entity.toFullJSON() : entity.toJSON();
-
-        if(data.fullData)
-        {
-            data.fullData.type = entityType;
-        }
-                
-        return data;
-    }    
 
     public async loadModels()
     {
@@ -208,6 +186,35 @@ export class Server extends BaseObject
                 });
             });
         }
+    }
+
+    public processMessage(client: Client, content: string)
+    {
+        const nickname = client.nickname;
+
+        this.sendToAll<IPacketData_ChatMessage>(PACKET_TYPE.PACKET_CHAT_MESSAGE, {
+            message: `<span style="color: white;">${nickname}: ${content}</span>`
+        });
+
+        if(content.startsWith("/test"))
+        {
+            const inventory = client.inventory!;
+            
+            const m4 = this.game.itemManager.makeItem("m4");
+            inventory.addItemToAnySlot(m4);
+            
+            const ak = this.game.itemManager.makeItem("ak");
+            inventory.addItemToAnySlot(ak);
+
+            this.sendServerMessage("you received a M4 and AK");
+        }
+    }
+
+    public sendServerMessage(message: string)
+    {
+        this.sendToAll<IPacketData_ChatMessage>(PACKET_TYPE.PACKET_CHAT_MESSAGE, {
+            message: `<span style="color: gold;">[Server] ${message}</span>`
+        });
     }
 }
 

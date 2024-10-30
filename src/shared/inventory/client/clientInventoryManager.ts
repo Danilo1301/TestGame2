@@ -42,15 +42,21 @@ export class ClientInventoryManager
     
     public static init()
     {
-        const game = Gameface.Instance.game;
-
-        this.inventory = game.inventoryManager.createPlayerInventory();
     }
 
     public static createInventory(inventory: Inventory, x: number, y: number)
     {
         const clientInventory = new ClientInventory(inventory, x, y);
         this.clientInventories.push(clientInventory);
+    }
+
+    public static getClientInventoryById(id: string)
+    {
+        for(const clientInventory of this.clientInventories)
+        {
+            if(clientInventory.inventory.id == id) return clientInventory;
+        }
+        return undefined;
     }
 
     public static removeAllIventories()
