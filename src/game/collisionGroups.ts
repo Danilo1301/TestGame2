@@ -7,7 +7,15 @@ export const MASK_CHASSIS = ~GROUP_WHEELS; // Chassis colide com tudo, menos com
 export const MASK_WHEELS = ~GROUP_CHASSIS; // Rodas colidem com tudo, menos com o chassis
 
 export class CollisionGroups {
-    public static groups: number[] = [1];
+    public static groups: number[] = [];
+    public static GROUP_DEFAULT_OBJECTS: number;
+    public static GROUP_SENSORS: number;
+
+    public static init()
+    {
+        this.GROUP_DEFAULT_OBJECTS = this.createCollisionGroup();
+        this.GROUP_SENSORS = this.createCollisionGroup();
+    }
 
     public static createCollisionGroup()
     {

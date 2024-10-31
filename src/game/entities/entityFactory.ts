@@ -14,6 +14,10 @@ import { CollisionGroups } from "../collisionGroups";
 import { Wheel } from "./wheel";
 import { Axis } from "./axis";
 import { Rotor } from "./rotor";
+import { HandItem } from "./handItem";
+import { Item } from "../../shared/inventory/item/item";
+import { ItemData } from "../../shared/inventory/item/itemData";
+import { Sensor } from "./sensor";
 
 export class EntityFactory extends BaseObject {
     public game: Game;
@@ -64,7 +68,7 @@ export class EntityFactory extends BaseObject {
 
                 console.log(`[EntityFactory] Adding rigid body to world`);
 
-                this.game.serverScene.physics.physicsWorld.addRigidBody(entity.collision.body!, 1, -1);
+                this.game.serverScene.physics.physicsWorld.addRigidBody(entity.collision.body!, CollisionGroups.GROUP_DEFAULT_OBJECTS, -1);
             }
         }
 
@@ -246,12 +250,12 @@ export class EntityFactory extends BaseObject {
         return entity;
     }
 
-    public spawnWeaponItem(weapon: Weapon)
+    public spawnHandItem<T extends HandItem>(e: typeof HandItem, itemData: ItemData)
     {
-        const entity = this.spawnEntity<WeaponItem>(WeaponItem);
-        entity.displayName = "weaponItem";
-        entity.weapon = weapon;
-        entity.setModel("m4");
+        const entity = this.spawnEntity(e) as T;
+        entity.displayName = "handItem";
+
+        entity.setModel(itemData.model!);
 
         this.setupEntity(entity, {});
         entity.setPosition(0, 0, 0);
@@ -265,6 +269,31 @@ export class EntityFactory extends BaseObject {
 
         this.setupEntity(entity, {});
         entity.setPosition(x, y, z);
+        return entity;
+    }
+
+    public spawnSensor(x: number, y: number, z: number, radius: number)
+    {
+        const entity = this.spawnEntity<Sensor>(Sensor);
+        entity.collision.addSphere(new THREE.Vector3(0, 0, 0), radius);
+        entity.displayName = "sensor";
+        entity.setModel("rotor");
+
+        // Optional: Use collision groups to filter which bodies the sensor detects
+        const collisionGroup = CollisionGroups.GROUP_SENSORS;  // Por exemplo, um grupo personalizado
+        const collisionMask = -1; // Using -1 as mask to detect all groups
+
+        this.setupEntity(entity, {
+            mass: 0,
+            sensor: true,
+            group: collisionGroup,
+            mask: collisionMask
+        });
+    
+        entity.body.setUserPointer(entity.id);
+
+        entity.setPosition(x, y, z);
+
         return entity;
     }
 }

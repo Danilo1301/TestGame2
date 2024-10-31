@@ -267546,6 +267546,10 @@ exports.GROUP_WHEELS = 1 << 1; // Grupo 2 para as rodas
 exports.MASK_CHASSIS = ~exports.GROUP_WHEELS; // Chassis colide com tudo, menos com as rodas
 exports.MASK_WHEELS = ~exports.GROUP_CHASSIS; // Rodas colidem com tudo, menos com o chassis
 class CollisionGroups {
+    static init() {
+        this.GROUP_DEFAULT_OBJECTS = this.createCollisionGroup();
+        this.GROUP_SENSORS = this.createCollisionGroup();
+    }
     static createCollisionGroup() {
         var group = 1 << 0;
         var i = 0;
@@ -267559,7 +267563,7 @@ class CollisionGroups {
     }
 }
 exports.CollisionGroups = CollisionGroups;
-CollisionGroups.groups = [1];
+CollisionGroups.groups = [];
 
 
 /***/ }),
@@ -267789,7 +267793,7 @@ class AnimationManager extends baseObject_1.BaseObject {
             animsArr.splice(0, 1);
         }
         if (this.anims.length > 0 && this.subAnims.length > 0) {
-            console.log("make subclip additive");
+            //console.log("make subclip additive")
             const baseAnim = this.anims[this.anims.length - 1];
             const baseTime = baseAnim.action.time;
             baseAnim.action.stop();
@@ -267823,7 +267827,7 @@ class AnimationManager extends baseObject_1.BaseObject {
         const self = this;
         mixer.addEventListener('finished', function (event) {
             const action = event.action;
-            self.log('an animation finished');
+            //self.log('an animation finished');
             let anim;
             let role = AnimRole.ANIM_MAIN;
             for (const a of self.anims) {
@@ -267839,9 +267843,12 @@ class AnimationManager extends baseObject_1.BaseObject {
                     break;
                 }
             }
-            if (!anim)
-                throw "An animation finished and its not in anims list";
-            self.log('an animation called ' + anim.name + ' finished');
+            if (!anim) {
+                console.error("An animation finished and its not in anims list");
+                //alert("An animation finished and its not in anims list");
+                return;
+            }
+            //self.log('an animation called ' + anim.name + ' finished');
             const stopImidiately = anim.stopAtEnd == true;
             self.stopAnimationEx(role, stopImidiately);
         });
@@ -267860,7 +267867,7 @@ class AnimationManager extends baseObject_1.BaseObject {
         toDelete.forEach(track => {
             clip.tracks.splice(clip.tracks.indexOf(track), 1);
         });
-        this.log(`${toDelete.length} tracks deleted`);
+        //this.log(`${toDelete.length} tracks deleted`);
     }
     playSubAnimationLoop(name) {
         this.playAnimationEx(AnimRole.ANIM_SUB, name, Infinity);
@@ -267883,10 +267890,10 @@ class AnimationManager extends baseObject_1.BaseObject {
         const animsArr = role == AnimRole.ANIM_MAIN ? this.anims : this.subAnims;
         let stopAtEnd = false;
         for (const anim of animsArr) {
-            this.log(`stopped anim ${anim.name} ${stopImidiately ? "IMEDIATLY" : "AND FADEOUT"}`);
+            //this.log(`stopped anim ${anim.name} ${stopImidiately ? "IMEDIATLY" : "AND FADEOUT"}`);
             if (anim.stopAtEnd) {
                 stopAtEnd = true;
-                console.log("start again and go to end");
+                //console.log("start again and go to end")
                 anim.action.reset();
                 anim.action.time = anim.action.getClip().duration;
                 //anim.action.fadeIn(0);
@@ -267906,12 +267913,12 @@ class AnimationManager extends baseObject_1.BaseObject {
             }
         }
         if (stopAtEnd) {
-            console.log("anim is stopping at end");
+            //console.log("anim is stopping at end")
             return;
         }
         animsArr.splice(0, animsArr.length);
         if (role == AnimRole.ANIM_SUB && this.anims.length > 0) {
-            console.log(`resetting main anim`);
+            //console.log(`resetting main anim`);
             const baseAnim = this.anims[0];
             const baseTime = baseAnim.action.time;
             const prevAction = baseAnim.action;
@@ -268241,10 +268248,14 @@ const gameScene_1 = __webpack_require__(/*! ../../scenes/gameScene */ "./src/gam
 const ped_1 = __webpack_require__(/*! ../ped */ "./src/game/entities/ped.ts");
 const clientPed_1 = __webpack_require__(/*! ./clientPed */ "./src/game/entities/clientEntities/clientPed.ts");
 const clientWeapon_1 = __webpack_require__(/*! ./clientWeapon */ "./src/game/entities/clientEntities/clientWeapon.ts");
-const weaponItem_1 = __webpack_require__(/*! ../weaponItem */ "./src/game/entities/weaponItem.ts");
+const clientHandItem_1 = __webpack_require__(/*! ./clientHandItem */ "./src/game/entities/clientEntities/clientHandItem.ts");
 const utils_1 = __webpack_require__(/*! ../../../shared/utils */ "./src/shared/utils.ts");
 const audioManager_1 = __webpack_require__(/*! ../../audioManager */ "./src/game/audioManager.ts");
 const gameSettings_1 = __webpack_require__(/*! ../../../shared/constants/gameSettings */ "./src/shared/constants/gameSettings.ts");
+const handItem_1 = __webpack_require__(/*! ../handItem */ "./src/game/entities/handItem.ts");
+const weaponItem_1 = __webpack_require__(/*! ../weaponItem */ "./src/game/entities/weaponItem.ts");
+const meleeWeaponItem_1 = __webpack_require__(/*! ../meleeWeaponItem */ "./src/game/entities/meleeWeaponItem.ts");
+const clientMeleeWeapon_1 = __webpack_require__(/*! ./clientMeleeWeapon */ "./src/game/entities/clientEntities/clientMeleeWeapon.ts");
 class ClientEntityManager extends baseObject_1.BaseObject {
     constructor(gameScene) {
         super();
@@ -268253,6 +268264,8 @@ class ClientEntityManager extends baseObject_1.BaseObject {
         this.gameScene = gameScene;
         this.entitiesClassMap.set(ped_1.Ped, clientPed_1.ClientPed);
         this.entitiesClassMap.set(weaponItem_1.WeaponItem, clientWeapon_1.ClientWeapon);
+        this.entitiesClassMap.set(meleeWeaponItem_1.MeleeWeaponItem, clientMeleeWeapon_1.ClientMeleeWeapon);
+        this.entitiesClassMap.set(handItem_1.HandItem, clientHandItem_1.ClientHandItem);
     }
     preUpdate(delta) {
         for (const clientEntity of this.clientEntities.values()) {
@@ -268315,21 +268328,81 @@ class ClientEntityManager extends baseObject_1.BaseObject {
         var audio = audioManager_1.AudioManager.createAudio('shot_m4');
         audio.volume = 0.1 * vol;
         audio.play();
-        for (const [entity, clientEntity] of this.clientEntities) {
-            if (!(clientEntity instanceof clientWeapon_1.ClientWeapon))
-                continue;
-            const clientWeapon = clientEntity;
-            if (clientWeapon.weaponItem.weapon != weapon)
-                continue;
-            if (gameSettings_1.gameSettings.showRedTracer)
-                clientWeapon.addTracer(from, to, 0xff0000);
-            const weaponPosition = (0, utils_1.ammoVector3ToThree)(clientWeapon.weaponItem.getPosition());
-            //const dir = THREEVector3_GetDirectionBetweenVectors(weaponPosition, to);
-            clientWeapon.shoot(weaponPosition, to);
+        const clientWeapon = this.findClientEntity(ce => {
+            if (!(ce instanceof clientWeapon_1.ClientWeapon))
+                return false;
+            return ce.weaponItem.weapon == weapon;
+        });
+        if (!clientWeapon) {
+            console.error("clientWeapon not found");
+            return false;
         }
+        if (gameSettings_1.gameSettings.showRedTracer)
+            clientWeapon.addTracer(from, to, 0xff0000);
+        const weaponPosition = (0, utils_1.ammoVector3ToThree)(clientWeapon.weaponItem.getPosition());
+        //const dir = THREEVector3_GetDirectionBetweenVectors(weaponPosition, to);
+        clientWeapon.shoot(weaponPosition, to);
+    }
+    onMeleeWeaponAttack(meleeWeapon) {
+        // const clientEntity = this.findClientEntity(ce => {
+        //     if(!(ce instanceof ClientMeleeWeapon)) return false;
+        //     return ce.meleeWeaponItem.meleeWeapon == meleeWeapon
+        // });
+        console.log("melee attack");
+        const ped = meleeWeapon.ped;
+        const clientPed = this.findClientEntity(ce => ce.entity == ped);
+        console.log(clientPed);
+        clientPed.animationManager.playSubAnimationOnce("attack_pickaxe");
+    }
+    findClientEntity(fn) {
+        for (const [entity, clientEntity] of this.clientEntities) {
+            if (fn(clientEntity))
+                return clientEntity;
+        }
+        return undefined;
     }
 }
 exports.ClientEntityManager = ClientEntityManager;
+
+
+/***/ }),
+
+/***/ "./src/game/entities/clientEntities/clientHandItem.ts":
+/*!************************************************************!*\
+  !*** ./src/game/entities/clientEntities/clientHandItem.ts ***!
+  \************************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ClientHandItem = void 0;
+const clientEntity_1 = __webpack_require__(/*! ./clientEntity */ "./src/game/entities/clientEntities/clientEntity.ts");
+class ClientHandItem extends clientEntity_1.ClientEntity {
+    update(delta) {
+        super.update(delta);
+    }
+}
+exports.ClientHandItem = ClientHandItem;
+
+
+/***/ }),
+
+/***/ "./src/game/entities/clientEntities/clientMeleeWeapon.ts":
+/*!***************************************************************!*\
+  !*** ./src/game/entities/clientEntities/clientMeleeWeapon.ts ***!
+  \***************************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ClientMeleeWeapon = void 0;
+const clientHandItem_1 = __webpack_require__(/*! ./clientHandItem */ "./src/game/entities/clientEntities/clientHandItem.ts");
+class ClientMeleeWeapon extends clientHandItem_1.ClientHandItem {
+    get meleeWeaponItem() { return this.entity; }
+}
+exports.ClientMeleeWeapon = ClientMeleeWeapon;
 
 
 /***/ }),
@@ -268347,18 +268420,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ClientPed = void 0;
+const three_1 = __importDefault(__webpack_require__(/*! three */ "./node_modules/three/build/three.cjs"));
 const clientEntity_1 = __webpack_require__(/*! ./clientEntity */ "./src/game/entities/clientEntities/clientEntity.ts");
 const quaterion_1 = __webpack_require__(/*! ../../../shared/ammo/quaterion */ "./src/shared/ammo/quaterion.ts");
-const three_1 = __importDefault(__webpack_require__(/*! three */ "./node_modules/three/build/three.cjs"));
 const threeScene_1 = __webpack_require__(/*! ../../scenes/threeScene */ "./src/game/scenes/threeScene.ts");
 const input_1 = __webpack_require__(/*! ../../input */ "./src/game/input.ts");
 const gameface_1 = __webpack_require__(/*! ../../gameface/gameface */ "./src/game/gameface/gameface.ts");
+const weaponItem_1 = __webpack_require__(/*! ../weaponItem */ "./src/game/entities/weaponItem.ts");
 const worldText_1 = __webpack_require__(/*! ../../worldText */ "./src/game/worldText.ts");
+const handItem_1 = __webpack_require__(/*! ../handItem */ "./src/game/entities/handItem.ts");
+const meleeWeaponItem_1 = __webpack_require__(/*! ../meleeWeaponItem */ "./src/game/entities/meleeWeaponItem.ts");
 class ClientPed extends clientEntity_1.ClientEntity {
     constructor() {
         super(...arguments);
         this.nickNameWorldText = new worldText_1.WorldText(this.ped.nickname);
-        this._prevEquipedWeapon = "";
+        this._prevItemOnHand = "";
+        this._isAiming = false;
         this._mainAnimI = 0;
         this._subAnimI = 0;
     }
@@ -268382,10 +268459,51 @@ class ClientPed extends clientEntity_1.ClientEntity {
         //this.updateHeadBone();
         this.drawLookDirLine();
         this.drawInputDirLine();
+        this.updateItemOnHand();
         this.updateWalkAnimations();
-        this.updateWeaponItem();
         this.updatePlayerInput();
         //this.updateStupid();
+    }
+    updateItemOnHand() {
+        if (this._prevItemOnHand != this.ped.itemOnHand) {
+            this._prevItemOnHand = this.ped.itemOnHand;
+            const itemManager = this.ped.game.itemManager;
+            const itemData = itemManager.getItemData(this.ped.itemOnHand);
+            if (!itemData) {
+                console.error("Item not found");
+                this._handItem = undefined;
+                return;
+            }
+            let handItem;
+            if (itemData.weaponId != undefined) {
+                const weapons = this.ped.game.weapons;
+                if (weapons.getWeaponData(itemData.id)) {
+                    handItem = this.ped.game.entityFactory.spawnHandItem(weaponItem_1.WeaponItem, itemData);
+                    handItem.weapon = this.ped.weapon;
+                }
+                if (weapons.getMeleeWeaponData(itemData.id)) {
+                    handItem = this.ped.game.entityFactory.spawnHandItem(meleeWeaponItem_1.MeleeWeaponItem, itemData);
+                    handItem.meleeWeapon = this.ped.meleeWeapon;
+                }
+            }
+            if (!handItem)
+                handItem = this.ped.game.entityFactory.spawnHandItem(handItem_1.HandItem, itemData);
+            handItem.itemData = itemData;
+            this._handItem = handItem;
+        }
+        // place handItem on hand
+        if (!this._handItem)
+            return;
+        const handItem = this._handItem;
+        const bone = this.getBone("item_R");
+        if (!bone)
+            return;
+        const boneWorldPosition = new three_1.default.Vector3(0, 0, 0);
+        bone.getWorldPosition(boneWorldPosition);
+        const boneWorldQuaternion = new three_1.default.Quaternion();
+        bone.getWorldQuaternion(boneWorldQuaternion);
+        handItem.setPosition(boneWorldPosition.x, boneWorldPosition.y, boneWorldPosition.z);
+        handItem.setRotation(boneWorldQuaternion.x, boneWorldQuaternion.y, boneWorldQuaternion.z, boneWorldQuaternion.w);
     }
     updateHeadBone() {
         var _a;
@@ -268410,52 +268528,45 @@ class ClientPed extends clientEntity_1.ClientEntity {
             return;
         const inputDir = this.ped.getInputDir();
         let animName = "idle";
-        if (this._weaponItem)
-            animName += `_m4`;
+        const handItem = this._handItem;
+        if (handItem) {
+            if (handItem instanceof weaponItem_1.WeaponItem) {
+                animName += `_m4`;
+            }
+            else {
+                if (handItem.itemData.animIdle != undefined)
+                    animName = handItem.itemData.animIdle;
+            }
+        }
         if (inputDir.length() > 0) {
             animName = "walk";
-            if (this._weaponItem)
-                animName += `_m4`;
+            if (handItem) {
+                if (handItem instanceof weaponItem_1.WeaponItem) {
+                    animName += `_m4`;
+                }
+                else {
+                    animName += `_m4`;
+                }
+            }
         }
         if (!this.animationManager.isPlayingAnim(animName))
             this.animationManager.playAnimationLoop(animName);
         //weapon
-        let currentWeaponId = "";
-        const weapon = this.ped.weapon;
-        if (weapon) {
-            currentWeaponId = weapon.weaponData.id;
-        }
-        if (currentWeaponId != this._prevEquipedWeapon) {
-            this._prevEquipedWeapon = currentWeaponId;
-            this.animationManager.playSubAnimationOnce("equip_m4");
-            if (weapon) {
-                this._weaponItem = this.ped.game.entityFactory.spawnWeaponItem(weapon);
-            }
-        }
         if (this.ped.aiming) {
-            if (!this.animationManager.isPlayingAnim("aim_m4")) {
-                this.animationManager.playSubAnimationAndStop("aim_m4");
+            if (handItem instanceof weaponItem_1.WeaponItem) {
+                this._isAiming = true;
+                let aimAnim = "aim_m4";
+                if (!this.animationManager.isPlayingAnim(aimAnim)) {
+                    this.animationManager.playSubAnimationAndStop(aimAnim);
+                }
             }
         }
         else {
-            if (this.animationManager.isPlayingAnim("aim_m4")) {
+            if (this._isAiming) {
+                this._isAiming = false;
                 this.animationManager.stopSubAnimation();
             }
         }
-    }
-    updateWeaponItem() {
-        if (!this._weaponItem)
-            return;
-        const weaponItem = this._weaponItem;
-        const bone = this.getBone("item_R");
-        if (!bone)
-            return;
-        const boneWorldPosition = new three_1.default.Vector3(0, 0, 0);
-        bone.getWorldPosition(boneWorldPosition);
-        const boneWorldQuaternion = new three_1.default.Quaternion();
-        bone.getWorldQuaternion(boneWorldQuaternion);
-        weaponItem.setPosition(boneWorldPosition.x, boneWorldPosition.y, boneWorldPosition.z);
-        weaponItem.setRotation(boneWorldQuaternion.x, boneWorldQuaternion.y, boneWorldQuaternion.z, boneWorldQuaternion.w);
     }
     updatePlayerInput() {
         if (!this.gltfModel)
@@ -268463,13 +268574,6 @@ class ClientPed extends clientEntity_1.ClientEntity {
         const ped = gameface_1.Gameface.Instance.player;
         if (ped != this.ped)
             return;
-        if (input_1.Input.getKeyDown("1")) {
-            ped.equipWeapon("m4");
-        }
-        if (input_1.Input.getKeyDown("2") && this.entity == gameface_1.Gameface.Instance.player) {
-            const ped = gameface_1.Gameface.Instance.player;
-            ped.equipWeapon("ak");
-        }
         if (input_1.Input.getKeyDown("Z")) {
             this._mainAnimI++;
             if (this._mainAnimI == 1) {
@@ -268549,8 +268653,8 @@ exports.ClientPed = ClientPed;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ClientWeapon = void 0;
 const threeScene_1 = __webpack_require__(/*! ../../scenes/threeScene */ "./src/game/scenes/threeScene.ts");
-const clientEntity_1 = __webpack_require__(/*! ./clientEntity */ "./src/game/entities/clientEntities/clientEntity.ts");
-class ClientWeapon extends clientEntity_1.ClientEntity {
+const clientHandItem_1 = __webpack_require__(/*! ./clientHandItem */ "./src/game/entities/clientEntities/clientHandItem.ts");
+class ClientWeapon extends clientHandItem_1.ClientHandItem {
     constructor() {
         super(...arguments);
         this.tracers = [];
@@ -268967,6 +269071,7 @@ class EntityCollision {
     }
     setBodyId(id) {
         this.body.uniqueId = id;
+        this.body.setUserPointer(id);
     }
     createCollisionsFromGLTF(gltf) {
         console.log("Creating collision for ", gltf);
@@ -269022,13 +269127,13 @@ const entity_1 = __webpack_require__(/*! ./entity */ "./src/game/entities/entity
 const box_1 = __webpack_require__(/*! ./box */ "./src/game/entities/box.ts");
 const ball_1 = __webpack_require__(/*! ./ball */ "./src/game/entities/ball.ts");
 const ped_1 = __webpack_require__(/*! ./ped */ "./src/game/entities/ped.ts");
-const weaponItem_1 = __webpack_require__(/*! ./weaponItem */ "./src/game/entities/weaponItem.ts");
 const vehicle_1 = __webpack_require__(/*! ./vehicle */ "./src/game/entities/vehicle.ts");
 const bike_1 = __webpack_require__(/*! ./bike */ "./src/game/entities/bike.ts");
 const collisionGroups_1 = __webpack_require__(/*! ../collisionGroups */ "./src/game/collisionGroups.ts");
 const wheel_1 = __webpack_require__(/*! ./wheel */ "./src/game/entities/wheel.ts");
 const axis_1 = __webpack_require__(/*! ./axis */ "./src/game/entities/axis.ts");
 const rotor_1 = __webpack_require__(/*! ./rotor */ "./src/game/entities/rotor.ts");
+const sensor_1 = __webpack_require__(/*! ./sensor */ "./src/game/entities/sensor.ts");
 class EntityFactory extends baseObject_1.BaseObject {
     constructor(game) {
         super();
@@ -269061,7 +269166,7 @@ class EntityFactory extends baseObject_1.BaseObject {
             }
             else {
                 console.log(`[EntityFactory] Adding rigid body to world`);
-                this.game.serverScene.physics.physicsWorld.addRigidBody(entity.collision.body, 1, -1);
+                this.game.serverScene.physics.physicsWorld.addRigidBody(entity.collision.body, collisionGroups_1.CollisionGroups.GROUP_DEFAULT_OBJECTS, -1);
             }
         }
         entity.init();
@@ -269188,11 +269293,10 @@ class EntityFactory extends baseObject_1.BaseObject {
         entity.body.setFriction(1);
         return entity;
     }
-    spawnWeaponItem(weapon) {
-        const entity = this.spawnEntity(weaponItem_1.WeaponItem);
-        entity.displayName = "weaponItem";
-        entity.weapon = weapon;
-        entity.setModel("m4");
+    spawnHandItem(e, itemData) {
+        const entity = this.spawnEntity(e);
+        entity.displayName = "handItem";
+        entity.setModel(itemData.model);
         this.setupEntity(entity, {});
         entity.setPosition(0, 0, 0);
         return entity;
@@ -269201,6 +269305,24 @@ class EntityFactory extends baseObject_1.BaseObject {
         const entity = this.spawnEntity(entity_1.Entity);
         entity.displayName = "empty";
         this.setupEntity(entity, {});
+        entity.setPosition(x, y, z);
+        return entity;
+    }
+    spawnSensor(x, y, z, radius) {
+        const entity = this.spawnEntity(sensor_1.Sensor);
+        entity.collision.addSphere(new three_1.default.Vector3(0, 0, 0), radius);
+        entity.displayName = "sensor";
+        entity.setModel("rotor");
+        // Optional: Use collision groups to filter which bodies the sensor detects
+        const collisionGroup = collisionGroups_1.CollisionGroups.GROUP_SENSORS; // Por exemplo, um grupo personalizado
+        const collisionMask = -1; // Using -1 as mask to detect all groups
+        this.setupEntity(entity, {
+            mass: 0,
+            sensor: true,
+            group: collisionGroup,
+            mask: collisionMask
+        });
+        entity.body.setUserPointer(entity.id);
         entity.setPosition(x, y, z);
         return entity;
     }
@@ -269340,6 +269462,46 @@ exports.EntitySync = EntitySync;
 
 /***/ }),
 
+/***/ "./src/game/entities/handItem.ts":
+/*!***************************************!*\
+  !*** ./src/game/entities/handItem.ts ***!
+  \***************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.HandItem = void 0;
+const entity_1 = __webpack_require__(/*! ./entity */ "./src/game/entities/entity.ts");
+class HandItem extends entity_1.Entity {
+}
+exports.HandItem = HandItem;
+
+
+/***/ }),
+
+/***/ "./src/game/entities/meleeWeaponItem.ts":
+/*!**********************************************!*\
+  !*** ./src/game/entities/meleeWeaponItem.ts ***!
+  \**********************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.MeleeWeaponItem = void 0;
+const handItem_1 = __webpack_require__(/*! ./handItem */ "./src/game/entities/handItem.ts");
+class MeleeWeaponItem extends handItem_1.HandItem {
+    init() {
+        super.init();
+        // this.game.entityFactory.spawnSensor(0, 0, 0, 3.0);
+    }
+}
+exports.MeleeWeaponItem = MeleeWeaponItem;
+
+
+/***/ }),
+
 /***/ "./src/game/entities/ped.ts":
 /*!**********************************!*\
   !*** ./src/game/entities/ped.ts ***!
@@ -269360,6 +269522,7 @@ const weapon_1 = __webpack_require__(/*! ../weapons/weapon */ "./src/game/weapon
 const entity_1 = __webpack_require__(/*! ./entity */ "./src/game/entities/entity.ts");
 const three_1 = __importDefault(__webpack_require__(/*! three */ "./node_modules/three/build/three.cjs"));
 const vehicle_1 = __webpack_require__(/*! ./vehicle */ "./src/game/entities/vehicle.ts");
+const meleeWeapon_1 = __webpack_require__(/*! ../weapons/meleeWeapon */ "./src/game/weapons/meleeWeapon.ts");
 class Ped extends entity_1.Entity {
     constructor() {
         super(...arguments);
@@ -269370,6 +269533,7 @@ class Ped extends entity_1.Entity {
         this.aiming = false;
         this.targetDirection = new Ammo.btVector3(0, 0, 1);
         this.controlledByPlayer = false;
+        this.itemOnHand = "";
         this.nickname = "Player";
     }
     initCollision() {
@@ -269406,11 +269570,17 @@ class Ped extends entity_1.Entity {
     }
     updateWeapon() {
         const weapon = this.weapon;
-        if (!weapon)
-            return;
-        if (this.mouse1) {
-            if (weapon.canShoot()) {
-                weapon.shoot();
+        if (weapon) {
+            if (this.mouse1) {
+                if (weapon.canShoot())
+                    weapon.shoot();
+            }
+        }
+        const meleeWeapon = this.meleeWeapon;
+        if (meleeWeapon) {
+            if (this.mouse1) {
+                if (meleeWeapon.canAttack())
+                    meleeWeapon.attack();
             }
         }
     }
@@ -269512,19 +269682,40 @@ class Ped extends entity_1.Entity {
         const position = entity.getPosition();
         this.lookAt(position.x() + offsetX, position.y() + offsetY, position.z() + offsetZ);
     }
+    equipItem(id) {
+        this.itemOnHand = id;
+        this.weapon = undefined;
+        this.meleeWeapon = undefined;
+        if (id == "")
+            return;
+        const itemManager = this.game.itemManager;
+        const itemData = itemManager.getItemData(id);
+        if (itemData.weaponId != undefined)
+            this.equipWeapon(id);
+    }
     equipWeapon(id) {
+        this.itemOnHand = id;
         if (id == "") {
             this.weapon = undefined;
+            this.meleeWeapon = undefined;
             return;
         }
         const weaponData = this.game.weapons.getWeaponData(id);
-        if (!weaponData) {
+        const meleeWeaponData = this.game.weapons.getMeleeWeaponData(id);
+        if (!weaponData && !meleeWeaponData) {
             console.error("Ped: Weapon ID " + id + " not found");
             return;
         }
-        const weapon = new weapon_1.Weapon(weaponData);
-        weapon.ped = this;
-        this.weapon = weapon;
+        if (weaponData) {
+            const weapon = new weapon_1.Weapon(weaponData);
+            weapon.ped = this;
+            this.weapon = weapon;
+        }
+        if (meleeWeaponData) {
+            const meleeWeapon = new meleeWeapon_1.MeleeWeapon(meleeWeaponData);
+            meleeWeapon.ped = this;
+            this.meleeWeapon = meleeWeapon;
+        }
     }
     getInputDir() {
         const quat = this.lookDir;
@@ -269610,6 +269801,41 @@ class Rotor extends entity_1.Entity {
     }
 }
 exports.Rotor = Rotor;
+
+
+/***/ }),
+
+/***/ "./src/game/entities/sensor.ts":
+/*!*************************************!*\
+  !*** ./src/game/entities/sensor.ts ***!
+  \*************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Sensor = void 0;
+const entity_1 = __webpack_require__(/*! ./entity */ "./src/game/entities/entity.ts");
+class Sensor extends entity_1.Entity {
+    update(delta) {
+        super.update(delta);
+        // const physicsWorld = this.game.serverScene.physics.physicsWorld;
+        // const dispatcher = physicsWorld.getDispatcher();
+        // const numManifolds = dispatcher.getNumManifolds();
+        // for (let i = 0; i < numManifolds; i++) {
+        //     const manifold = dispatcher.getManifoldByIndexInternal(i);
+        //     const body0 = manifold.getBody0();
+        //     const body1 = manifold.getBody1();
+        //     const idA = (body0 as any).uniqueId;
+        //     const idB = (body0 as any).uniqueId;
+        //     const upA = body0.getUserPointer();
+        //     const upB = body1.getUserPointer();
+        //     console.log(idA, upA);
+        //     console.log(idB, upB);
+        // }
+    }
+}
+exports.Sensor = Sensor;
 
 
 /***/ }),
@@ -269926,8 +270152,8 @@ exports.Vehicle = Vehicle;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.WeaponItem = void 0;
-const entity_1 = __webpack_require__(/*! ./entity */ "./src/game/entities/entity.ts");
-class WeaponItem extends entity_1.Entity {
+const handItem_1 = __webpack_require__(/*! ./handItem */ "./src/game/entities/handItem.ts");
+class WeaponItem extends handItem_1.HandItem {
 }
 exports.WeaponItem = WeaponItem;
 
@@ -270062,8 +270288,8 @@ class Game extends baseObject_1.BaseObject {
     }
     postUpdate(delta) {
     }
-    onEntityDeath(entity, byWeapon) {
-        this.events.emit("entity_died", entity, byWeapon === null || byWeapon === void 0 ? void 0 : byWeapon.ped);
+    onEntityDeath(entity, byEntity, byWeaponId) {
+        this.events.emit("entity_died", entity, byEntity);
         entity.setPosition(0, 3, 0);
         this.events.emit("entity_teleported", entity);
         entity.health = 100;
@@ -270118,6 +270344,7 @@ const entityWatcher_1 = __webpack_require__(/*! ../../server/server/entityWatche
 const syncHelper_1 = __webpack_require__(/*! ../network/syncHelper */ "./src/game/network/syncHelper.ts");
 const clientInventoryManager_1 = __webpack_require__(/*! ../../shared/inventory/client/clientInventoryManager */ "./src/shared/inventory/client/clientInventoryManager.ts");
 const msgBox_1 = __webpack_require__(/*! ../msgBox */ "./src/game/msgBox.ts");
+const collisionGroups_1 = __webpack_require__(/*! ../collisionGroups */ "./src/game/collisionGroups.ts");
 class Gameface extends baseObject_1.BaseObject {
     get sceneManager() { return this._sceneManager; }
     get phaser() { return this._phaser; }
@@ -270157,6 +270384,7 @@ class Gameface extends baseObject_1.BaseObject {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
             this.log("start");
+            collisionGroups_1.CollisionGroups.init();
             msgBox_1.MsgBox.init();
             msgBox_1.MsgBox.createMsgBox("Info", "Loading...", "", "");
             this._phaser = yield phaserLoad_1.PhaserLoad.loadAsync();
@@ -270177,8 +270405,6 @@ class Gameface extends baseObject_1.BaseObject {
             loadScene.addImage("widget_aim", "widgets/widget_aim.png");
             loadScene.addImage("widget_shoot", "widgets/widget_shoot.png");
             loadScene.addImage("widget_car", "widgets/widget_car.png");
-            loadScene.addImage("item_m4", "items/m4/m4.png");
-            loadScene.addImage("item_ak", "items/ak/ak.png");
             loadScene.addAudio("shot_m4", "weapons/m4/shot.wav");
             //this.load.image("crosshair_shotgun", "crosshair/shotgun.png");
             //this.load.audio("shot_m4", "weapons/m4/shot.wav");
@@ -270209,6 +270435,9 @@ class Gameface extends baseObject_1.BaseObject {
                         hitEntity: entity === null || entity === void 0 ? void 0 : entity.id
                     });
                 }
+            });
+            this.game.events.on("melee_weapon_attack", (meleeWeapon) => {
+                gameScene_1.GameScene.Instance.clientEntityManager.onMeleeWeaponAttack(meleeWeapon);
             });
             input_1.Input.events.on("pointerup", () => {
                 if ((0, utils_1.getIsMobile)()) {
@@ -270443,6 +270672,138 @@ exports.HealthBar = HealthBar;
 
 /***/ }),
 
+/***/ "./src/game/hotbar.ts":
+/*!****************************!*\
+  !*** ./src/game/hotbar.ts ***!
+  \****************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Hotbar = exports.HotbarSlot = void 0;
+const playerInventory_1 = __webpack_require__(/*! ../shared/inventory/client/playerInventory */ "./src/shared/inventory/client/playerInventory.ts");
+const gameface_1 = __webpack_require__(/*! ./gameface/gameface */ "./src/game/gameface/gameface.ts");
+const gameScene_1 = __webpack_require__(/*! ./scenes/gameScene */ "./src/game/scenes/gameScene.ts");
+class HotbarSlot {
+    constructor(x, y) {
+        const scene = gameScene_1.GameScene.Instance;
+        this.container = scene.add.container(x, y);
+        const bg = scene.add.rectangle(0, 0, 100, 100, 0xff0000);
+        this.container.add(bg);
+    }
+    setItem(item) {
+        if (this._item) {
+            if (this._item.id == item.id) {
+                return;
+            }
+            else {
+                this.removeItem();
+            }
+        }
+        this._item = item;
+        const scene = gameScene_1.GameScene.Instance;
+        const textureKey = `item_` + item.itemData.id;
+        const addImage = () => {
+            this.itemImage = scene.add.image(0, 0, textureKey);
+            this.itemImage.setDisplaySize(100, 100);
+            this.container.add(this.itemImage);
+        };
+        if (!scene.textures.exists(textureKey)) {
+            const htmlImage = new Image();
+            htmlImage.src = '/assets/' + item.itemData.image;
+            htmlImage.onload = () => {
+                scene.textures.addImage(textureKey, htmlImage);
+                addImage();
+            };
+        }
+        else {
+            addImage();
+        }
+    }
+    removeItem() {
+        var _a;
+        if (!this._item)
+            return;
+        this._item = undefined;
+        (_a = this.itemImage) === null || _a === void 0 ? void 0 : _a.destroy();
+        this.itemImage = undefined;
+    }
+    update() {
+    }
+}
+exports.HotbarSlot = HotbarSlot;
+class Hotbar {
+    constructor() {
+        this.slots = [];
+        Hotbar.Instance = this;
+    }
+    update() {
+        const inventory = playerInventory_1.PlayerInventory.inventory;
+        if (!inventory)
+            return;
+        if (this.slots.length == 0) {
+            this.createSlots();
+        }
+        const slotGroup = this.getSlotGroup();
+        var x = 0;
+        for (const slot of this.slots) {
+            const item = this.getItemInSlot(x);
+            if (item)
+                slot.setItem(item);
+            else
+                slot.removeItem();
+            slot.update();
+            x++;
+        }
+    }
+    getItemInSlot(x) {
+        const slotGroup = this.getSlotGroup();
+        const inventoryItem = slotGroup.getItemInSlot(x, 0);
+        if (inventoryItem)
+            return inventoryItem.item;
+        return undefined;
+    }
+    equipSlot(x) {
+        if (x > this.slots.length - 1)
+            return;
+        console.log(`[Hotbar] Equip slot ${x}`);
+        const player = gameface_1.Gameface.Instance.player;
+        const item = this.getItemInSlot(x);
+        if (item) {
+            console.log(`[Hotbar] Equip ${item.itemData.id}`);
+            player.equipItem(item.itemData.id);
+        }
+        else {
+            player.equipItem("");
+        }
+    }
+    getSlotGroup() {
+        const inventory = playerInventory_1.PlayerInventory.inventory;
+        if (!inventory)
+            return;
+        const slotGroup = inventory.slotGroups[1];
+        return slotGroup;
+    }
+    createSlots() {
+        const slotGroup = this.getSlotGroup();
+        var x = gameface_1.Gameface.Instance.getGameSize().x / 2;
+        var y = gameface_1.Gameface.Instance.getGameSize().y - 75;
+        var slotSize = new Phaser.Math.Vector2(100, 100);
+        var slotGap = 10;
+        x -= ((slotGroup.slots[0].length - 1) * (slotSize.x + slotGap)) / 2;
+        for (var i = 0; i < slotGroup.slots[0].length; i++) {
+            const slot = new HotbarSlot(x, y);
+            this.slots.push(slot);
+            x += slotSize.x + slotGap;
+        }
+    }
+}
+exports.Hotbar = Hotbar;
+
+
+/***/ }),
+
 /***/ "./src/game/index.ts":
 /*!***************************!*\
   !*** ./src/game/index.ts ***!
@@ -270496,7 +270857,6 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Input = exports.Pointer = void 0;
 const phaser_1 = __importDefault(__webpack_require__(/*! phaser */ "./node_modules/phaser/dist/phaser.js"));
 const baseObject_1 = __webpack_require__(/*! ../shared/baseObject */ "./src/shared/baseObject.ts");
-const debug_1 = __webpack_require__(/*! ../shared/debug */ "./src/shared/debug.ts");
 const utils_1 = __webpack_require__(/*! ../shared/utils */ "./src/shared/utils.ts");
 class Pointer {
     constructor(input, id) {
@@ -270541,7 +270901,7 @@ class Pointer {
         this.wasActive = false;
         this.updatePosition();
         const position = this.position;
-        console.log(`[pointer ${this.id}] is up at ${position.x}, ${position.y}`);
+        //console.log(`[pointer ${this.id}] is up at ${position.x}, ${position.y}`);
     }
     updatePosition() {
         const position = this.getPointerPosition();
@@ -270628,7 +270988,7 @@ class Input extends baseObject_1.BaseObject {
     }
     onKeyPress(key) {
         key = key.toUpperCase();
-        debug_1.Debug.log("Input", `key press: ${key}`);
+        //Debug.log("Input", `key press: ${key}`);
         this._keysPressed.set(key, true);
         this._keysJustDown.push(key);
         Input.events.emit('keydown', key);
@@ -270644,13 +271004,13 @@ class Input extends baseObject_1.BaseObject {
         return this._pointers.get(id);
     }
     onPointerDown(pointer) {
-        console.log(`pointer down`);
+        //console.log(`pointer down`);
         for (const pointer of this._pointers.values()) {
             if (pointer.isActive() && !pointer.wasActive) {
                 pointer.onDown();
                 Input.previousPointerThatWentDown = pointer.id;
             }
-            console.log(pointer.id, pointer.isActive());
+            //console.log(pointer.id, pointer.isActive());
         }
         if (pointer.button == 2) {
             this._mouse2Down = true;
@@ -270661,7 +271021,7 @@ class Input extends baseObject_1.BaseObject {
         Input.events.emit('pointerdown', pointer, Input.previousPointerThatWentDown);
     }
     onPointerUp(pointer) {
-        console.log(`pointer up`);
+        //console.log(`pointer up`);
         for (const pointer of this._pointers.values()) {
             if (!pointer.isActive() && pointer.wasActive) {
                 pointer.onUp();
@@ -271044,7 +271404,7 @@ const ped_1 = __webpack_require__(/*! ../entities/ped */ "./src/game/entities/pe
 const gameface_1 = __webpack_require__(/*! ../gameface/gameface */ "./src/game/gameface/gameface.ts");
 const gameScene_1 = __webpack_require__(/*! ../scenes/gameScene */ "./src/game/scenes/gameScene.ts");
 const packet_1 = __webpack_require__(/*! ./packet */ "./src/game/network/packet.ts");
-const clientInventoryManager_1 = __webpack_require__(/*! ../../shared/inventory/client/clientInventoryManager */ "./src/shared/inventory/client/clientInventoryManager.ts");
+const playerInventory_1 = __webpack_require__(/*! ../../shared/inventory/client/playerInventory */ "./src/shared/inventory/client/playerInventory.ts");
 class SyncHelper {
     static update() {
         const player = gameface_1.Gameface.Instance.player;
@@ -271138,9 +271498,7 @@ class SyncHelper {
         console.log(info);
         gameface_1.Gameface.Instance.game.gltfCollection.fromPacketData(info);
         gameface_1.Gameface.Instance.playerId = info.playerId;
-        const inventory = game.inventoryManager.createPlayerInventory();
-        game.inventoryManager.setInventoryId(inventory, info.inventoryId);
-        clientInventoryManager_1.ClientInventoryManager.inventory = inventory;
+        const inventory = playerInventory_1.PlayerInventory.createPlayerInventory(info.inventoryId);
         inventory.events.on("item_moved", (slotGroup, x, y, toSlotGroup, toX, toY) => {
             console.log("send item_moved packet");
             network.send(packet_1.PACKET_TYPE.PACKET_INVENTORY_ITEM_MOVE, {
@@ -271197,7 +271555,7 @@ class SyncHelper {
         if (entity.id == gameface_1.Gameface.Instance.playerId) {
             if (!gameface_1.Gameface.Instance.player) {
                 gameface_1.Gameface.Instance.player = entity;
-                gameface_1.Gameface.Instance.player.equipWeapon("m4");
+                gameface_1.Gameface.Instance.player.equipItem("m4");
                 entity.sync.syncType = entitySync_1.eSyncType.SYNC_NONE;
                 gameface_1.Gameface.Instance.entityWatcher.addEntity(entity);
             }
@@ -271231,15 +271589,8 @@ class SyncHelper {
                 const pedLookDir = entity.lookDir;
                 const lookDir = (0, ammoUtils_1.XYZW_SetValue)(data.lookDir, { x: pedLookDir.x(), y: pedLookDir.y(), z: pedLookDir.z(), w: pedLookDir.w() });
                 entity.lookDir.setValue(lookDir.x, lookDir.y, lookDir.z, lookDir.w);
-                console.log("data.nickname", data.nickname);
-                console.log("data.weapon", data.weapon);
-                if (data.weapon != undefined) {
-                    let currentWeaponId = "";
-                    if (entity.weapon)
-                        currentWeaponId = entity.weapon.weaponData.id;
-                    if (currentWeaponId != data.weapon) {
-                        entity.equipWeapon(data.weapon);
-                    }
+                if (data.itemOnHand != undefined) {
+                    entity.equipItem(data.itemOnHand);
                 }
             }
         }
@@ -271299,7 +271650,8 @@ const joystick_1 = __webpack_require__(/*! ../joystick */ "./src/game/joystick.t
 const widgets_1 = __webpack_require__(/*! ../widgets/widgets */ "./src/game/widgets/widgets.ts");
 const utils_1 = __webpack_require__(/*! ../../shared/utils */ "./src/shared/utils.ts");
 const chat_1 = __webpack_require__(/*! ../chat */ "./src/game/chat.ts");
-const clientInventoryManager_1 = __webpack_require__(/*! ../../shared/inventory/client/clientInventoryManager */ "./src/shared/inventory/client/clientInventoryManager.ts");
+const hotbar_1 = __webpack_require__(/*! ../hotbar */ "./src/game/hotbar.ts");
+const playerInventory_1 = __webpack_require__(/*! ../../shared/inventory/client/playerInventory */ "./src/shared/inventory/client/playerInventory.ts");
 class GameScene extends Phaser.Scene {
     constructor() {
         super({});
@@ -271307,6 +271659,7 @@ class GameScene extends Phaser.Scene {
         this.camera = new camera_1.Camera();
         this.joystick = new joystick_1.Joystick();
         this.chat = new chat_1.Chat();
+        this.hotbar = new hotbar_1.Hotbar();
         this._prevMouse2Down = false;
         GameScene.Instance = this;
     }
@@ -271323,6 +271676,7 @@ class GameScene extends Phaser.Scene {
     }
     updateScene(delta) {
         widgets_1.Widgets.update();
+        this.hotbar.update();
         this.updatePlayerInput();
     }
     updatePlayerInput() {
@@ -271388,25 +271742,12 @@ class GameScene extends Phaser.Scene {
         if (input_1.Input.getKeyDown("T")) {
             this.chat.toggleChatInput(true);
         }
-        if (input_1.Input.getKeyDown("N")) {
-            if (!clientInventoryManager_1.ClientInventoryManager.isInventoryOpen) {
-                clientInventoryManager_1.ClientInventoryManager.isInventoryOpen = true;
-                const inventory = clientInventoryManager_1.ClientInventoryManager.inventory;
-                clientInventoryManager_1.ClientInventoryManager.createInventory(inventory, 100, 100);
-                // const inventoryManager = Gameface.Instance.game.inventoryManager;
-                // inventoryManager.test();
-                // var i = 0;
-                // for(const [id, inventory] of inventoryManager.inventories)
-                // {
-                //     var x = 100;
-                //     if(i == 1) x = 600;
-                //     ClientInventoryManager.createInventory(inventory, x, 100);
-                //     i++;
-                // }
-            }
-            else {
-                clientInventoryManager_1.ClientInventoryManager.isInventoryOpen = false;
-                clientInventoryManager_1.ClientInventoryManager.removeAllIventories();
+        if (input_1.Input.getKeyDown("E")) {
+            playerInventory_1.PlayerInventory.toggle();
+        }
+        for (var i = 1; i < 9; i++) {
+            if (input_1.Input.getKeyDown(`${i}`)) {
+                this.hotbar.equipSlot(i - 1);
             }
         }
         //camera
@@ -271873,7 +272214,7 @@ class ServerScene {
         const npc2 = this.game.entityFactory.spawnPed(-12, 5, 0);
         npc2.nickname = `NPC Parado`;
         const npc = this.game.entityFactory.spawnPed(-15, 5, 0);
-        npc.equipWeapon("m4");
+        npc.equipItem("m4");
         npc.aiming = true;
         npc.nickname = `NPC`;
         setInterval(() => {
@@ -272179,6 +272520,54 @@ ThreeModelManager._models = new Map();
 
 /***/ }),
 
+/***/ "./src/game/weapons/meleeWeapon.ts":
+/*!*****************************************!*\
+  !*** ./src/game/weapons/meleeWeapon.ts ***!
+  \*****************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.MeleeWeapon = void 0;
+const baseObject_1 = __webpack_require__(/*! ../../shared/baseObject */ "./src/shared/baseObject.ts");
+class MeleeWeapon extends baseObject_1.BaseObject {
+    constructor(meleeWeaponData) {
+        super();
+        this._lastTimeAttack = 0;
+        this.meleeWeaponData = meleeWeaponData;
+    }
+    canAttack() {
+        const now = performance.now();
+        if (now - this._lastTimeAttack >= this.meleeWeaponData.attackCooldown)
+            return true;
+        return false;
+    }
+    attack() {
+        const now = performance.now();
+        this._lastTimeAttack = now;
+        this.ped.game.events.emit("melee_weapon_attack", this);
+        console.warn("attack");
+    }
+    processWeaponDamage(entity) {
+        entity.health -= 22;
+        if (entity.health <= 0) {
+            this.ped.game.onEntityDeath(entity, undefined, this.meleeWeaponData.id);
+        }
+        // const force = new Ammo.btVector3(0, 1, 0);
+        // force.op_mul(8000);
+        // const zero = new Ammo.btVector3(0, 0, 0);
+        // entity.body.activate();
+        // entity.body.applyForce(force, zero);
+        // Ammo.destroy(force);
+        // Ammo.destroy(zero);
+    }
+}
+exports.MeleeWeapon = MeleeWeapon;
+
+
+/***/ }),
+
 /***/ "./src/game/weapons/weapon.ts":
 /*!************************************!*\
   !*** ./src/game/weapons/weapon.ts ***!
@@ -272273,7 +272662,7 @@ class Weapon extends baseObject_1.BaseObject {
     processWeaponDamage(entity) {
         entity.health -= 22;
         if (entity.health <= 0) {
-            this.ped.game.onEntityDeath(entity, this);
+            this.ped.game.onEntityDeath(entity, this.ped, this.weaponData.id);
         }
         // const force = new Ammo.btVector3(0, 1, 0);
         // force.op_mul(8000);
@@ -272304,21 +272693,37 @@ class Weapons extends baseObject_1.BaseObject {
     constructor() {
         super(...arguments);
         this.weaponDatas = new Map();
+        this.meleeWeaponDatas = new Map();
     }
     init() {
         const m4 = this.createWeaponData("m4");
         const ak = this.createWeaponData("ak");
+        const pickaxe = this.createMeleeWeaponData("pickaxe");
     }
     createWeaponData(id) {
         const weaponData = {
             id: id,
-            anim: "m4"
+            anim: "m4",
+            damage: 18
         };
         this.weaponDatas.set(id, weaponData);
         return weaponData;
     }
+    createMeleeWeaponData(id) {
+        const weaponData = {
+            id: id,
+            damage: 18,
+            attackTime: 200,
+            attackCooldown: 1000
+        };
+        this.meleeWeaponDatas.set(id, weaponData);
+        return weaponData;
+    }
     getWeaponData(id) {
         return this.weaponDatas.get(id);
+    }
+    getMeleeWeaponData(id) {
+        return this.meleeWeaponDatas.get(id);
     }
 }
 exports.Weapons = Weapons;
@@ -272580,7 +272985,7 @@ class EntityWatcher {
             entityInfo.watch("lookDir.y", () => entity.lookDir.y()).setMinDifference(0.01);
             entityInfo.watch("lookDir.z", () => entity.lookDir.z()).setMinDifference(0.01);
             entityInfo.watch("lookDir.w", () => entity.lookDir.w()).setMinDifference(0.01);
-            entityInfo.watch("weapon", () => entity.weapon ? entity.weapon.weaponData.id : "");
+            entityInfo.watch("itemOnHand", () => entity.itemOnHand);
             entityInfo.watch("nickname", () => entity.nickname);
         }
         entityInfo.onChange = () => {
@@ -272644,8 +273049,8 @@ class EntityWatcher {
                 if (entityInfo.hasValueChanged("lookDir.w"))
                     lookDir.w = entityInfo.getValue("lookDir.w");
                 info.lookDir = lookDir;
-                if (entityInfo.hasValueChanged("weapon"))
-                    info.weapon = entityInfo.getValue("weapon");
+                if (entityInfo.hasValueChanged("itemOnHand"))
+                    info.itemOnHand = entityInfo.getValue("itemOnHand");
                 if (entityInfo.hasValueChanged("nickname"))
                     info.nickname = entityInfo.getValue("nickname");
             }
@@ -273152,7 +273557,8 @@ exports.gltfModels = [
     { key: "rotor", path: "wheel/rotor.glb" },
     { key: "m4", path: "weapons/m4/m4.glb" },
     { key: "policecar", path: "vehicles/policecar/policecar.glb" },
-    { key: "policebike", path: "vehicles/policebike/policebike.glb" }
+    { key: "policebike", path: "vehicles/policebike/policebike.glb" },
+    { key: "pickaxe", path: "items/pickaxe/pickaxe.glb" }
 ];
 
 
@@ -273172,7 +273578,7 @@ exports.gameSettings = {
     clientSendDataInterval: 250,
     serverSendDataInterval: 80,
     showRedTracer: false,
-    showCollisions: false,
+    showCollisions: true,
     showDebugWorldTexts: false
 };
 
@@ -273453,7 +273859,6 @@ class ClientInventoryManager {
     }
 }
 exports.ClientInventoryManager = ClientInventoryManager;
-ClientInventoryManager.isInventoryOpen = false;
 ClientInventoryManager.clientInventories = [];
 ClientInventoryManager.isDragging = false;
 
@@ -273605,7 +274010,7 @@ class ClientSlotGroup {
         divContainer.style.width = "auto";
         divContainer.style.height = "100%";
         divContainer.style.backgroundColor = "rgba(0, 0, 255, 0.5)";
-        divContainer.style.overflowY = "scroll";
+        divContainer.style.overflowY = "auto";
         div.appendChild(divContainer);
         const divElm = scene.add.dom(x, y, div);
         divElm.setOrigin(0);
@@ -273626,6 +274031,51 @@ class ClientSlotGroup {
     }
 }
 exports.ClientSlotGroup = ClientSlotGroup;
+
+
+/***/ }),
+
+/***/ "./src/shared/inventory/client/playerInventory.ts":
+/*!********************************************************!*\
+  !*** ./src/shared/inventory/client/playerInventory.ts ***!
+  \********************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PlayerInventory = void 0;
+const gameface_1 = __webpack_require__(/*! ../../../game/gameface/gameface */ "./src/game/gameface/gameface.ts");
+const clientInventoryManager_1 = __webpack_require__(/*! ./clientInventoryManager */ "./src/shared/inventory/client/clientInventoryManager.ts");
+class PlayerInventory {
+    static toggle() {
+        if (!this.isOpen) {
+            this.open();
+        }
+        else {
+            this.close();
+        }
+    }
+    static open() {
+        this.isOpen = true;
+        clientInventoryManager_1.ClientInventoryManager.createInventory(this.inventory, 0, 0);
+        gameface_1.Gameface.Instance.setPointerLocked(false);
+    }
+    static close() {
+        this.isOpen = false;
+        clientInventoryManager_1.ClientInventoryManager.removeAllIventories();
+        gameface_1.Gameface.Instance.setPointerLocked(true);
+    }
+    static createPlayerInventory(id) {
+        const game = gameface_1.Gameface.Instance.game;
+        const inventory = game.inventoryManager.createPlayerInventory();
+        game.inventoryManager.setInventoryId(inventory, id);
+        this.inventory = inventory;
+        return inventory;
+    }
+}
+exports.PlayerInventory = PlayerInventory;
+PlayerInventory.isOpen = false;
 
 
 /***/ }),
@@ -273668,22 +274118,22 @@ class Inventory {
     }
     addItemToAnySlot(item) {
         let toSlotGroup = undefined;
-        let x = -1;
-        let y = -1;
+        //let x = -1;
+        //let y = -1;
         for (const slotGroup of this.slotGroups) {
             var slot = slotGroup.getEmptySlot();
             if (slot == undefined)
                 continue;
             toSlotGroup = slotGroup;
-            x = slot.x;
-            y = slot.y;
+            //x = slot.x;
+            //y = slot.y;
             break;
         }
         if (!toSlotGroup) {
             console.warn("No more space in this inventory");
             return false;
         }
-        toSlotGroup.addItemToSlot(item, x, y);
+        toSlotGroup.addItemToAnySlot(item);
         return true;
     }
     toJSON() {
@@ -273863,7 +274313,18 @@ class ItemManager {
     }
     init() {
         const m4 = this.createItemData("m4", "items/m4/m4.png");
+        m4.model = "m4";
+        m4.weaponId = "m4";
         const ak = this.createItemData("ak", "items/ak/ak.png");
+        ak.model = "m4";
+        ak.weaponId = "ak";
+        const wheel = this.createItemData("wheel", "items/wheel/wheel.png");
+        wheel.model = "wheel";
+        const pickaxe = this.createItemData("pickaxe", "items/pickaxe/pickaxe.png");
+        pickaxe.weaponId = "weaponId";
+        pickaxe.animIdle = "idle_item";
+        pickaxe.animAttack = "attack_pickaxe";
+        pickaxe.model = "pickaxe";
     }
     createItemData(id, image) {
         const itemData = {
@@ -273944,6 +274405,15 @@ class SlotGroup {
         this.slots[y][x] = inventoryItem.id;
         this.inventory.events.emit("item_added", this, x, y);
         return inventoryItem;
+    }
+    addItemToAnySlot(item) {
+        var slot = this.getEmptySlot();
+        if (slot == undefined) {
+            console.error("There is no space in this slotGroup");
+            return false;
+        }
+        this.addItemToSlot(item, slot.x, slot.y);
+        return true;
     }
     addItemToItemsMap(id, item) {
         const inventoryItem = new inventoryItem_1.InventoryItem(id, item);

@@ -68,7 +68,7 @@ export class Pointer {
 
         const position = this.position;
 
-        console.log(`[pointer ${this.id}] is up at ${position.x}, ${position.y}`);
+        //console.log(`[pointer ${this.id}] is up at ${position.x}, ${position.y}`);
     }
 
     public updatePosition()
@@ -200,7 +200,7 @@ export class Input extends BaseObject
     {
         key = key.toUpperCase();
 
-        Debug.log("Input", `key press: ${key}`);
+        //Debug.log("Input", `key press: ${key}`);
 
         this._keysPressed.set(key, true);
         this._keysJustDown.push(key);
@@ -227,7 +227,7 @@ export class Input extends BaseObject
 
     private onPointerDown(pointer: PointerEvent)
     {
-        console.log(`pointer down`);
+        //console.log(`pointer down`);
 
         for(const pointer of this._pointers.values())
         {
@@ -237,7 +237,7 @@ export class Input extends BaseObject
                 Input.previousPointerThatWentDown = pointer.id;
             }
 
-            console.log(pointer.id, pointer.isActive());
+            //console.log(pointer.id, pointer.isActive());
         }
 
         if(pointer.button == 2)
@@ -252,7 +252,7 @@ export class Input extends BaseObject
 
     private onPointerUp(pointer: PointerEvent)
     {
-        console.log(`pointer up`);
+        //console.log(`pointer up`);
        
         for(const pointer of this._pointers.values())
         {

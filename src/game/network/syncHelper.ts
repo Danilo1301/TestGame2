@@ -10,6 +10,7 @@ import { GameScene } from "../scenes/gameScene";
 import { IPacket, IPacketData_ChatMessage, IPacketData_Entity_Info_Basic, IPacketData_Entity_Teleported, IPacketData_InitialInfo, IPacketData_Inventory, IPacketData_InventoryItemMove, IPacketData_WeaponShot, PACKET_TYPE } from "./packet";
 import { ClientInventoryManager } from "../../shared/inventory/client/clientInventoryManager";
 import { SlotGroup } from "../../shared/inventory/slotGroup";
+import { PlayerInventory } from "../../shared/inventory/client/playerInventory";
 
 export class SyncHelper
 {
@@ -156,9 +157,7 @@ export class SyncHelper
 
         Gameface.Instance.playerId = info.playerId;
 
-        const inventory = game.inventoryManager.createPlayerInventory();
-        game.inventoryManager.setInventoryId(inventory, info.inventoryId);
-        ClientInventoryManager.inventory = inventory;
+        const inventory = PlayerInventory.createPlayerInventory(info.inventoryId);
 
         inventory.events.on("item_moved", (slotGroup: SlotGroup, x: number, y: number, toSlotGroup: SlotGroup, toX: number, toY: number) => {
             
@@ -235,9 +234,10 @@ export class SyncHelper
             if(!Gameface.Instance.player)
             {
                 Gameface.Instance.player = entity as Ped;
-                Gameface.Instance.player.equipWeapon("m4");
+                Gameface.Instance.player.equipItem("m4");
 
                 entity.sync.syncType = eSyncType.SYNC_NONE;
+                
 
                 Gameface.Instance.entityWatcher.addEntity(entity);
             }
@@ -287,19 +287,9 @@ export class SyncHelper
         
                 entity.lookDir.setValue(lookDir.x!, lookDir.y!, lookDir.z!, lookDir.w!);
 
-                console.log("data.nickname", data.nickname);
-                console.log("data.weapon", data.weapon);
-
-                if(data.weapon != undefined)
+                if(data.itemOnHand != undefined)
                 {
-
-                    let currentWeaponId = "";
-                    if(entity.weapon) currentWeaponId = entity.weapon.weaponData.id;
-
-                    if(currentWeaponId != data.weapon)
-                    {
-                        entity.equipWeapon(data.weapon);
-                    }
+                    entity.equipItem(data.itemOnHand);
                 }
             }
         }

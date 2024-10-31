@@ -87,6 +87,21 @@ export class SlotGroup
         return inventoryItem;
     }
 
+    public addItemToAnySlot(item: Item)
+    {
+        var slot = this.getEmptySlot();
+
+        if(slot == undefined)
+        {
+            console.error("There is no space in this slotGroup");
+            return false;
+        }
+
+        this.addItemToSlot(item, slot.x, slot.y);
+
+        return true;
+    }
+
     public addItemToItemsMap(id: number, item: Item)
     {
         const inventoryItem = new InventoryItem(id, item);

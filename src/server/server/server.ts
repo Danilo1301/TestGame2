@@ -49,20 +49,7 @@ export class Server extends BaseObject
         });
 
         this.game.events.on("updated_inventory", (inventory: Inventory) => {
-
-            for(const client of this.clients)
-            {
-                if(inventory.id == client.inventory?.id)
-                {
-                    console.log("sending inventory data " + inventory.id + " to " + client.nickname)
-
-                    console.log(inventory.toJSON());
-
-                    client.send<IPacketData_Inventory>(PACKET_TYPE.PACKET_INVENTORY, {
-                        inventory: inventory.toJSON()
-                    });
-                }
-            }
+            this.sendInventoryUpdated(inventory);
         });
 
         
@@ -126,6 +113,23 @@ export class Server extends BaseObject
             if(!client.isReady) continue;
 
             client.send(packetType, data);
+        }
+    }
+
+    public sendInventoryUpdated(inventory: Inventory)
+    {
+        for(const client of this.clients)
+        {
+            if(inventory.id == client.inventory?.id)
+            {
+                console.log("sending inventory data " + inventory.id + " to " + client.nickname)
+
+                console.log(inventory.toJSON());
+
+                client.send<IPacketData_Inventory>(PACKET_TYPE.PACKET_INVENTORY, {
+                    inventory: inventory.toJSON()
+                });
+            }
         }
     }
 
@@ -210,10 +214,30 @@ export class Server extends BaseObject
         }
     }
 
+    public giveStarterItems(client: Client)
+    {
+        const inventory = client.inventory!;
+        const slotGroup = inventory.slotGroups[1];
+        
+        const pickaxe = this.game.itemManager.makeItem("pickaxe");
+        slotGroup.addItemToAnySlot(pickaxe);
+
+        const m4 = this.game.itemManager.makeItem("m4");
+        slotGroup.addItemToAnySlot(m4);
+        
+        const ak = this.game.itemManager.makeItem("ak");
+        slotGroup.addItemToAnySlot(ak);
+    }
+
     public sendServerMessage(message: string)
     {
+        this.sendMessage("gold", `[Server] ${message}`);
+    }
+
+    public sendMessage(color: string, message: string)
+    {
         this.sendToAll<IPacketData_ChatMessage>(PACKET_TYPE.PACKET_CHAT_MESSAGE, {
-            message: `<span style="color: gold;">[Server] ${message}</span>`
+            message: `<span style="color: ${color};">${message}</span>`
         });
     }
 }

@@ -73,7 +73,7 @@ export class ServerScene
         npc2.nickname = `NPC Parado`;
 
         const npc = this.game.entityFactory.spawnPed(-15, 5, 0);
-        npc.equipWeapon("m4");
+        npc.equipItem("m4");
         npc.aiming = true;
         npc.nickname = `NPC`;
         

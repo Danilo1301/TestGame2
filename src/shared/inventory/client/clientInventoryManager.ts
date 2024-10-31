@@ -5,9 +5,7 @@ import { ClientSlot } from "./clientSlot";
 
 export class ClientInventoryManager
 {
-    public static isInventoryOpen: boolean = false;
     public static clientInventories: ClientInventory[] = [];
-    public static inventory: Inventory;
 
     public static isDragging: boolean = false;
     public static hoveringSlot?: ClientSlot;

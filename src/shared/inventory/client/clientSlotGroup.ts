@@ -30,7 +30,7 @@ export class ClientSlotGroup
         divContainer.style.width = "auto";
         divContainer.style.height = "100%";
         divContainer.style.backgroundColor = "rgba(0, 0, 255, 0.5)";
-        divContainer.style.overflowY = "scroll";
+        divContainer.style.overflowY = "auto";
 
         div.appendChild(divContainer);
         

@@ -7,7 +7,9 @@ import { Joystick } from "../joystick";
 import { Widgets } from "../widgets/widgets";
 import { getIsMobile } from "../../shared/utils";
 import { Chat } from "../chat";
+import { Hotbar } from "../hotbar";
 import { ClientInventoryManager } from "../../shared/inventory/client/clientInventoryManager";
+import { PlayerInventory } from "../../shared/inventory/client/playerInventory";
 
 export class GameScene extends Phaser.Scene
 {
@@ -17,6 +19,7 @@ export class GameScene extends Phaser.Scene
     public camera = new Camera();
     public joystick = new Joystick();
     public chat = new Chat();
+    public hotbar = new Hotbar();
 
     private _prevMouse2Down: boolean = false;
 
@@ -44,6 +47,7 @@ export class GameScene extends Phaser.Scene
     public updateScene(delta: number)
     {
         Widgets.update();
+        this.hotbar.update();
         this.updatePlayerInput();
     }
 
@@ -143,35 +147,17 @@ export class GameScene extends Phaser.Scene
             this.chat.toggleChatInput(true);
         }
 
-        if(Input.getKeyDown("N"))
+        if(Input.getKeyDown("E"))
         {
-            if(!ClientInventoryManager.isInventoryOpen)
+            PlayerInventory.toggle();
+        }
+
+        for(var i = 1; i < 9; i++)
+        {
+            if(Input.getKeyDown(`${i}`))
             {
-                ClientInventoryManager.isInventoryOpen = true;
-                
-                const inventory = ClientInventoryManager.inventory;
-
-                ClientInventoryManager.createInventory(inventory, 100, 100);
-
-                // const inventoryManager = Gameface.Instance.game.inventoryManager;
-                // inventoryManager.test();
-    
-                // var i = 0;
-                // for(const [id, inventory] of inventoryManager.inventories)
-                // {
-                //     var x = 100;
-                //     if(i == 1) x = 600;
-    
-                //     ClientInventoryManager.createInventory(inventory, x, 100);
-                //     i++;
-                // }
-            } else {
-                ClientInventoryManager.isInventoryOpen = false;
-
-                ClientInventoryManager.removeAllIventories();
+                this.hotbar.equipSlot(i - 1);
             }
-
-           
         }
 
         //camera

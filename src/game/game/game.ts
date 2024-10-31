@@ -114,9 +114,9 @@ export class Game extends BaseObject
     {
     }
 
-    public onEntityDeath(entity: Entity, byWeapon?: Weapon)
+    public onEntityDeath(entity: Entity, byEntity?: Entity, byWeaponId?: string)
     {
-        this.events.emit("entity_died", entity, byWeapon?.ped);
+        this.events.emit("entity_died", entity, byEntity);
 
         entity.setPosition(0, 3, 0);
         this.events.emit("entity_teleported", entity);

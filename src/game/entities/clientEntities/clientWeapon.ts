@@ -5,6 +5,7 @@ import { GameScene } from "../../scenes/gameScene";
 import { ThreeScene } from "../../scenes/threeScene";
 import { WeaponItem } from "../weaponItem";
 import { ClientEntity } from "./clientEntity";
+import { ClientHandItem } from "./clientHandItem";
 
 interface GunTracer {
     start: THREE.Vector3
@@ -13,7 +14,7 @@ interface GunTracer {
     color: number
 }
 
-export class ClientWeapon extends ClientEntity
+export class ClientWeapon extends ClientHandItem
 {
     public get weaponItem() { return this.entity as WeaponItem; }
 

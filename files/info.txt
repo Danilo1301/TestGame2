@@ -11,6 +11,10 @@ Physics delta: 31.0
 GameScene delta 16.0
 
 
+-----
+car?
+https://github.com/Game3DEE/sensor-based-highspeed-race/tree/gh-pages/js
+
 ---
 Criar EntityWatcher
 

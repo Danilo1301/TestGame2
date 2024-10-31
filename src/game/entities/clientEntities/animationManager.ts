@@ -94,7 +94,7 @@ export class AnimationManager extends BaseObject
 
         if(this.anims.length > 0 && this.subAnims.length > 0)
         {
-            console.log("make subclip additive")
+            //console.log("make subclip additive")
 
             const baseAnim = this.anims[this.anims.length-1];
 
@@ -144,7 +144,7 @@ export class AnimationManager extends BaseObject
         mixer.addEventListener('finished', function (event) {
             const action = event.action;
             
-            self.log('an animation finished');
+            //self.log('an animation finished');
 
             let anim: AnimData | undefined;
             let role = AnimRole.ANIM_MAIN;
@@ -168,9 +168,13 @@ export class AnimationManager extends BaseObject
                 }
             }
 
-            if(!anim) throw "An animation finished and its not in anims list";
+            if(!anim) {
+                console.error("An animation finished and its not in anims list");
+                //alert("An animation finished and its not in anims list");
+                return;
+            }
 
-            self.log('an animation called ' + anim.name + ' finished');
+            //self.log('an animation called ' + anim.name + ' finished');
 
             const stopImidiately = anim.stopAtEnd == true;
 
@@ -199,7 +203,7 @@ export class AnimationManager extends BaseObject
             clip.tracks.splice(clip.tracks.indexOf(track), 1);
         });
         
-        this.log(`${toDelete.length} tracks deleted`);
+        //this.log(`${toDelete.length} tracks deleted`);
     }
 
     public playSubAnimationLoop(name: string)
@@ -238,13 +242,13 @@ export class AnimationManager extends BaseObject
 
         for(const anim of animsArr)
         {
-            this.log(`stopped anim ${anim.name} ${stopImidiately ? "IMEDIATLY" : "AND FADEOUT"}`);
+            //this.log(`stopped anim ${anim.name} ${stopImidiately ? "IMEDIATLY" : "AND FADEOUT"}`);
             
             if(anim.stopAtEnd)
             {
                 stopAtEnd = true;
 
-                console.log("start again and go to end")
+                //console.log("start again and go to end")
 
                 anim.action.reset();
                 anim.action.time = anim.action.getClip().duration;
@@ -270,7 +274,7 @@ export class AnimationManager extends BaseObject
 
         if(stopAtEnd)
         {
-            console.log("anim is stopping at end")
+            //console.log("anim is stopping at end")
             return;
         }
 
@@ -278,7 +282,7 @@ export class AnimationManager extends BaseObject
 
         if(role == AnimRole.ANIM_SUB && this.anims.length > 0)
         {
-            console.log(`resetting main anim`);
+            //console.log(`resetting main anim`);
 
             const baseAnim = this.anims[0];
             const baseTime = baseAnim.action.time;

@@ -50,8 +50,8 @@ export class Inventory
     public addItemToAnySlot(item: Item)
     {
         let toSlotGroup: SlotGroup | undefined = undefined; 
-        let x = -1;
-        let y = -1;
+        //let x = -1;
+        //let y = -1;
 
         for(const slotGroup of this.slotGroups)
         {
@@ -60,8 +60,8 @@ export class Inventory
             if(slot == undefined) continue;
             
             toSlotGroup = slotGroup;
-            x = slot.x;
-            y = slot.y;
+            //x = slot.x;
+            //y = slot.y;
 
             break;
         }
@@ -72,7 +72,7 @@ export class Inventory
             return false;
         }
 
-        toSlotGroup.addItemToSlot(item, x, y);
+        toSlotGroup.addItemToAnySlot(item);
 
         return true;
     }

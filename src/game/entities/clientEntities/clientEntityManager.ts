@@ -1,4 +1,4 @@
-import THREE from "three";
+import * as THREE from 'three';
 import { Entity } from "../entity";
 import { Gameface } from "../../gameface/gameface";
 import { ClientEntity } from "./clientEntity";
@@ -7,12 +7,17 @@ import { GameScene } from "../../scenes/gameScene";
 import { Ped } from "../ped";
 import { ClientPed } from "./clientPed";
 import { ClientWeapon } from "./clientWeapon";
+import { ClientHandItem } from "./clientHandItem";
 import { Weapon } from "../../weapons/weapon";
-import { WeaponItem } from "../weaponItem";
 import { ammoVector3ToThree } from "../../../shared/utils";
 import { THREEVector3_GetDirectionBetweenVectors, THREEVector_GetDistanceFromDirection } from "../../../shared/three/vector";
 import { AudioManager } from "../../audioManager";
 import { gameSettings } from "../../../shared/constants/gameSettings";
+import { MeleeWeapon } from '../../weapons/meleeWeapon';
+import { HandItem } from '../handItem';
+import { WeaponItem } from '../weaponItem';
+import { MeleeWeaponItem } from "../meleeWeaponItem";
+import { ClientMeleeWeapon } from "./clientMeleeWeapon";
 
 
 export class ClientEntityManager extends BaseObject {
@@ -29,6 +34,8 @@ export class ClientEntityManager extends BaseObject {
 
         this.entitiesClassMap.set(Ped, ClientPed);
         this.entitiesClassMap.set(WeaponItem, ClientWeapon);
+        this.entitiesClassMap.set(MeleeWeaponItem, ClientMeleeWeapon);
+        this.entitiesClassMap.set(HandItem, ClientHandItem);
     }
 
     public preUpdate(delta: number)
@@ -121,23 +128,52 @@ export class ClientEntityManager extends BaseObject {
         var audio = AudioManager.createAudio('shot_m4');
         audio.volume = 0.1 * vol;
         audio.play();
-    
+        
+        const clientWeapon = this.findClientEntity(ce => {
+            if(!(ce instanceof ClientWeapon)) return false;
+            return ce.weaponItem.weapon == weapon;
+        }) as ClientWeapon | undefined;
+
+        if(!clientWeapon)
+        {
+            console.error("clientWeapon not found");
+
+            return false;
+        }
+
+        if(gameSettings.showRedTracer)
+            clientWeapon.addTracer(from, to, 0xff0000);
+
+        const weaponPosition = ammoVector3ToThree(clientWeapon.weaponItem.getPosition()); 
+
+        //const dir = THREEVector3_GetDirectionBetweenVectors(weaponPosition, to);
+        clientWeapon.shoot(weaponPosition, to);
+    }
+
+    public onMeleeWeaponAttack(meleeWeapon: MeleeWeapon)
+    {
+        // const clientEntity = this.findClientEntity(ce => {
+        //     if(!(ce instanceof ClientMeleeWeapon)) return false;
+        //     return ce.meleeWeaponItem.meleeWeapon == meleeWeapon
+        // });
+
+        console.log("melee attack");
+
+        const ped = meleeWeapon.ped;
+
+        const clientPed = this.findClientEntity(ce => ce.entity == ped);
+
+        console.log(clientPed);
+
+        clientPed!.animationManager.playSubAnimationOnce("attack_pickaxe");
+    }
+
+    public findClientEntity(fn: (clientEntity: ClientEntity) => boolean)
+    {
         for(const [entity, clientEntity] of this.clientEntities)
         {
-            if(!(clientEntity instanceof ClientWeapon)) continue;
-
-            const clientWeapon = clientEntity;
-
-            if(clientWeapon.weaponItem.weapon != weapon) continue;
-
-            if(gameSettings.showRedTracer)
-                clientWeapon.addTracer(from, to, 0xff0000);
-
-            const weaponPosition = ammoVector3ToThree(clientWeapon.weaponItem.getPosition()); 
-
-            //const dir = THREEVector3_GetDirectionBetweenVectors(weaponPosition, to);
-            clientWeapon.shoot(weaponPosition, to);
-
+            if(fn(clientEntity)) return clientEntity;
         }
+        return undefined;
     }
 }

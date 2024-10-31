@@ -3,6 +3,6 @@ export const gameSettings = {
     serverSendDataInterval: 80,
 
     showRedTracer: false,
-    showCollisions: false,
+    showCollisions: true,
     showDebugWorldTexts: false
 }

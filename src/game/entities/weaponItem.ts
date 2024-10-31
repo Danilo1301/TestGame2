@@ -1,7 +1,7 @@
 import { Weapon } from '../weapons/weapon';
-import { Entity } from './entity';
+import { HandItem } from './handItem';
 
-export class WeaponItem extends Entity
+export class WeaponItem extends HandItem
 {
     public weapon!: Weapon;
 }

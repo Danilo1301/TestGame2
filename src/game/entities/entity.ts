@@ -27,7 +27,7 @@ export interface Entity_Info_Basic {
 
     aiming?: boolean
     lookDir?: XYZ
-    weapon?: string
+    itemOnHand?: string
 
     nickname?: string
 }

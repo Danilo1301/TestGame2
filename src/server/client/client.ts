@@ -1,5 +1,5 @@
 import socketio, { Socket } from 'socket.io';
-import THREE from 'three';
+import * as THREE from 'three';
 import { v4 as uuidv4 } from 'uuid';
 import { BaseObject } from "../../shared/baseObject"
 import { IPacket, IPacketData, IPacketData_ChatMessage, IPacketData_ClientReady, IPacketData_EnterLeaveVehicle, IPacketData_Entity_Info_Basic, IPacketData_InitialInfo, IPacketData_InventoryItemMove, IPacketData_RequestInitialInfo, IPacketData_WeaponShot, PACKET_TYPE } from "../../game/network/packet";
@@ -101,6 +101,7 @@ export class Client extends BaseObject
             const server = this._server!;
 
             server.entityWatcher.setAllEntityAsChangedAll();
+            server.sendInventoryUpdated(this.inventory);
 
             return;
         }
@@ -172,15 +173,9 @@ export class Client extends BaseObject
                 const lookDir = XYZW_SetValue(data.lookDir, {x: pedLookDir.x(), y: pedLookDir.y(), z: pedLookDir.z(), w: pedLookDir.w()});
                 player.lookDir.setValue(lookDir.x!, lookDir.y!, lookDir.z!, lookDir.w!);
 
-                if(data.weapon != undefined)
+                if(data.itemOnHand != undefined)
                 {
-                    let currentWeaponId = "";
-                    if(player.weapon) currentWeaponId = player.weapon.weaponData.id;
-
-                    if(currentWeaponId != data.weapon)
-                    {
-                        player.equipWeapon(data.weapon);
-                    }
+                    player.equipItem(data.itemOnHand);
                 }
             }
             return;
@@ -295,6 +290,8 @@ export class Client extends BaseObject
         this._player = player;
 
         this.inventory = server.game.inventoryManager.createPlayerInventory();
+
+        server.giveStarterItems(this);
     }
 
     public leaveServer()

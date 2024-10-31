@@ -1,13 +1,16 @@
+import THREE from "three";
 import { Ped } from "../ped";
 import { ClientEntity } from "./clientEntity";
 import { Quaternion_Forward } from "../../../shared/ammo/quaterion";
-import THREE from "three";
 import { THREELine, ThreeScene } from "../../scenes/threeScene";
 import { threeVector3ToAmmo } from "../../../shared/utils";
 import { Input } from "../../input";
 import { Gameface } from "../../gameface/gameface";
 import { WeaponItem } from "../weaponItem";
 import { WorldText } from "../../worldText";
+import { HandItem } from "../handItem";
+import { MeleeWeapon } from "../../weapons/meleeWeapon";
+import { MeleeWeaponItem } from "../meleeWeaponItem";
 
 export class ClientPed extends ClientEntity
 {
@@ -15,11 +18,14 @@ export class ClientPed extends ClientEntity
 
     public nickNameWorldText = new WorldText(this.ped.nickname);
 
-    private _prevEquipedWeapon: string = "";
-    private _weaponItem?: WeaponItem;
+    private _prevItemOnHand: string = "";
+
+    private _handItem?: HandItem;
 
     private _lookDirLine?: THREELine;
     private _inputDirLine?: THREELine;
+
+    private _isAiming: boolean = false;
 
     public create()
     {
@@ -55,12 +61,77 @@ export class ClientPed extends ClientEntity
         this.drawLookDirLine();
         this.drawInputDirLine();
 
+        this.updateItemOnHand();
         this.updateWalkAnimations();
-        this.updateWeaponItem();
         this.updatePlayerInput();
+        
 
         //this.updateStupid();
 
+    }
+
+    private updateItemOnHand()
+    {
+        if(this._prevItemOnHand != this.ped.itemOnHand)
+        {
+            this._prevItemOnHand = this.ped.itemOnHand;
+
+            const itemManager = this.ped.game.itemManager;
+            const itemData = itemManager.getItemData(this.ped.itemOnHand);
+
+            if(!itemData)
+            {
+                console.error("Item not found");
+
+                this._handItem = undefined;
+
+                return;
+            }
+
+            let handItem: HandItem | undefined;
+
+            if(itemData.weaponId != undefined)
+            {
+                const weapons = this.ped.game.weapons;
+
+                if(weapons.getWeaponData(itemData.id))
+                {
+                    handItem = this.ped.game.entityFactory.spawnHandItem(WeaponItem, itemData);
+                    (handItem as WeaponItem).weapon = this.ped.weapon!;
+                }
+
+                if(weapons.getMeleeWeaponData(itemData.id))
+                {
+                    handItem = this.ped.game.entityFactory.spawnHandItem(MeleeWeaponItem, itemData);
+                    (handItem as MeleeWeaponItem).meleeWeapon = this.ped.meleeWeapon!;
+                }
+            }
+
+            if(!handItem) handItem = this.ped.game.entityFactory.spawnHandItem(HandItem, itemData);
+            
+            handItem.itemData = itemData;
+
+            this._handItem = handItem;
+        }
+
+        // place handItem on hand
+
+        if(!this._handItem) return;
+
+        const handItem = this._handItem;
+
+        const bone = this.getBone("item_R");
+
+        if(!bone) return;
+        
+        const boneWorldPosition = new THREE.Vector3(0, 0, 0);
+        bone.getWorldPosition(boneWorldPosition);
+
+        const boneWorldQuaternion = new THREE.Quaternion();
+        bone.getWorldQuaternion(boneWorldQuaternion);
+
+        handItem.setPosition(boneWorldPosition.x, boneWorldPosition.y, boneWorldPosition.z);
+        handItem.setRotation(boneWorldQuaternion.x, boneWorldQuaternion.y, boneWorldQuaternion.z, boneWorldQuaternion.w);
     }
 
     private updateHeadBone()
@@ -98,13 +169,31 @@ export class ClientPed extends ClientEntity
             
         let animName = "idle";
 
-        if(this._weaponItem) animName += `_m4`;
+        const handItem = this._handItem;
+
+        if(handItem)
+        {
+            if(handItem instanceof WeaponItem)
+            {
+                animName += `_m4`;
+            } else {
+                if(handItem.itemData.animIdle != undefined) animName = handItem.itemData.animIdle;
+            }
+        }
 
         if(inputDir.length() > 0)
         {
             animName = "walk";
 
-            if(this._weaponItem) animName += `_m4`;
+            if(handItem)
+            {
+                if(handItem instanceof WeaponItem)
+                {
+                    animName += `_m4`;
+                } else {
+                    animName += `_m4`;
+                }
+            }
         }
 
         if(!this.animationManager.isPlayingAnim(animName))
@@ -112,59 +201,27 @@ export class ClientPed extends ClientEntity
 
         //weapon
 
-        let currentWeaponId = "";
-        const weapon = this.ped.weapon;
-
-        if(weapon)
-        {
-            currentWeaponId = weapon.weaponData.id;
-        }
-
-        if(currentWeaponId != this._prevEquipedWeapon)
-        {
-            this._prevEquipedWeapon = currentWeaponId;
-
-            this.animationManager.playSubAnimationOnce("equip_m4");
-            
-            if(weapon)
-            {
-                this._weaponItem = this.ped.game.entityFactory.spawnWeaponItem(weapon);
-            }
-        }
-
         if(this.ped.aiming)
         {
-            if(!this.animationManager.isPlayingAnim("aim_m4"))
+            if(handItem instanceof WeaponItem)
             {
-                this.animationManager.playSubAnimationAndStop("aim_m4");
+                this._isAiming = true;
+
+                let aimAnim = "aim_m4";
+
+                if(!this.animationManager.isPlayingAnim(aimAnim))
+                {
+                    this.animationManager.playSubAnimationAndStop(aimAnim);
+                }
             }
+            
         } else {
-            if(this.animationManager.isPlayingAnim("aim_m4"))
+            if(this._isAiming)
             {
+                this._isAiming = false;
                 this.animationManager.stopSubAnimation();
             }
         }
-    }
-
-    private updateWeaponItem()
-    {
-        if(!this._weaponItem) return;
-
-        const weaponItem = this._weaponItem;
-
-        const bone = this.getBone("item_R");
-
-        if(!bone) return;
-        
-        const boneWorldPosition = new THREE.Vector3(0, 0, 0);
-        bone.getWorldPosition(boneWorldPosition);
-
-        const boneWorldQuaternion = new THREE.Quaternion();
-        bone.getWorldQuaternion(boneWorldQuaternion);
-
-        weaponItem.setPosition(boneWorldPosition.x, boneWorldPosition.y, boneWorldPosition.z);
-        weaponItem.setRotation(boneWorldQuaternion.x, boneWorldQuaternion.y, boneWorldQuaternion.z, boneWorldQuaternion.w);
-        
     }
 
     private updatePlayerInput()
@@ -174,18 +231,6 @@ export class ClientPed extends ClientEntity
         const ped = Gameface.Instance.player;
 
         if(ped != this.ped) return;
-
-        if(Input.getKeyDown("1"))
-        {
-            ped.equipWeapon("m4");
-        }
-
-        if(Input.getKeyDown("2") && this.entity == Gameface.Instance.player)
-        {
-            const ped = Gameface.Instance.player;
-
-            ped.equipWeapon("ak");
-        }
 
         if(Input.getKeyDown("Z"))
         {

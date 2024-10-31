@@ -78,7 +78,7 @@ export class EntityWatcher
             entityInfo.watch("lookDir.z", () => entity.lookDir.z()).setMinDifference(0.01);
             entityInfo.watch("lookDir.w", () => entity.lookDir.w()).setMinDifference(0.01);
 
-            entityInfo.watch("weapon", () => entity.weapon ? entity.weapon.weaponData.id : "");
+            entityInfo.watch("itemOnHand", () => entity.itemOnHand);
 
             entityInfo.watch("nickname", () => entity.nickname);
         }
@@ -137,7 +137,7 @@ export class EntityWatcher
                 if(entityInfo.hasValueChanged("lookDir.w")) lookDir.w = entityInfo.getValue("lookDir.w");
                 info.lookDir = lookDir;
 
-                if(entityInfo.hasValueChanged("weapon")) info.weapon = entityInfo.getValue("weapon");
+                if(entityInfo.hasValueChanged("itemOnHand")) info.itemOnHand = entityInfo.getValue("itemOnHand");
 
                 if(entityInfo.hasValueChanged("nickname")) info.nickname = entityInfo.getValue("nickname");
             }

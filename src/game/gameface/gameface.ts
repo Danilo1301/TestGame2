@@ -24,6 +24,8 @@ import { InventoryManager } from "../../shared/inventory/inventoryManager";
 import { Inventory } from "../../shared/inventory/inventory";
 import { ClientInventoryManager } from "../../shared/inventory/client/clientInventoryManager";
 import { MsgBox } from "../msgBox";
+import { MeleeWeapon } from "../weapons/meleeWeapon";
+import { CollisionGroups } from "../collisionGroups";
 
 export class Gameface extends BaseObject
 {
@@ -83,6 +85,8 @@ export class Gameface extends BaseObject
     {
         this.log("start");
 
+        CollisionGroups.init();
+        
         MsgBox.init();
         MsgBox.createMsgBox("Info", "Loading...", "", "");
 
@@ -112,9 +116,6 @@ export class Gameface extends BaseObject
         loadScene.addImage("widget_aim", "widgets/widget_aim.png");
         loadScene.addImage("widget_shoot", "widgets/widget_shoot.png");
         loadScene.addImage("widget_car", "widgets/widget_car.png");
-
-        loadScene.addImage("item_m4", "items/m4/m4.png");
-        loadScene.addImage("item_ak", "items/ak/ak.png");
 
         loadScene.addAudio("shot_m4", "weapons/m4/shot.wav");
 
@@ -159,6 +160,10 @@ export class Gameface extends BaseObject
                     hitEntity: entity?.id
                 });
             }
+        });
+
+        this.game.events.on("melee_weapon_attack", (meleeWeapon: MeleeWeapon) => {
+            GameScene.Instance.clientEntityManager.onMeleeWeaponAttack(meleeWeapon);
         });
 
         Input.events.on("pointerup", () => {

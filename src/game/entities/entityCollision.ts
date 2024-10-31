@@ -129,6 +129,8 @@ export interface MakeBodyOptions {
 
     group?: number
     mask?: number
+
+    sensor?: boolean
 }
 
 export class EntityCollision
@@ -309,6 +311,7 @@ export class EntityCollision
     public setBodyId(id: string)
     {
         (this.body as any).uniqueId = id;
+        this.body!.setUserPointer(id);
     }
     
     public createCollisionsFromGLTF(gltf: GLTFData)

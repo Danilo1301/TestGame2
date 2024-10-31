@@ -5,6 +5,7 @@ import { Weapon } from '../weapons/weapon';
 import { Entity } from './entity';
 import THREE from 'three';
 import { Vehicle } from './vehicle';
+import { MeleeWeapon } from '../weapons/meleeWeapon';
 
 export class Ped extends Entity
 {
@@ -21,6 +22,9 @@ export class Ped extends Entity
     public controlledByPlayer: boolean = false;
 
     public weapon?: Weapon;
+    public meleeWeapon?: MeleeWeapon;
+
+    public itemOnHand: string = "";
 
     public onVehicle?: Vehicle;
 
@@ -82,14 +86,20 @@ export class Ped extends Entity
     private updateWeapon()
     {
         const weapon = this.weapon;
-
-        if(!weapon) return;
-
-        if(this.mouse1)
+        if(weapon)
         {
-            if(weapon.canShoot())
+            if(this.mouse1)
             {
-                weapon.shoot();
+                if(weapon.canShoot()) weapon.shoot();
+            }
+        }
+        
+        const meleeWeapon = this.meleeWeapon;
+        if(meleeWeapon)
+        {
+            if(this.mouse1)
+            {
+                if(meleeWeapon.canAttack()) meleeWeapon.attack();
             }
         }
     }
@@ -250,26 +260,54 @@ export class Ped extends Entity
         this.lookAt(position.x() + offsetX, position.y() + offsetY, position.z() + offsetZ);
     }
 
-    public equipWeapon(id: string)
+    public equipItem(id: string)
     {
+        this.itemOnHand = id;
+
+        this.weapon = undefined;
+        this.meleeWeapon = undefined;
+
+        if(id == "") return;
+
+        const itemManager = this.game.itemManager;
+        const itemData = itemManager.getItemData(id)!;
+
+        if(itemData.weaponId != undefined) this.equipWeapon(id);
+    }
+
+    private equipWeapon(id: string)
+    {
+        this.itemOnHand = id;
+        
         if(id == "")
         {
             this.weapon = undefined;
+            this.meleeWeapon = undefined;
             return;
         }
 
         const weaponData = this.game.weapons.getWeaponData(id);
+        const meleeWeaponData = this.game.weapons.getMeleeWeaponData(id);
 
-        if(!weaponData)
+        if(!weaponData && ! meleeWeaponData)
         {
             console.error("Ped: Weapon ID " + id + " not found");
             return;
         }
 
-        const weapon = new Weapon(weaponData);
-        weapon.ped = this;
+        if(weaponData)
+        {
+            const weapon = new Weapon(weaponData);
+            weapon.ped = this;
+            this.weapon = weapon;
+        }
 
-        this.weapon = weapon;
+        if(meleeWeaponData)
+        {
+            const meleeWeapon = new MeleeWeapon(meleeWeaponData);
+            meleeWeapon.ped = this;
+            this.meleeWeapon = meleeWeapon;
+        }
     }
 
     public getInputDir()

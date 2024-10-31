@@ -6,8 +6,12 @@ import { Entity } from "../entities/entity";
 import { Ped } from "../entities/ped";
 import { Game } from "../game/game";
 
-export interface WeaponData {
+export interface BasicWeaponData {
     id: string
+    damage: number
+}
+
+export interface WeaponData extends BasicWeaponData {
     anim: string
 }
 
@@ -142,7 +146,7 @@ export class Weapon extends BaseObject {
 
         if(entity.health <= 0)
         {
-            this.ped!.game.onEntityDeath(entity, this);
+            this.ped!.game.onEntityDeath(entity, this.ped, this.weaponData.id);
         }
 
         // const force = new Ammo.btVector3(0, 1, 0);
